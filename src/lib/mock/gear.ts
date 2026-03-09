@@ -1,0 +1,41 @@
+import type { GearProfile } from "@/lib/types";
+
+export const MOCK_GEAR: GearProfile[] = [
+  {
+    id: "gear1",
+    name: "Main Rig",
+    telescope_name: "Sky-Watcher 72ED",
+    focal_length: 420,
+    aperture: 72,
+    camera_name: "ZWO ASI533MC",
+    sensor_preset: "1inch",
+    pixel_size: 3.76,
+    mount_type: "equatorial",
+    guiding: true,
+    active: true,
+  },
+  {
+    id: "gear2",
+    name: "Wide Field",
+    telescope_name: "Rokinon 14mm",
+    focal_length: 14,
+    aperture: 14,
+    camera_name: "Sony A7III",
+    sensor_preset: "full_frame",
+    mount_type: "equatorial",
+    guiding: false,
+    active: false,
+  },
+  {
+    id: "gear3",
+    name: "Planetary",
+    telescope_name: "Celestron C8",
+    focal_length: 2032,
+    aperture: 203,
+    camera_name: "ZWO ASI178",
+    sensor_preset: "1inch",
+    mount_type: "equatorial",
+    guiding: true,
+    active: false,
+  },
+];

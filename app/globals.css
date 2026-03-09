@@ -1,26 +1,623 @@
 @import "tailwindcss";
 
+/* ========== THEME TOKENS (Normal Mode) ========== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #05070a;
+  --foreground: #fafafa;
+  --accent: #d25e36;
+  --accent-foreground: #fff7ed;
+  /* App shell */
+  --theme-app-bg: #05070a;
+  --theme-panel-bg: rgba(12, 16, 24, 0.85);
+  --theme-elevated: rgba(6, 10, 18, 0.95);
+  --theme-border: rgba(120, 150, 200, 0.1);
+  --theme-border-subtle: rgba(255, 255, 255, 0.06);
+  /* Text */
+  --theme-text-primary: rgba(255, 255, 255, 0.95);
+  --theme-text-secondary: rgba(255, 255, 255, 0.7);
+  --theme-text-muted: rgba(255, 255, 255, 0.5);
+  /* Accent & highlights */
+  --theme-accent: #22d3ee;
+  --theme-accent-soft: rgba(34, 211, 238, 0.25);
+  --theme-glow: rgba(34, 211, 238, 0.25);
+  /* Status/semantic */
+  --theme-success: #34d399;
+  --theme-warning: #f59e0b;
+  --theme-error: #f87171;
+  /* Ambient (background glows) */
+  --theme-ambient-a: rgba(60, 100, 180, 0.02);
+  --theme-ambient-b: rgba(80, 120, 200, 0.015);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-accent: var(--accent);
+  --font-sans: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-orbitron), var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+a, button, select {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Deep-space astronomy interface background - subtle sky-chart grid, not graph paper */
+.space-background {
+  min-height: 100vh;
+  position: relative;
+  background:
+    /* Very subtle radial gradients for space depth */
+    radial-gradient(ellipse 90% 60% at 50% 40%, rgba(60, 100, 180, 0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 20% 25%, rgba(80, 120, 200, 0.015) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 45% at 85% 75%, rgba(80, 120, 200, 0.015) 0%, transparent 50%),
+    /* Faint star noise - 1px points, random-like distribution */
+    radial-gradient(circle 1px at 3% 7%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 17% 23%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 42% 11%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 68% 31%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 91% 19%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 8% 58%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 33% 72%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 55% 84%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 79% 67%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 12% 91%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 88% 93%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 26% 42%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 61% 52%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 73% 8%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 5% 38%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 47% 27%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 94% 45%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 19% 65%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 85% 78%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 37% 16%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 52% 61%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 11% 83%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 96% 56%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 44% 35%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 22% 78%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 67% 14%, rgba(200, 220, 255, 0.12), transparent),
+    /* Secondary diagonal grid - very low opacity to break box appearance */
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent calc(180px * 0.707 - 1px),
+      rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
+      rgba(120, 150, 200, 0.015) calc(180px * 0.707)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent calc(180px * 0.707 - 1px),
+      rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
+      rgba(120, 150, 200, 0.015) calc(180px * 0.707)
+    ),
+    /* Primary grid - vertical & horizontal, 180px spacing, extremely subtle */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 179px,
+      rgba(120, 150, 200, 0.03) 179px,
+      rgba(120, 150, 200, 0.03) 180px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 179px,
+      rgba(120, 150, 200, 0.03) 179px,
+      rgba(120, 150, 200, 0.03) 180px
+    ),
+    /* Base deep-space gradient */
+    linear-gradient(
+      180deg,
+      #05070a 0%,
+      #06090f 50%,
+      #020305 100%
+    );
+  background-attachment: fixed;
+}
+
+/* UI cards for astronomy interface - readable over space background */
+.space-card {
+  background: rgba(12, 16, 24, 0.85);
+  border: 1px solid rgba(120, 150, 200, 0.1);
+  border-radius: 0.75rem;
+}
+
+/* Create Mission page only: restrained deep-space backdrop */
+.mission-space-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  /* Layer 1: dark blue base + vignette */
+  background:
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0, 5, 15, 0.5) 100%),
+    linear-gradient(180deg, #050a14 0%, #060d1a 40%, #060d1a 60%, #030712 100%);
+  background-color: #050a14;
+  background-attachment: scroll;
+}
+
+/* Layer 2: one faint diagonal nebula band - distant space dust */
+.mission-space-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    125deg,
+    transparent 10%,
+    transparent 25%,
+    rgba(90, 110, 160, 0.06) 38%,
+    rgba(120, 80, 140, 0.04) 50%,
+    rgba(60, 90, 140, 0.05) 62%,
+    transparent 78%,
+    transparent 95%
+  );
+}
+
+/* Layer 3: one distant celestial body + sparse stars */
+.mission-space-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background-image:
+    /* One faint off-center moon - top-right, cool gray-blue */
+    radial-gradient(circle 35% at 92% 8%, rgba(190, 200, 220, 0.04) 0%, rgba(150, 165, 190, 0.02) 40%, transparent 70%),
+    /* Sparse stars - very low density */
+    radial-gradient(circle 1px at 8% 12%, rgba(220, 230, 255, 0.10), transparent),
+    radial-gradient(circle 1px at 78% 22%, rgba(220, 230, 255, 0.10), transparent),
+    radial-gradient(circle 1px at 22% 68%, rgba(220, 230, 255, 0.10), transparent),
+    radial-gradient(circle 1px at 88% 88%, rgba(220, 230, 255, 0.10), transparent),
+    radial-gradient(circle 1px at 52% 8%, rgba(220, 230, 255, 0.10), transparent);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Mission form cards - strong, crisp, dominant */
+.mission-space-page .mission-page-card {
+  background: rgba(6, 10, 18, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(90, 130, 200, 0.14);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 10;
+}
+
+/* Premium header area */
+.mission-space-page .mission-page-header {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(120, 160, 220, 0.08);
+}
+
+.mission-space-page .mission-page-progress {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.mission-space-page .mission-page-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(96, 165, 250, 0.5) 0%, rgba(59, 130, 246, 0.65) 100%);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+/* CTA buttons - purple primary per design system */
+.mission-space-page .mission-page-cta {
+  background: rgba(124, 58, 237, 0.85) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: white !important;
+}
+.mission-space-page .mission-page-cta:hover {
+  background: rgba(139, 92, 246, 0.95) !important;
+}
+
+/* Focus states - blue to match section */
+.mission-space-page input:focus-visible,
+.mission-space-page select:focus-visible {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+}
+
+.mission-space-page input[type="checkbox"]:checked {
+  accent-color: rgb(96, 165, 250);
+}
+
+/* Shared mission console — panel, labels, meta (used by New Mission + Tonight) */
+.mission-panel {
+  background: rgba(6, 10, 18, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(90, 130, 200, 0.14);
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 10;
+}
+
+.mission-section-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mission-meta-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mission-meta-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Atlas Dark design system utilities */
+@layer utilities {
+  .font-display { font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif; }
+  .page-container { @apply max-w-6xl mx-auto space-y-4; }
+  .section-card { @apply rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)]; }
+  .compact-card { @apply rounded-xl border border-white/10 bg-white/[0.03] p-3; }
+  .subtle-divider { @apply border-t border-white/10; }
+  .label-text { @apply text-xs font-medium text-white/60; }
+  /* Dashboard: space/technical font for structure only */
+  .dash-section-title { @apply font-display text-xs font-medium uppercase tracking-[0.1em] text-zinc-500; }
+  .dash-pill { @apply font-display text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-400; }
+  .dash-metric { @apply font-display text-xs tabular-nums; }
+}
+
+/* Dashboard premium color tokens - graphite, steel-blue, soft amber */
+:root {
+  --dash-accent: 99 102 241; /* indigo-500 */
+  --dash-accent-muted: 129 140 248; /* indigo-400 */
+  --dash-caution: 245 158 11; /* amber-500 */
+  --dash-success: 52 211 153; /* emerald-400 */
+  --dash-track-inactive: 63 63 70; /* zinc-700 */
+  --dash-track-active: 99 102 241; /* indigo-500 */
+}
+
+/* ========== NIGHT VISION / FIELD MODE (Global Theme) ========== */
+[data-theme="field"],
+.field-mode {
+  /* Theme tokens — field-safe crimson/maroon, no blue/cyan */
+  --theme-app-bg: #080406;
+  --theme-panel-bg: rgba(16, 8, 10, 0.92);
+  --theme-elevated: rgba(20, 10, 12, 0.95);
+  --theme-border: rgba(100, 50, 55, 0.22);
+  --theme-border-subtle: rgba(120, 60, 65, 0.15);
+  --theme-text-primary: rgba(220, 190, 190, 0.95);
+  --theme-text-secondary: rgba(200, 160, 160, 0.8);
+  --theme-text-muted: rgba(160, 110, 110, 0.65);
+  --theme-accent: #c06060;
+  --theme-accent-soft: rgba(180, 80, 80, 0.35);
+  --theme-glow: rgba(160, 60, 60, 0.25);
+  --theme-success: rgba(140, 100, 100, 0.9);
+  --theme-warning: rgba(180, 120, 80, 0.9);
+  --theme-error: #c05050;
+  --theme-ambient-a: rgba(80, 30, 40, 0.03);
+  --theme-ambient-b: rgba(100, 40, 50, 0.02);
+  /* Astro timeline */
+  --astro-track-base: rgba(60, 40, 45, 0.5);
+  --astro-visible: rgba(90, 55, 60, 0.55);
+  --astro-optimal: rgba(140, 70, 75, 0.5);
+  --astro-moon: rgba(160, 100, 70, 0.4);
+  --astro-cloud: rgba(80, 60, 65, 0.45);
+  --astro-now: #c06060;
+  --astro-bg: #080406;
+}
+
+/* ----- App / page background ----- */
+[data-theme="field"] body,
+.field-mode body {
+  color: var(--theme-text-primary);
+}
+
+[data-theme="field"] .space-background,
+.field-mode .space-background {
+  background:
+    radial-gradient(circle 1px at 3% 7%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 17% 23%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 42% 11%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 68% 31%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 91% 19%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 8% 58%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 33% 72%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 55% 84%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 79% 67%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(ellipse 90% 60% at 50% 40%, var(--theme-ambient-a) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 20% 25%, var(--theme-ambient-b) 0%, transparent 50%),
+    linear-gradient(180deg, #080406 0%, #0a0507 50%, #060304 100%) !important;
+  background-color: var(--theme-app-bg) !important;
+}
+
+[data-theme="field"] .mission-space-page,
+.field-mode .mission-space-page {
+  background: var(--theme-app-bg) !important;
+  background-color: var(--theme-app-bg) !important;
+}
+
+[data-theme="field"] .mission-space-page::before,
+.field-mode .mission-space-page::before {
+  background: linear-gradient(
+    125deg,
+    transparent 10%,
+    transparent 25%,
+    rgba(90, 50, 60, 0.04) 38%,
+    rgba(100, 50, 65, 0.03) 50%,
+    rgba(80, 45, 55, 0.03) 62%,
+    transparent 78%,
+    transparent 95%
+  ) !important;
+}
+
+[data-theme="field"] .mission-space-page::after,
+.field-mode .mission-space-page::after {
+  background-image:
+    radial-gradient(circle 35% at 92% 8%, rgba(140, 80, 90, 0.03) 0%, transparent 70%),
+    radial-gradient(circle 1px at 8% 12%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 78% 22%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 22% 68%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 88% 88%, rgba(200, 140, 140, 0.08), transparent),
+    radial-gradient(circle 1px at 52% 8%, rgba(200, 140, 140, 0.08), transparent) !important;
+}
+
+/* ----- Side rail / navigation ----- */
+[data-theme="field"] .border-blue-950\/40,
+[data-theme="field"] [class*="border-blue-950"],
+.field-mode .border-blue-950\/40,
+.field-mode [class*="border-blue-950"] {
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme="field"] .theme-shell-rail,
+.field-mode .theme-shell-rail {
+  background-color: var(--theme-elevated) !important;
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme="field"] .bg-\[\#d25e36\],
+.field-mode .bg-\[\#d25e36\] {
+  background-color: var(--theme-accent) !important;
+}
+
+[data-theme="field"] .bg-\[\#d25e36\]\/20,
+[data-theme="field"] [class*="bg-[#d25e36]/20"],
+.field-mode [class*="bg-[#d25e36]"] {
+  background-color: var(--theme-accent-soft) !important;
+}
+
+[data-theme="field"] .bg-\[\#d25e36\],
+.field-mode aside a[class*="bg-"] {
+  background-color: var(--theme-accent-soft) !important;
+}
+
+/* ----- Top toolbar ----- */
+[data-theme="field"] .theme-shell-header,
+.field-mode .theme-shell-header {
+  background-color: var(--theme-elevated) !important;
+  border-color: var(--theme-border) !important;
+}
+
+/* ----- Cards and panels ----- */
+[data-theme="field"] .mission-panel,
+[data-theme="field"] .mission-page-card,
+[data-theme="field"] .space-card,
+[data-theme="field"] [class*="bg-zinc-900"],
+[data-theme="field"] [class*="bg-black/20"],
+[data-theme="field"] [class*="border-neutral-800"],
+.field-mode .mission-panel,
+.field-mode .mission-page-card,
+.field-mode .space-card,
+.field-mode .section-card,
+.field-mode .compact-card {
+  background-color: var(--theme-panel-bg) !important;
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme="field"] .mission-section-label,
+[data-theme="field"] .mission-meta-label,
+[data-theme="field"] .mission-meta-value,
+.field-mode .mission-section-label,
+.field-mode .mission-meta-label,
+.field-mode .mission-meta-value {
+  color: var(--theme-text-muted) !important;
+}
+
+.field-mode .mission-meta-value {
+  color: var(--theme-text-primary) !important;
+}
+
+/* ----- Pills / chips / badges ----- */
+[data-theme="field"] .bg-white\/5,
+[data-theme="field"] .border-white\/10,
+[data-theme="field"] [class*="bg-zinc-500/20"],
+[data-theme="field"] [class*="bg-emerald-500/20"],
+[data-theme="field"] [class*="bg-violet-500/20"],
+[data-theme="field"] [class*="bg-cyan-500/20"],
+[data-theme="field"] [class*="bg-amber-500/20"],
+[data-theme="field"] [class*="bg-rose-500/20"],
+.field-mode [class*="bg-white/5"],
+.field-mode [class*="border-white/10"],
+.field-mode [class*="rounded-full"][class*="px-2"],
+.field-mode [class*="rounded"][class*="px-2"][class*="py-0.5"] {
+  background-color: var(--theme-accent-soft) !important;
+  border-color: var(--theme-border) !important;
+  color: var(--theme-text-secondary) !important;
+}
+
+/* Semantic pills: Ready, Offline-ready, CURRENT, status chips */
+[data-theme="field"] [class*="text-emerald-400"],
+[data-theme="field"] [class*="text-emerald-500"],
+[data-theme="field"] [class*="text-violet-400"],
+[data-theme="field"] [class*="text-violet-500"],
+[data-theme="field"] [class*="text-cyan-400"],
+[data-theme="field"] [class*="text-cyan-300"],
+[data-theme="field"] [class*="text-cyan-500"],
+.field-mode [class*="text-emerald"],
+.field-mode [class*="text-violet"],
+.field-mode [class*="text-cyan"] {
+  color: var(--theme-accent) !important;
+}
+
+[data-theme="field"] [class*="bg-emerald-500"],
+[data-theme="field"] [class*="bg-violet-500"],
+[data-theme="field"] [class*="bg-cyan-500"],
+[data-theme="field"] [class*="border-cyan-500"],
+[data-theme="field"] [class*="border-emerald-500"],
+[data-theme="field"] [class*="border-violet-500"],
+.field-mode [class*="bg-emerald"],
+.field-mode [class*="bg-violet"],
+.field-mode [class*="bg-cyan"],
+.field-mode [class*="border-cyan"],
+.field-mode [class*="border-emerald"],
+.field-mode [class*="border-violet"] {
+  background-color: var(--theme-accent-soft) !important;
+  border-color: var(--theme-border) !important;
+}
+
+/* Amber/rose status — subdued */
+[data-theme="field"] [class*="text-amber-400"],
+[data-theme="field"] [class*="text-rose-400"],
+.field-mode [class*="text-amber"],
+.field-mode [class*="text-rose"] {
+  color: var(--theme-warning) !important;
+}
+
+[data-theme="field"] [class*="bg-amber-500"],
+[data-theme="field"] [class*="bg-rose-500"],
+.field-mode [class*="bg-amber"],
+.field-mode [class*="bg-rose"] {
+  background-color: rgba(160, 90, 70, 0.35) !important;
+}
+
+/* ----- Text hierarchy ----- */
+[data-theme="field"] .text-zinc-100,
+[data-theme="field"] .text-zinc-200,
+[data-theme="field"] .text-zinc-300,
+[data-theme="field"] .text-zinc-400,
+[data-theme="field"] .text-zinc-500,
+[data-theme="field"] .text-white,
+.field-mode .text-zinc-100,
+.field-mode .text-zinc-200,
+.field-mode .text-zinc-300,
+.field-mode .text-zinc-400,
+.field-mode .text-zinc-500 {
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="field"] .text-zinc-500,
+[data-theme="field"] .text-zinc-600,
+[data-theme="field"] .text-slate-500,
+.field-mode .text-zinc-500,
+.field-mode .text-zinc-600,
+.field-mode .text-slate-500 {
+  color: var(--theme-text-muted) !important;
+}
+
+/* ----- Dropdowns / selects / inputs ----- */
+[data-theme="field"] [class*="border-zinc-700"],
+[data-theme="field"] [class*="bg-zinc-800"],
+[data-theme="field"] [class*="bg-zinc-900"],
+.field-mode [class*="border-zinc"],
+.field-mode [class*="bg-zinc-8"],
+.field-mode [class*="bg-zinc-9"] {
+  background-color: var(--theme-panel-bg) !important;
+  border-color: var(--theme-border) !important;
+}
+
+[data-theme="field"] input:focus-visible,
+[data-theme="field"] select:focus-visible,
+.field-mode input:focus-visible,
+.field-mode select:focus-visible {
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 0 2px var(--theme-glow) !important;
+}
+
+[data-theme="field"] input[type="checkbox"]:checked,
+.field-mode input[type="checkbox"]:checked {
+  accent-color: var(--theme-accent) !important;
+}
+
+/* ----- Dividers, borders ----- */
+[data-theme="field"] .border-white\/10,
+[data-theme="field"] .border-white\/5,
+[data-theme="field"] [class*="border-neutral"],
+.field-mode .border-white\/10,
+.field-mode .border-white\/5,
+.field-mode [class*="border-white"],
+.field-mode .subtle-divider {
+  border-color: var(--theme-border-subtle) !important;
+}
+
+/* ----- Focus states / ring ----- */
+[data-theme="field"] [class*="ring-cyan"],
+[data-theme="field"] [class*="focus:ring-cyan"],
+.field-mode [class*="ring-cyan"],
+.field-mode [class*="focus:ring-cyan"] {
+  --tw-ring-color: var(--theme-accent) !important;
+}
+
+/* ----- CTA / accent buttons ----- */
+[data-theme="field"] .mission-page-cta,
+.field-mode .mission-page-cta {
+  background: var(--theme-accent-soft) !important;
+  border-color: var(--theme-accent) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+[data-theme="field"] .mission-page-cta:hover,
+.field-mode .mission-page-cta:hover {
+  background: var(--theme-accent) !important;
+}
+
+/* ----- Progress bar ----- */
+[data-theme="field"] .mission-page-progress-fill,
+.field-mode .mission-page-progress-fill {
+  background: linear-gradient(90deg, var(--theme-accent-soft) 0%, var(--theme-accent) 100%) !important;
+}
+
+/* ----- Left rail specific ----- */
+
+[data-theme="field"] aside .shadow-\[4px_0_24px,
+.field-mode aside .shadow-\[4px_0_24px {
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ----- dash-pill, dash-section-title ----- */
+[data-theme="field"] .dash-pill,
+[data-theme="field"] .dash-section-title,
+.field-mode .dash-pill,
+.field-mode .dash-section-title {
+  color: var(--theme-text-muted) !important;
+}
+
+/* ----- Main content area ----- */
+[data-theme="field"] .min-h-screen.text-zinc-100,
+.field-mode .min-h-screen.text-zinc-100 {
+  color: var(--theme-text-primary) !important;
 }

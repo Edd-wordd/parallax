@@ -71,7 +71,7 @@ export function LeftRail() {
         </Link>
         <div className="min-w-0 flex-1 overflow-hidden">
           <span className="block truncate font-display text-sm font-semibold text-white tracking-wide">
-            Astro Ops
+            Parallax
           </span>
           <span className="block truncate text-xs text-slate-500">
             All Missions

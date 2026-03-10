@@ -20,7 +20,7 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: "Astro Ops - AI Astrophotography Planner",
+  title: "Parallax - AI Astrophotography Planner",
   description: "Plan your astrophotography sessions with AI-powered recommendations",
 };
 

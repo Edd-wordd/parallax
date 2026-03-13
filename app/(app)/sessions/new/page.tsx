@@ -22,7 +22,7 @@ function LogSessionContent() {
   );
 }
 
-export default function LogNewPage() {
+export default function LogSessionPage() {
   return (
     <Suspense fallback={<div className="animate-pulse">Loading...</div>}>
       <LogSessionContent />

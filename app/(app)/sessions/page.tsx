@@ -5,21 +5,30 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { MOCK_SESSIONS } from "@/lib/mock/sessionHistory";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { SessionConditionSummary } from "@/components/sky-intelligence";
 import { MOCK_SESSION_CONDITIONS } from "@/lib/mock/skyIntelligence";
+import type { OutcomeRating } from "@/types/session";
 
 const LOC_OPTIONS = [
   { value: "", label: "All locations" },
   ...MOCK_LOCATIONS.map((l) => ({ value: l.id, label: l.name })),
 ];
 
+const OUTCOME_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "success", label: "Success (A/B)" },
+  { value: "partial", label: "Partial (C)" },
+  { value: "failed", label: "Failed (D/F)" },
+];
+
 export default function SessionsPage() {
   const [locationFilter, setLocationFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [outcomeFilter, setOutcomeFilter] = useState("");
 
   const filtered = useMemo(() => {
     let list = [...MOCK_SESSIONS];
@@ -32,10 +41,22 @@ export default function SessionsPage() {
     if (dateTo) {
       list = list.filter((s) => new Date(s.date) <= new Date(dateTo));
     }
+    if (outcomeFilter) {
+      const successRatings: OutcomeRating[] = ["A", "B"];
+      const partialRatings: OutcomeRating[] = ["C"];
+      const failedRatings: OutcomeRating[] = ["D", "F"];
+      if (outcomeFilter === "success") {
+        list = list.filter((s) => successRatings.includes(s.outcomeRating));
+      } else if (outcomeFilter === "partial") {
+        list = list.filter((s) => partialRatings.includes(s.outcomeRating));
+      } else if (outcomeFilter === "failed") {
+        list = list.filter((s) => failedRatings.includes(s.outcomeRating));
+      }
+    }
     return list.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [locationFilter, dateFrom, dateTo]);
+  }, [locationFilter, dateFrom, dateTo, outcomeFilter]);
 
   return (
     <motion.div
@@ -43,7 +64,12 @@ export default function SessionsPage() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <h1 className="text-2xl font-bold">Session History</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Sessions</h1>
+        <Link href="/sessions/new">
+          <Button>Log session</Button>
+        </Link>
+      </div>
 
       <div className="flex flex-wrap gap-4">
         <Select
@@ -65,6 +91,12 @@ export default function SessionsPage() {
           onChange={(e) => setDateTo(e.target.value)}
           className="rounded border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
           placeholder="To"
+        />
+        <Select
+          options={OUTCOME_OPTIONS}
+          value={outcomeFilter}
+          onValueChange={setOutcomeFilter}
+          className="w-36"
         />
       </div>
 

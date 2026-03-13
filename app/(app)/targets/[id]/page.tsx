@@ -58,7 +58,7 @@ export default function TargetDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button>Add to Tonight Plan</Button>
-          <Link href={`/logs/new?target=${id}`}>
+          <Link href={`/sessions/new?target=${id}`}>
             <Button variant="outline">Log this target</Button>
           </Link>
         </div>

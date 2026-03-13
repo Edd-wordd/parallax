@@ -2,13 +2,58 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { X, MapPin } from "lucide-react";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+type LocationFormState = {
+  name: string;
+  latitude: number;
+  longitude: number;
+  bortle: number;
+  notes: string;
+};
+
+const initialLocationForm: LocationFormState = {
+  name: "",
+  latitude: NaN,
+  longitude: NaN,
+  bortle: NaN,
+  notes: "",
+};
 
 export default function LocationsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [darkerSitesOpen, setDarkerSitesOpen] = useState(false);
+  const [form, setForm] = useState<LocationFormState>(initialLocationForm);
+  const [geolocating, setGeolocating] = useState(false);
+
+  const updateForm = (updates: Partial<LocationFormState>) => {
+    setForm((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleClose = () => {
+    setModalOpen(false);
+    setForm(initialLocationForm);
+  };
+
+  const handleUseCurrentLocation = async () => {
+    if (!navigator.geolocation) return;
+    setGeolocating(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      updateForm({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    } finally {
+      setGeolocating(false);
+    }
+  };
 
   return (
     <motion.div
@@ -50,23 +95,126 @@ export default function LocationsPage() {
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          onClick={handleClose}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 w-full max-w-md"
+            className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 shadow-xl"
           >
-            <h3 className="text-lg font-medium mb-4">Add location (mock)</h3>
-            <p className="text-sm text-zinc-400 mb-4">
-              Fields: name, lat, lon, bortle, notes (horizon obstructions).
-            </p>
-            <div className="flex gap-2">
-              <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button variant="secondary" onClick={() => setModalOpen(false)}>Save</Button>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+              <h2 className="text-sm font-medium text-zinc-200">Add location</h2>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="p-1 -m-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleClose();
+              }}
+            >
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Name</label>
+                  <Input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => updateForm({ name: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Latitude</label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={Number.isNaN(form.latitude) ? "" : form.latitude}
+                      onChange={(e) =>
+                        updateForm({ latitude: parseFloat(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1">Longitude</label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="any"
+                      value={Number.isNaN(form.longitude) ? "" : form.longitude}
+                      onChange={(e) =>
+                        updateForm({ longitude: parseFloat(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUseCurrentLocation}
+                    disabled={geolocating}
+                  >
+                    <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                    {geolocating ? "Getting location…" : "Use my current location"}
+                  </Button>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Bortle</label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={9}
+                    step={1}
+                    value={Number.isNaN(form.bortle) ? "" : form.bortle}
+                    onChange={(e) => {
+                      const v = e.target.value === "" ? NaN : parseFloat(e.target.value);
+                      if (Number.isNaN(v)) {
+                        updateForm({ bortle: NaN });
+                      } else {
+                        const clamped = Math.min(9, Math.max(1, Math.round(v)));
+                        updateForm({ bortle: clamped });
+                      }
+                    }}
+                  />
+                  <p className="mt-1 text-xs text-zinc-500">1 (darkest) – 9 (city)</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">
+                    Notes <span className="text-zinc-600">(optional)</span>
+                  </label>
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) => updateForm({ notes: e.target.value })}
+                    rows={3}
+                    className="flex w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 focus-visible:border-teal-500/40 resize-none"
+                    placeholder="e.g. horizon obstructions, access notes"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-zinc-800">
+                  <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm">
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

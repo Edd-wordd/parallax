@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-interface NoMissionEmptyStateProps {
-  onQuickMission: () => void;
-}
-
-export function NoMissionEmptyState({ onQuickMission }: NoMissionEmptyStateProps) {
+export function NoMissionEmptyState() {
   return (
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
       <div className="px-5 py-5 text-center">
@@ -23,9 +19,6 @@ export function NoMissionEmptyState({ onQuickMission }: NoMissionEmptyStateProps
               Create Mission
             </Button>
           </Link>
-          <Button variant="secondary" size="sm" className="text-sm" onClick={onQuickMission}>
-            Quick Mission
-          </Button>
         </div>
       </div>
     </div>

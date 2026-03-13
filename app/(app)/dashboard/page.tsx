@@ -48,16 +48,20 @@ function generateId(): string {
 /** Map recommendation type string to Mission targetType. */
 function toTargetType(type: string): MissionTarget["targetType"] {
   if (type.toLowerCase().includes("nebula")) return "nebula";
-  if (type.toLowerCase().includes("cluster")) return type.includes("Open") ? "open_cluster" : "globular_cluster";
+  if (type.toLowerCase().includes("cluster"))
+    return type.includes("Open") ? "open_cluster" : "globular_cluster";
   if (type.toLowerCase().includes("galaxy")) return "galaxy";
   return "nebula";
 }
 
 /** Convert RecommendedTarget to MissionTarget. */
 function recommendedToMissionTarget(
-  target: (typeof RECOMMENDED_TARGETS)[0]
+  target: (typeof RECOMMENDED_TARGETS)[0],
 ): MissionTarget {
-  const win = TARGET_WINDOW_PARTS[target.id] ?? { start: "21:00", end: "00:00" };
+  const win = TARGET_WINDOW_PARTS[target.id] ?? {
+    start: "21:00",
+    end: "00:00",
+  };
   return {
     targetId: target.id,
     targetName: target.name,
@@ -118,9 +122,22 @@ export default function DashboardPage() {
 
   const activeLoc = useMemo(
     () =>
-      MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ?? MOCK_LOCATIONS[0],
+      MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ??
+      MOCK_LOCATIONS[0],
     [activeLocationId],
   );
+  const [hasGear, setHasGear] = useState(true);
+  const [hasLocation, setHasLocation] = useState(true);
+  const canCreateMission = hasGear && hasLocation;
+  const createMissionHelperText =
+    !hasGear && !hasLocation
+      ? "Set up a gear profile and location to create your first mission."
+      : hasGear && !hasLocation
+        ? "Add a location to get started."
+        : !hasGear && hasLocation
+          ? "Add a gear profile to get started."
+          : null;
+
   const activeMission = activeMissionId
     ? (getMission(activeMissionId) ?? null)
     : null;
@@ -191,14 +208,14 @@ export default function DashboardPage() {
       setActiveMission,
       clearPlan,
       setSelectedSetupImpactTargetId,
-    ]
+    ],
   );
 
   const handleAddToPlan = useCallback(
     (target: (typeof RECOMMENDED_TARGETS)[0]) => {
       addToPlan(target.id);
     },
-    [addToPlan]
+    [addToPlan],
   );
 
   /** Mock optimal sequence: Pleiades (early) → M42 (mid) → Rosette (late). */
@@ -285,43 +302,6 @@ export default function DashboardPage() {
     clearPlan,
   ]);
 
-  const handleQuickMission = useCallback(() => {
-    const mission = {
-      id: generateId(),
-      name: "Tonight's Quick Mission",
-      dateTime: new Date().toISOString(),
-      locationId: activeLocationId,
-      gearId: activeGearId,
-      constraints: {
-        minAltitude,
-        moonTolerance,
-        targetTypes,
-        driveToDarker,
-        driveRadius,
-      },
-      targets: generateMockPlan(
-        activeLocationId,
-        activeGearId,
-        new Date().toISOString(),
-        { minAltitude, moonTolerance, targetTypes, driveToDarker, driveRadius },
-      ),
-      status: "ready" as const,
-      createdAt: new Date().toISOString(),
-    };
-    addMission(mission);
-    setActiveMission(mission.id);
-  }, [
-    activeLocationId,
-    activeGearId,
-    minAltitude,
-    moonTolerance,
-    targetTypes,
-    driveToDarker,
-    driveRadius,
-    addMission,
-    setActiveMission,
-  ]);
-
   const timelineDateContext = useMemo(() => {
     const dt = activeMission?.dateTime ?? dateTime;
     if (!dt) return null;
@@ -357,13 +337,14 @@ export default function DashboardPage() {
     [activeMission?.targets],
   );
 
-  const activeMissionFirstTargetId = activeMission?.targets[0]?.targetId ?? null;
+  const activeMissionFirstTargetId =
+    activeMission?.targets[0]?.targetId ?? null;
   const plannedTargetsResolved = useMemo(
     () =>
       plannedTargets
         .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
         .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t),
-    [plannedTargets]
+    [plannedTargets],
   );
   const plannedFirstTargetId = plannedTargetsResolved[0]?.id ?? null;
 
@@ -371,11 +352,9 @@ export default function DashboardPage() {
   const topRecommendedTarget = useMemo(
     () =>
       RECOMMENDED_TARGETS.length > 0
-        ? RECOMMENDED_TARGETS.reduce((a, b) =>
-            a.score >= b.score ? a : b
-          )
+        ? RECOMMENDED_TARGETS.reduce((a, b) => (a.score >= b.score ? a : b))
         : null,
-    []
+    [],
   );
 
   /** Clear active mission and return to no-mission state. */
@@ -389,12 +368,15 @@ export default function DashboardPage() {
     plannedFirstTargetId ??
     null;
   const setupImpactItems = setupImpactTargetId
-    ? (SETUP_IMPACT_BY_TARGET[setupImpactTargetId] ?? SETUP_IMPACT_BY_TARGET.m42 ?? [])
+    ? (SETUP_IMPACT_BY_TARGET[setupImpactTargetId] ??
+      SETUP_IMPACT_BY_TARGET.m42 ??
+      [])
     : [];
   const setupImpactTargetName = setupImpactTargetId
     ? (RECOMMENDED_TARGETS.find((t) => t.id === setupImpactTargetId)?.name ??
-       activeMission?.targets.find((t) => t.targetId === setupImpactTargetId)?.targetName ??
-       null)
+      activeMission?.targets.find((t) => t.targetId === setupImpactTargetId)
+        ?.targetName ??
+      null)
     : null;
   const setupImpactEmpty = !setupImpactTargetId && !hasActiveMission;
 
@@ -405,14 +387,19 @@ export default function DashboardPage() {
   const firstMissionTarget = activeMission?.targets?.[0];
   const currentMissionTargetContext = useMemo(() => {
     if (hasActiveMission && firstMissionTarget) {
-      return { targetId: firstMissionTarget.targetId, targetName: firstMissionTarget.targetName };
+      return {
+        targetId: firstMissionTarget.targetId,
+        targetName: firstMissionTarget.targetName,
+      };
     }
     if (plannedTargetsResolved.length > 0) {
       const selectedInPlan =
         selectedSetupImpactTargetId &&
         plannedTargets.includes(selectedSetupImpactTargetId);
       const target = selectedInPlan
-        ? plannedTargetsResolved.find((t) => t.id === selectedSetupImpactTargetId)
+        ? plannedTargetsResolved.find(
+            (t) => t.id === selectedSetupImpactTargetId,
+          )
         : plannedTargetsResolved[0];
       return target ? { targetId: target.id, targetName: target.name } : null;
     }
@@ -426,7 +413,8 @@ export default function DashboardPage() {
   ]);
 
   const currentPlanningTargetId = currentMissionTargetContext?.targetId ?? null;
-  const currentPlanningTargetName = currentMissionTargetContext?.targetName ?? null;
+  const currentPlanningTargetName =
+    currentMissionTargetContext?.targetName ?? null;
 
   const exposurePlan = currentPlanningTargetId
     ? (EXPOSURE_PLANS_BY_TARGET[currentPlanningTargetId] ?? null)
@@ -456,7 +444,8 @@ export default function DashboardPage() {
           missionStatus={missionStatus}
           activeLocationId={activeLocationId}
           activeGearId={activeGearId}
-          onQuickMission={handleQuickMission}
+          canCreateMission={canCreateMission}
+          createMissionHelperText={createMissionHelperText}
           onClearMission={handleClearMission}
           activeMission={
             hasActiveMission && activeMission ? activeMission : null
@@ -464,7 +453,9 @@ export default function DashboardPage() {
           plannedTargets={plannedTargetsResolved}
           plannedTargetNames={plannedTargetsResolved.map((t) => t.name)}
           onStartPlannedMission={
-            plannedTargetsResolved.length > 0 ? handleStartPlannedMission : undefined
+            plannedTargetsResolved.length > 0
+              ? handleStartPlannedMission
+              : undefined
           }
           noTargetsMessage={
             hasActiveMission && activeMission?.targets.length === 0
@@ -472,14 +463,18 @@ export default function DashboardPage() {
               : undefined
           }
           missionInitializedFromRecommendation={
-            !!(hasActiveMission &&
+            !!(
+              hasActiveMission &&
               activeMission?.targets.length === 1 &&
               topRecommendedTarget &&
-              activeMission.targets[0]?.targetId === topRecommendedTarget.id)
+              activeMission.targets[0]?.targetId === topRecommendedTarget.id
+            )
           }
         />
         <MissionWhyTonightCard
-          hasActiveMission={hasActiveMission || plannedTargetsResolved.length > 0}
+          hasActiveMission={
+            hasActiveMission || plannedTargetsResolved.length > 0
+          }
           points={
             hasActiveMission && activeMission?.targets[0]
               ? getMissionWhyTonightPoints(activeMission.targets[0].targetName)
@@ -497,17 +492,22 @@ export default function DashboardPage() {
         <DashboardImagingWindowCard
           activeLocationId={activeLocationId}
           dateTime={dateTime}
-          hasActiveMission={hasActiveMission || plannedTargetsResolved.length > 0}
+          hasActiveMission={
+            hasActiveMission || plannedTargetsResolved.length > 0
+          }
           primaryTarget={
             hasActiveMission && activeMission?.targets[0]
               ? {
                   name: activeMission.targets[0].targetName,
-                  plannedWindowStart: activeMission.targets[0].plannedWindowStart,
+                  plannedWindowStart:
+                    activeMission.targets[0].plannedWindowStart,
                   plannedWindowEnd: activeMission.targets[0].plannedWindowEnd,
                 }
               : plannedTargetsResolved[0]
                 ? (() => {
-                    const win = TARGET_WINDOW_PARTS[plannedTargetsResolved[0].id] ?? {
+                    const win = TARGET_WINDOW_PARTS[
+                      plannedTargetsResolved[0].id
+                    ] ?? {
                       start: "21:00",
                       end: "00:00",
                     };
@@ -546,7 +546,9 @@ export default function DashboardPage() {
             onRemoveFromPlan={removeFromPlan}
             onClearPlan={clearPlan}
             onStartPlannedMission={
-              plannedTargetsResolved.length > 0 ? handleStartPlannedMission : undefined
+              plannedTargetsResolved.length > 0
+                ? handleStartPlannedMission
+                : undefined
             }
           />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -601,7 +603,9 @@ export default function DashboardPage() {
             onRemoveFromPlan={removeFromPlan}
             onClearPlan={clearPlan}
             onStartPlannedMission={
-              plannedTargetsResolved.length > 0 ? handleStartPlannedMission : undefined
+              plannedTargetsResolved.length > 0
+                ? handleStartPlannedMission
+                : undefined
             }
           />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

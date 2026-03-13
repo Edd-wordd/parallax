@@ -15,8 +15,7 @@ interface CompactMissionHeaderProps {
   missionStatus: DashboardMissionStatus;
   activeLocationId?: string;
   activeGearId?: string;
-  onQuickMission: () => void;
-  /** When provided and status is active, shows Open Mission + Log Results instead of Create + Quick */
+  /** When provided and status is active, shows Open Mission + Log Results instead of Create */
   activeMission?: Mission | null;
 }
 
@@ -34,7 +33,6 @@ export function CompactMissionHeader({
   missionStatus,
   activeLocationId,
   activeGearId,
-  onQuickMission,
   activeMission,
 }: CompactMissionHeaderProps) {
   const isActive =
@@ -101,9 +99,6 @@ export function CompactMissionHeader({
                 Create Mission
               </Button>
             </Link>
-            <Button variant="secondary" size="sm" onClick={onQuickMission}>
-              Quick Mission
-            </Button>
           </>
         )}
       </div>

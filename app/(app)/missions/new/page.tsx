@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
@@ -37,7 +37,16 @@ export default function MissionWizardPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { addMission, setActiveMission } = useMissionStore();
-  const { minAltitude, moonTolerance, targetTypes, driveToDarker, driveRadius } = useAppStore();
+  const {
+    minAltitude,
+    moonTolerance,
+    targetTypes,
+    driveToDarker,
+    driveRadius,
+    setActiveLocation,
+    setActiveGear,
+    setDateTime: setStoreDateTime,
+  } = useAppStore();
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("Tonight's Mission");
@@ -66,6 +75,19 @@ export default function MissionWizardPage() {
   const location = MOCK_LOCATIONS.find((l) => l.id === locationId);
   const gear = MOCK_GEAR.find((g) => g.id === gearId);
   const displayDate = useTonight ? "Tonight" : new Date(dateTime).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+  useEffect(() => {
+    setActiveLocation(locationId);
+  }, [locationId, setActiveLocation]);
+
+  useEffect(() => {
+    setActiveGear(gearId);
+  }, [gearId, setActiveGear]);
+
+  useEffect(() => {
+    const iso = useTonight ? new Date().toISOString() : new Date(dateTime).toISOString();
+    setStoreDateTime(iso);
+  }, [useTonight, dateTime, setStoreDateTime]);
 
   const handleGeneratePlan = () => {
     const plan = generateMockPlan(locationId, gearId, dateTime, constraints);

@@ -14,8 +14,7 @@ interface MissionControlBarProps {
   missionStatus: DashboardMissionStatus;
   activeLocationId?: string;
   activeGearId?: string;
-  onQuickMission?: () => void;
-  /** When false, actions (Create Mission, Quick Mission) are not rendered - for use in grid with separate Actions card */
+  /** When false, actions (Create Mission) are not rendered - for use in grid with separate Actions card */
   showActions?: boolean;
 }
 
@@ -33,7 +32,6 @@ export function MissionControlBar({
   missionStatus,
   activeLocationId,
   activeGearId,
-  onQuickMission,
   showActions = true,
 }: MissionControlBarProps) {
   const site =
@@ -88,21 +86,13 @@ export function MissionControlBar({
           </span>
         </div>
       </div>
-      {showActions && onQuickMission && (
+      {showActions && (
         <div className="flex items-center gap-1.5 shrink-0">
           <Link href="/missions/new">
             <Button variant="cta" size="sm" className="h-7 text-xs">
               Create Mission
             </Button>
           </Link>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={onQuickMission}
-          >
-            Quick Mission
-          </Button>
         </div>
       )}
     </div>

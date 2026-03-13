@@ -24,7 +24,8 @@ interface DashboardMissionStatusCardProps {
   missionStatus: DashboardMissionStatus;
   activeLocationId?: string;
   activeGearId?: string;
-  onQuickMission: () => void;
+  canCreateMission?: boolean;
+  createMissionHelperText?: string | null;
   /** Called when user clicks Clear Mission in planning state. */
   onClearMission?: () => void;
   activeMission?: Mission | null;
@@ -44,7 +45,8 @@ export function DashboardMissionStatusCard({
   missionStatus,
   activeLocationId,
   activeGearId,
-  onQuickMission,
+  canCreateMission = true,
+  createMissionHelperText,
   onClearMission,
   activeMission,
   plannedTargets = [],
@@ -62,10 +64,19 @@ export function DashboardMissionStatusCard({
   const planCount = plannedTargets.length || plannedTargetNames.length;
   const showPlanningState = !isActive && hasPlan && !activeMission;
   const showActiveActions = isActive && activeMission;
-  const site =
-    MOCK_LOCATIONS.find((l) => l.id === (mission?.locationId ?? activeLocationId)) ?? MOCK_LOCATIONS[0];
-  const rig =
-    MOCK_GEAR.find((g) => g.id === (mission?.gearId ?? activeGearId)) ?? MOCK_GEAR[0];
+  const hasMissionContext =
+    showActiveActions ||
+    showPlanningState ||
+    (missionStatus === "COMPLETED" && mission);
+  const site = hasMissionContext
+    ? (MOCK_LOCATIONS.find(
+        (l) => l.id === (mission?.locationId ?? activeLocationId),
+      ) ?? null)
+    : null;
+  const rig = hasMissionContext
+    ? (MOCK_GEAR.find((g) => g.id === (mission?.gearId ?? activeGearId)) ??
+      null)
+    : null;
 
   return (
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
@@ -77,10 +88,10 @@ export function DashboardMissionStatusCard({
             showPlanningState
               ? "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15"
               : missionStatus === "NONE" || missionStatus === "COMPLETED"
-                ? "bg-zinc-800/50 text-zinc-500"
+                ? "bg-zinc-700/40 text-zinc-400"
                 : missionStatus === "CAPTURING" || missionStatus === "LOGGING"
                   ? "bg-indigo-500/15 text-indigo-400/90 border border-indigo-500/20"
-                  : "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15"
+                  : "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15",
           )}
         >
           {showPlanningState ? "Planning" : STATUS_LABELS[missionStatus]}
@@ -95,18 +106,27 @@ export function DashboardMissionStatusCard({
                 ? activeMission.name
                 : showPlanningState
                   ? `Tonight's Mission · ${planCount} planned target${planCount !== 1 ? "s" : ""}`
-                  : mission?.name ?? "No Active Mission"}
+                  : (mission?.name ?? "No Active Mission")}
           </p>
-          <div className="text-xs text-zinc-500 mt-0.5 space-y-0.5">
+          <div className="text-xs text-zinc-500 mt-2 space-y-1.5">
             {showActiveActions && activeMission?.targets[0] && (
               <p>Current focus: {activeMission.targets[0].targetName}</p>
             )}
-            {showActiveActions && activeMission && activeMission.targets.length > 0 && (
-              <p>{activeMission.targets.length} planned target{activeMission.targets.length !== 1 ? "s" : ""}</p>
-            )}
-            {showPlanningState && (plannedTargetNames[0] ?? plannedTargets[0]?.name) && (
-              <p>Current focus: {plannedTargetNames[0] ?? plannedTargets[0]?.name}</p>
-            )}
+            {showActiveActions &&
+              activeMission &&
+              activeMission.targets.length > 0 && (
+                <p>
+                  {activeMission.targets.length} planned target
+                  {activeMission.targets.length !== 1 ? "s" : ""}
+                </p>
+              )}
+            {showPlanningState &&
+              (plannedTargetNames[0] ?? plannedTargets[0]?.name) && (
+                <p>
+                  Current focus:{" "}
+                  {plannedTargetNames[0] ?? plannedTargets[0]?.name}
+                </p>
+              )}
             {noTargetsMessage && (
               <p className="text-amber-500/90">{noTargetsMessage}</p>
             )}
@@ -115,32 +135,133 @@ export function DashboardMissionStatusCard({
                 Planning started from tonight&apos;s best target
               </p>
             )}
-            <p>{site?.name ?? "—"}</p>
-            <p>
-              {rig?.name ?? "—"}
-              {mission && ` · ${formatDateTime(mission.dateTime)}`}
-            </p>
+            {hasMissionContext ? (
+              <div className="space-y-2 pt-1">
+                <p>
+                  <span className="text-zinc-500 font-medium">Site</span>
+                  <span className="text-zinc-600 mx-1.5">·</span>
+                  <span className="text-zinc-300">{site?.name ?? "—"}</span>
+                </p>
+                <p>
+                  <span className="text-zinc-500 font-medium">Rig</span>
+                  <span className="text-zinc-600 mx-1.5">·</span>
+                  <span className="text-zinc-300">{rig?.name ?? "—"}</span>
+                </p>
+                <p>
+                  <span className="text-zinc-500 font-medium">Date</span>
+                  <span className="text-zinc-600 mx-1.5">·</span>
+                  <span className="text-zinc-300">
+                    {mission ? formatDateTime(mission.dateTime) : "—"}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500 pt-1 space-y-2">
+                <p>
+                  You can view tonight&apos;s recommended targets below to build
+                  your mission and get insights on visibility windows, setup
+                  impact, and capture settings.
+                </p>
+                <p>
+                  <Link
+                    href="#tonight-recommendations"
+                    className="text-zinc-400 hover:text-zinc-300 underline underline-offset-2 font-medium"
+                  >
+                    View tonight&apos;s recommendations →
+                  </Link>
+                </p>
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 mt-auto">
+        <div className="flex flex-wrap gap-2 mt-auto pt-3">
           {showPlanningState ? (
             <>
               {onStartPlannedMission ? (
-                <Button variant="cta" size="sm" className="text-xs" onClick={onStartPlannedMission}>
+                <Button
+                  variant="cta"
+                  size="sm"
+                  className="text-xs"
+                  onClick={onStartPlannedMission}
+                  disabled={!canCreateMission}
+                >
                   Start Planned Mission
                 </Button>
-              ) : (
+              ) : canCreateMission ? (
                 <Link href="/missions/new">
                   <Button variant="cta" size="sm" className="text-xs">
                     Start Planned Mission
                   </Button>
                 </Link>
+              ) : (
+                <Button variant="cta" size="sm" className="text-xs" disabled>
+                  Start Planned Mission
+                </Button>
               )}
-              <Link href="/missions/new">
-                <Button variant="secondary" size="sm" className="text-xs">
+              {canCreateMission ? (
+                <Link href="/missions/new">
+                  <Button variant="secondary" size="sm" className="text-xs">
+                    Create Mission
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs"
+                  disabled
+                >
                   Create Mission
                 </Button>
-              </Link>
+              )}
+              {createMissionHelperText && (
+                <p className="w-full text-xs text-amber-400/90 mt-2">
+                  {createMissionHelperText.includes("gear profile") &&
+                  createMissionHelperText.includes("location") ? (
+                    <>
+                      Set up a{" "}
+                      <Link
+                        href="/gear"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        gear profile
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="/locations"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        location
+                      </Link>{" "}
+                      to create your first mission.
+                    </>
+                  ) : createMissionHelperText.includes("location") ? (
+                    <>
+                      Add a{" "}
+                      <Link
+                        href="/locations"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        location
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  ) : createMissionHelperText.includes("gear profile") ? (
+                    <>
+                      Add a{" "}
+                      <Link
+                        href="/gear"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        gear profile
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  ) : (
+                    createMissionHelperText
+                  )}
+                </p>
+              )}
             </>
           ) : showActiveActions ? (
             <>
@@ -152,11 +273,17 @@ export function DashboardMissionStatusCard({
                 </Button>
               </Link>
               {missionStatus === "PLANNING" && onClearMission && (
-                <Button variant="secondary" size="sm" className="text-xs" onClick={onClearMission}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs"
+                  onClick={onClearMission}
+                >
                   Clear Mission
                 </Button>
               )}
-              {(missionStatus === "CAPTURING" || missionStatus === "LOGGING") && (
+              {(missionStatus === "CAPTURING" ||
+                missionStatus === "LOGGING") && (
                 <Link href={`/missions/${activeMission!.id}/log`}>
                   <Button variant="secondary" size="sm" className="text-xs">
                     Log Results
@@ -166,14 +293,70 @@ export function DashboardMissionStatusCard({
             </>
           ) : (
             <>
-              <Link href="/missions/new">
-                <Button variant="cta" size="sm" className="text-xs">
+              {canCreateMission ? (
+                <Link href="/missions/new">
+                  <Button variant="cta" size="sm" className="text-xs">
+                    Create Mission
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-xs text-zinc-500"
+                  disabled
+                >
                   Create Mission
                 </Button>
-              </Link>
-              <Button variant="secondary" size="sm" className="text-xs" onClick={onQuickMission}>
-                Quick Mission
-              </Button>
+              )}
+              {createMissionHelperText && (
+                <p className="w-full text-xs text-amber-400/90 mt-2">
+                  {createMissionHelperText.includes("gear profile") &&
+                  createMissionHelperText.includes("location") ? (
+                    <>
+                      Set up a{" "}
+                      <Link
+                        href="/gear"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        gear profile
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="/locations"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        location
+                      </Link>{" "}
+                      to create your first mission.
+                    </>
+                  ) : createMissionHelperText.includes("location") ? (
+                    <>
+                      Add a{" "}
+                      <Link
+                        href="/locations"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        location
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  ) : createMissionHelperText.includes("gear profile") ? (
+                    <>
+                      Add a{" "}
+                      <Link
+                        href="/gear"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-1"
+                      >
+                        gear profile
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  ) : (
+                    createMissionHelperText
+                  )}
+                </p>
+              )}
             </>
           )}
         </div>

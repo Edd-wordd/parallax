@@ -66,7 +66,7 @@ export function TonightRecommendationsSection({
   const plannedIds = new Set(plannedTargets.map((t) => t.id));
 
   return (
-    <div className="space-y-4">
+    <div id="tonight-recommendations" className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="dash-section-title text-zinc-400">

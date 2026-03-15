@@ -58,6 +58,8 @@ export default function MissionWizardPage() {
   const { toast } = useToast();
   const { addMission, setActiveMission } = useMissionStore();
   const {
+    activeLocationId: storeLocationId,
+    activeGearId: storeGearId,
     minAltitude,
     moonTolerance,
     targetTypes,
@@ -70,8 +72,8 @@ export default function MissionWizardPage() {
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("Tonight's Mission");
-  const [locationId, setLocationId] = useState("loc1");
-  const [gearId, setGearId] = useState("gear1");
+  const [locationId, setLocationId] = useState(storeLocationId ?? "loc1");
+  const [gearId, setGearId] = useState(storeGearId ?? "gear1");
   const [dateTime, setDateTime] = useState(() => {
     const d = new Date();
     d.setHours(21, 0, 0, 0);

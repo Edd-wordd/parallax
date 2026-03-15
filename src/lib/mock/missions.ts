@@ -1,11 +1,40 @@
 import type { Mission } from "@/lib/types";
 
+export type GenerateMockPlanOptions = {
+  missionType: "deep_sky" | "planetary" | null;
+  planetaryTarget?: string;
+  planetaryTargets?: string[];
+};
+
 export function generateMockPlan(
   locationId: string,
   gearId: string,
   dateTime: string,
-  constraints: Mission["constraints"]
+  constraints: Mission["constraints"],
+  options?: GenerateMockPlanOptions
 ): Mission["targets"] {
+  const planetaryNames = options?.planetaryTargets?.length
+    ? options.planetaryTargets
+    : options?.planetaryTarget
+      ? [options.planetaryTarget]
+      : [];
+  if (options?.missionType === "planetary" && planetaryNames.length > 0) {
+    return planetaryNames.map((name, i) => {
+      const id = name.toLowerCase().replace(/\s+/g, "_");
+      return {
+        targetId: id,
+        targetName: name,
+        targetType: "planet" as const,
+        plannedWindowStart: "22:00",
+        plannedWindowEnd: "02:00",
+        score: 80,
+        sequenceIndex: i + 1,
+        roleLabel: `SEQ ${i + 1}`,
+        isFallback: false,
+      };
+    });
+  }
+
   const targetTypes = constraints.targetTypes.length
     ? constraints.targetTypes
     : ["galaxy", "nebula", "open_cluster", "globular_cluster"];

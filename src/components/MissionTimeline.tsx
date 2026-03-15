@@ -652,7 +652,7 @@ function CompactTimeline({
     );
   }
 
-/** Default timeline (missions/new, etc.) */
+/** Default timeline (missions/new, etc.) — full width, tall rows for legible labels */
 function DefaultTimeline({
   targets,
   onTargetClick,
@@ -665,10 +665,10 @@ function DefaultTimeline({
   sunrise: string;
 }) {
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium text-zinc-300">Tonight&apos;s Imaging Schedule</h3>
-      <div className="relative grid grid-cols-[4rem_1fr] gap-x-3">
-        <div className="absolute top-0 bottom-0 left-[4.75rem] right-4 pointer-events-none z-0" aria-hidden>
+    <div className="w-full min-w-0 max-w-none space-y-3">
+      <h3 className="text-base font-semibold text-zinc-200">Tonight&apos;s Imaging Schedule</h3>
+      <div className="relative w-full min-w-0 max-w-none grid grid-cols-[minmax(0,1fr)] gap-x-0">
+        <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-0" aria-hidden>
           {VERTICAL_MARKERS.map((e) => {
             const pct = eventPercent(e.time, s, r, e.nextDay) * 100;
             return (
@@ -681,36 +681,36 @@ function DefaultTimeline({
           })}
         </div>
         <div
-          className="absolute top-0 bottom-0 left-[4.75rem] right-0 pointer-events-none col-start-2 overflow-visible z-10"
+          className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none col-start-1 overflow-visible z-10"
           aria-hidden
         >
           <NowMarker sunset={s} sunrise={r} />
         </div>
-        <div className="col-start-1 col-end-3">
-          <div className="relative h-20 rounded-lg border border-neutral-800 bg-zinc-900/90 p-3">
-            <div className={cn("absolute left-[4.75rem] right-4 top-10 h-2 rounded-full", TIMELINE_COLORS.trackBase)} />
+        <div className="col-span-1 w-full min-w-0">
+          <div className="relative h-20 w-full rounded-lg border border-neutral-800 bg-zinc-900/90 p-3">
+            <div className={cn("absolute left-0 right-0 top-10 h-2 rounded-full", TIMELINE_COLORS.trackBase)} />
             <div
               className="absolute top-10 h-2 rounded-full bg-zinc-600/50"
               style={{
-                left: `calc(4.75rem + (100% - 5.75rem) * ${sunsetX / 100})`,
-                width: `calc((100% - 5.75rem) * ${(darkX - sunsetX) / 100})`,
+                left: `calc(0% + (100%) * ${sunsetX / 100})`,
+                width: `calc(100% * ${(darkX - sunsetX) / 100})`,
               }}
             />
             <div
               className={cn("absolute top-10 h-2 rounded-full", TIMELINE_COLORS.captureWindow)}
               style={{
-                left: `calc(4.75rem + (100% - 5.75rem) * ${darkX / 100})`,
-                width: `calc((100% - 5.75rem) * ${(moonsetX - darkX) / 100})`,
+                left: `calc(0% + (100%) * ${darkX / 100})`,
+                width: `calc(100% * ${(moonsetX - darkX) / 100})`,
               }}
             />
             <div
               className={cn("absolute top-10 h-2 rounded-full", TIMELINE_COLORS.postMoonset)}
               style={{
-                left: `calc(4.75rem + (100% - 5.75rem) * ${moonsetX / 100})`,
-                width: `calc((100% - 5.75rem) * ${(sunriseX - moonsetX) / 100})`,
+                left: `calc(0% + (100%) * ${moonsetX / 100})`,
+                width: `calc(100% * ${(sunriseX - moonsetX) / 100})`,
               }}
             />
-            <div className="absolute left-[4.75rem] right-4 top-14 text-xs text-zinc-400">
+            <div className="absolute left-0 right-0 top-14 text-sm font-medium text-zinc-200 tabular-nums">
               {VERTICAL_MARKERS.map((e) => {
                 const pct = eventPercent(e.time, s, r, e.nextDay) * 100;
                 const displayTime =
@@ -735,7 +735,7 @@ function DefaultTimeline({
             </div>
           </div>
         </div>
-        <div className="col-span-2 space-y-2">
+        <div className="col-span-1 w-full min-w-0 space-y-1">
           {targets.length > 0
             ? targets.map((t) => {
             const endH = parseTime(t.plannedWindowEnd);
@@ -744,11 +744,11 @@ function DefaultTimeline({
                 const endPct = windowToPct(t.plannedWindowEnd, endNextDay, s, r);
             const width = Math.max(5, endPct - left);
             const content = (
-              <div className="group flex items-center gap-3 py-0.5 rounded transition-colors">
-                <span className="w-16 shrink-0 text-xs font-medium text-zinc-400 group-hover:text-cyan-400/90">
-                  {t.targetName.split(" ")[0]}
+              <div className="group flex items-center gap-3 min-h-9 py-1.5 rounded transition-colors">
+                <span className="min-w-0 max-w-[45%] shrink-0 truncate text-sm font-semibold text-zinc-200 group-hover:text-cyan-300 whitespace-nowrap" title={t.targetName}>
+                  {t.targetName}
                 </span>
-                    <div className="relative flex-1 h-5 rounded overflow-hidden bg-zinc-800/80 min-w-0">
+                    <div className="relative flex-1 min-w-0 h-6 rounded overflow-hidden bg-zinc-800/80">
                   <div
                     className={cn(
                           "absolute inset-y-0 rounded group-hover:opacity-100 transition-opacity",
@@ -764,12 +764,12 @@ function DefaultTimeline({
                 key={t.targetId}
                 type="button"
                 onClick={() => onTargetClick(t)}
-                className="w-full text-left block"
+                className="w-full min-w-0 text-left block"
               >
                 {content}
               </button>
             ) : (
-              <Link key={t.targetId} href={`/targets/${t.targetId}`}>
+              <Link key={t.targetId} href={`/targets/${t.targetId}`} className="block min-w-0 w-full">
                 {content}
               </Link>
             );
@@ -779,12 +779,12 @@ function DefaultTimeline({
                 const endPct = windowToPct(w.visibleEnd, isNextDay(w.visibleEnd), s, r);
                 const width = Math.max(5, endPct - left);
                 return (
-                  <Link key={w.id} href={`/targets/${w.id}`}>
-                    <div className="group flex items-center gap-3 py-0.5 rounded transition-colors">
-                      <span className="w-16 shrink-0 text-xs font-medium text-zinc-400">
-                        {w.name.split(" ")[0]}
+                  <Link key={w.id} href={`/targets/${w.id}`} className="block min-w-0 w-full">
+                    <div className="group flex items-center gap-3 min-h-9 py-1.5 rounded transition-colors">
+                      <span className="min-w-0 max-w-[45%] shrink-0 truncate text-sm font-semibold text-zinc-200 whitespace-nowrap" title={w.name}>
+                        {w.name}
                       </span>
-                      <div className="relative flex-1 h-5 rounded overflow-hidden bg-zinc-800/80 min-w-0">
+                      <div className="relative flex-1 min-w-0 h-6 rounded overflow-hidden bg-zinc-800/80">
                         <div
                           className={cn("absolute inset-y-0 rounded", TIMELINE_COLORS.captureWindow)}
                           style={{ left: `${left}%`, width: `${width}%` }}

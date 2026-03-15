@@ -131,6 +131,14 @@ export interface MissionTarget {
   roleLabel?: string;
   /** True only when target is explicitly optional/fallback — NOT default for non-current targets */
   isFallback?: boolean;
+  /** Optional scores 1–10 for mission plan cards */
+  altitudeScore?: number;
+  moonSeparationScore?: number;
+  rigFramingScore?: number;
+  /** One-line reason target was included */
+  whyIncluded?: string;
+  /** ISO or gain for exposure recipe (e.g. "1600" or "120") */
+  isoGain?: string;
 }
 
 export type MissionPhase =

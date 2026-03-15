@@ -31,7 +31,7 @@ export function LiveSkyMonitorCard({
       <CardHeader className={compact ? "px-3 py-2" : ""}>
         <h2 className="text-sm font-medium uppercase tracking-wider">Live Sky Monitor</h2>
         <p className="text-[10px] text-zinc-500 mt-0.5 dash-pill">
-          Mock observational telemetry — sky preview, cloud estimate, brightness. Atlas monitors
+          Mock observational telemetry — sky preview, cloud estimate, brightness. Parallax monitors
           conditions and advises; it does not control your rig.
         </p>
       </CardHeader>

@@ -553,7 +553,7 @@ export function ContextDrawer({
             <div className="flex justify-between"><span className="text-zinc-500">Frame progress</span><span className="text-cyan-400">18/60</span></div>
             <div className="flex justify-between"><span className="text-zinc-500">Integration so far</span><span>00:18:00</span></div>
           </div>
-          <p className="text-xs text-zinc-500">Use NINA, ASIAIR, or your capture tool to pause, skip, or recenter. Atlas provides guidance only.</p>
+          <p className="text-xs text-zinc-500">Use NINA, ASIAIR, or your capture tool to pause, skip, or recenter. Parallax provides guidance only.</p>
         </div>
       );
     }

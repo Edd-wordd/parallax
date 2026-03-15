@@ -17,7 +17,7 @@ import { GearPicker } from "@/components/GearPicker";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { MOCK_CONDITIONS_SOURCE } from "@/lib/mock/skyIntelligence";
 import { useToast } from "@/components/ui/toast";
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Moon, Clock, Gauge, ArrowRight } from "lucide-react";
 import type { Mission, MissionConstraint, MissionTarget } from "@/lib/types";
 
 const TARGET_TYPES = ["galaxy", "nebula", "open_cluster", "globular_cluster"];
@@ -57,7 +57,6 @@ export default function MissionWizardPage() {
     d.setHours(21, 0, 0, 0);
     return d.toISOString().slice(0, 16);
   });
-  const [useTonight, setUseTonight] = useState(true);
   const [constraints, setConstraints] = useState<MissionConstraint>({
     minAltitude: minAltitude,
     moonTolerance: moonTolerance,
@@ -71,10 +70,17 @@ export default function MissionWizardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [generated, setGenerated] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [missionType, setMissionType] = useState<"deep_sky" | "planetary" | null>(null);
+  const [sessionEndTime, setSessionEndTime] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1); // tomorrow
+    d.setHours(3, 0, 0, 0); // default 3 AM
+    return d.toISOString().slice(0, 16);
+  });
 
   const location = MOCK_LOCATIONS.find((l) => l.id === locationId);
   const gear = MOCK_GEAR.find((g) => g.id === gearId);
-  const displayDate = useTonight ? "Tonight" : new Date(dateTime).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  const displayDate = new Date(dateTime).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
   useEffect(() => {
     setActiveLocation(locationId);
@@ -85,9 +91,8 @@ export default function MissionWizardPage() {
   }, [gearId, setActiveGear]);
 
   useEffect(() => {
-    const iso = useTonight ? new Date().toISOString() : new Date(dateTime).toISOString();
-    setStoreDateTime(iso);
-  }, [useTonight, dateTime, setStoreDateTime]);
+    setStoreDateTime(new Date(dateTime).toISOString());
+  }, [dateTime, setStoreDateTime]);
 
   const handleGeneratePlan = () => {
     const plan = generateMockPlan(locationId, gearId, dateTime, constraints);
@@ -128,7 +133,7 @@ export default function MissionWizardPage() {
     const mission: Mission = {
       id: generateId(),
       name,
-      dateTime: useTonight ? new Date().toISOString() : new Date(dateTime).toISOString(),
+      dateTime: new Date(dateTime).toISOString(),
       locationId,
       gearId,
       constraints,
@@ -147,7 +152,7 @@ export default function MissionWizardPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative z-10 mx-auto w-full max-w-5xl px-6 py-6 sm:px-8"
+        className="relative z-10 mx-auto w-full max-w-5xl px-1 py-6 sm:px-2"
       >
       {/* Header: Create Mission | Cancel */}
       <header className="mission-page-header">
@@ -177,7 +182,7 @@ export default function MissionWizardPage() {
 
       <div className="grid w-full grid-cols-1 grid-rows-[min-content] gap-6 lg:grid-cols-5 lg:gap-8 lg:items-start">
         {/* Left column: form */}
-        <div className="mission-panel min-w-0 overflow-hidden lg:col-span-3 lg:row-start-1">
+        <div className="mission-panel min-w-0 overflow-visible lg:col-span-3 lg:row-start-1">
             <div className="p-4">
               <AnimatePresence mode="wait">
             {step === 1 && (
@@ -189,6 +194,7 @@ export default function MissionWizardPage() {
               >
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="md:col-span-2">
+                    <p className="mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">Mission Details</p>
                     <label className="mb-1 block text-xs text-white/60">Mission name</label>
                     <Input
                       value={name}
@@ -213,21 +219,136 @@ export default function MissionWizardPage() {
                       onValueChange={setGearId}
                     />
                   </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <Checkbox checked={useTonight} onCheckedChange={(c) => setUseTonight(!!c)} />
-                  <label className="cursor-pointer text-xs text-white/70">Use Tonight</label>
-                </div>
-                {!useTonight && (
-                  <div className="mt-2">
+                  <div className="relative z-[100]">
+                    <label className="mb-1 block text-xs text-white/60">Date & time</label>
                     <Input
                       type="datetime-local"
                       value={dateTime}
                       onChange={(e) => setDateTime(e.target.value)}
-                      className="h-9 max-w-[200px]"
+                      onClick={(e) => {
+                        const input = e.currentTarget;
+                        if (typeof input.showPicker === "function") {
+                          try {
+                            input.showPicker();
+                          } catch {
+                            /* user activation lost or unsupported */
+                          }
+                        }
+                      }}
+                      className="h-9 max-w-[200px] cursor-pointer"
                     />
                   </div>
-                )}
+                  <div className="relative z-[100]">
+                    <label className="mb-1 block text-xs text-white/60">Session end time</label>
+                    <Input
+                      type="datetime-local"
+                      value={sessionEndTime}
+                      onChange={(e) => setSessionEndTime(e.target.value)}
+                      onClick={(e) => {
+                        const input = e.currentTarget;
+                        if (typeof input.showPicker === "function") {
+                          try {
+                            input.showPicker();
+                          } catch {
+                            /* user activation lost or unsupported */
+                          }
+                        }
+                      }}
+                      className="h-9 max-w-[200px] cursor-pointer"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-[11px] text-indigo-300/90">
+                      {(() => {
+                        const start = new Date(dateTime);
+                        let end = new Date(sessionEndTime);
+                        if (end.getTime() <= start.getTime()) {
+                          end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+                        }
+                        const ms = end.getTime() - start.getTime();
+                        const h = Math.floor(ms / 3_600_000);
+                        const m = Math.floor((ms % 3_600_000) / 60_000);
+                        return `Session duration: ${h} h ${m} min`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-6 mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">Tonight&apos;s Conditions</p>
+                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                  <p className="mt-0 text-xs text-white/50">
+                    Before you leave, Parallax uses forecast and location data only. Live
+                    verification available on-site.
+                  </p>
+                  <dl className="mt-3 space-y-2 text-xs">
+                    <div>
+                      <dt className="text-white/50">Forecast confidence</dt>
+                      <dd className="text-white/90">{MOCK_CONDITIONS_SOURCE.forecastConfidence}%</dd>
+                    </div>
+                    <div className="flex gap-4">
+                      <span><dt className="text-white/50 inline">Cloud:</dt> <dd className="inline text-white/90">{MOCK_CONDITIONS_SOURCE.cloudCover}%</dd></span>
+                      <span><dt className="text-white/50 inline">Humidity:</dt> <dd className="inline text-white/90">{MOCK_CONDITIONS_SOURCE.humidity}%</dd></span>
+                      <span><dt className="text-white/50 inline">Wind:</dt> <dd className="inline text-white/90">{MOCK_CONDITIONS_SOURCE.windMph} mph</dd></span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <Moon className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                        <span className="text-white/50">Moon:</span>
+                        <span className="text-white/90">{MOCK_CONDITIONS_SOURCE.moonPhase} · {MOCK_CONDITIONS_SOURCE.moonInterference}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                        <span className="text-white/50">Visibility:</span>
+                        <span className="text-white/90">{MOCK_CONDITIONS_SOURCE.targetVisibilityWindow}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Gauge className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                        <span className="text-white/50">Sky / Bortle:</span>
+                        <span className="text-white/90">{MOCK_CONDITIONS_SOURCE.skyBrightness} mag/arcsec² · Bortle {MOCK_CONDITIONS_SOURCE.bortle}</span>
+                      </span>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-white/10 border-l-2 border-l-indigo-500/50 bg-white/5 pl-4 pr-4 py-4">
+                  <p className="text-sm font-medium text-white/85">Recommendations</p>
+                  <div className="mt-2 space-y-2">
+                    {MOCK_CONDITIONS_SOURCE.recommendations.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-[13px] leading-snug text-white/75">
+                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/45" />
+                        <span>{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="mt-6 mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">Mission Type</p>
+                <div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMissionType("deep_sky")}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                        missionType === "deep_sky"
+                          ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
+                          : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                      }`}
+                    >
+                      Deep Sky
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMissionType("planetary")}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                        missionType === "planetary"
+                          ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
+                          : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                      }`}
+                    >
+                      Planetary
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
 
@@ -452,36 +573,43 @@ export default function MissionWizardPage() {
           <div className="mission-panel sticky top-20 min-w-0 p-4">
             <h3 className="text-sm font-medium">Mission Preview</h3>
             <p className="mt-1 text-xs text-white/50">Review the mission context before generating the plan.</p>
-            <dl className="mt-3 space-y-2 text-xs">
-              <div>
-                <dt className="text-white/50">Site</dt>
-                <dd className="text-white/90">{location?.name ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-white/50">Rig</dt>
-                <dd className="text-white/90">{gear?.name ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-white/50">Date</dt>
-                <dd className="text-white/90">{displayDate}</dd>
-              </div>
-              {location && (
-                <div>
-                  <dt className="text-white/50">Bortle</dt>
-                  <dd className="text-white/90">{location.bortle}</dd>
-                </div>
-              )}
-            </dl>
-            <p className="mt-4 text-xs text-white/50">
-              Editable during planning. Locked during capture.
-            </p>
+            {step === 1 ? (
+              <p className="mt-4 text-sm text-white/50">No plan generated yet</p>
+            ) : (
+              <>
+                <dl className="mt-3 space-y-2 text-xs">
+                  <div>
+                    <dt className="text-white/50">Site</dt>
+                    <dd className="text-white/90">{location?.name ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-white/50">Rig</dt>
+                    <dd className="text-white/90">{gear?.name ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-white/50">Date</dt>
+                    <dd className="text-white/90">{displayDate}</dd>
+                  </div>
+                  {location && (
+                    <div>
+                      <dt className="text-white/50">Bortle</dt>
+                      <dd className="text-white/90">{location.bortle}</dd>
+                    </div>
+                  )}
+                </dl>
+                <p className="mt-4 text-xs text-white/50">
+                  Editable during planning. Locked during capture.
+                </p>
+              </>
+            )}
           </div>
 
-          {/* Conditions Source — before leaving, Atlas uses forecast/location only */}
+          {/* Conditions Source — before leaving, Parallax uses forecast/location only (hidden on Step 1, moved to left column) */}
+          {step !== 1 && (
           <div className="mission-panel min-w-0 p-4">
             <h3 className="text-sm font-medium">Conditions Source</h3>
             <p className="mt-1 text-xs text-white/50">
-              Before you leave, Atlas uses forecast and location data only. Live
+              Before you leave, Parallax uses forecast and location data only. Live
               verification available on-site.
             </p>
             <dl className="mt-3 space-y-2 text-xs">
@@ -524,6 +652,7 @@ export default function MissionWizardPage() {
               </ul>
             </div>
           </div>
+          )}
         </div>
       </div>
 

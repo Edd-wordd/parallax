@@ -144,7 +144,7 @@ button:disabled {
 .mission-space-page {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: visible; /* allow native date picker popup to render (was hidden, which clipped it) */
   /* Layer 1: dark blue base + vignette */
   background:
     radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0, 5, 15, 0.5) 100%),
@@ -277,7 +277,7 @@ button:disabled {
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* Atlas Dark design system utilities */
+/* Parallax Dark design system utilities */
 @layer utilities {
   .font-display { font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif; }
   .page-container { @apply max-w-6xl mx-auto space-y-4; }

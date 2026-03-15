@@ -1,7 +1,7 @@
 /**
  * Mission Page — Field Operations Dashboard
  *
- * Atlas = Mission Intelligence Layer. This page supports:
+ * Parallax = Mission Intelligence Layer. This page supports:
  * - Reviewing the active mission
  * - Watching target timing
  * - Monitoring sky/condition health
@@ -9,7 +9,7 @@
  * - Deciding whether to continue, pause, switch targets, or abort
  * - Logging notes and results
  *
- * Atlas guides the session; actual capture runs in NINA, Ekos, ASIAIR, Voyager, etc.
+ * Parallax guides the session; actual capture runs in NINA, Ekos, ASIAIR, Voyager, etc.
  */
 
 "use client";

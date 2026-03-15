@@ -11,11 +11,8 @@ import {
   Settings,
   HelpCircle,
   BarChart3,
-  Telescope,
-  MapPin,
   Rocket,
   History,
-  Bell,
   User,
   ScanSearch,
   type LucideIcon,
@@ -31,10 +28,7 @@ const mainNavItems = [
   { href: "/planner", label: "Planner", icon: Calendar },
   { href: "/site-check", label: "Site Check", icon: ScanSearch },
   { href: "/sessions", label: "Sessions", icon: History },
-  { href: "/gear", label: "Gear", icon: Telescope },
-  { href: "/locations", label: "Locations", icon: MapPin },
   { href: "/insights", label: "Insights", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const SIDEBAR_WIDTH_EXPANDED = 220;
@@ -98,20 +92,7 @@ export function LeftRail() {
       {/* Bottom utility section - matches main nav styling */}
       <div className="shrink-0 space-y-0.5 border-t border-blue-950/40 px-2 py-3">
         <UtilityLink href="/help" icon={HelpCircle} label="Help" />
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-lg py-2.5 pl-3 pr-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800/50 hover:text-slate-100"
-          title="Notifications"
-          aria-label="Notifications"
-        >
-          <span className="relative shrink-0">
-            <Bell className="h-4 w-4" strokeWidth={2} />
-            <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#d25e36] px-0.5 text-[10px] font-medium text-white">
-              2
-            </span>
-          </span>
-          <span className="min-w-0 flex-1 truncate">Notifications</span>
-        </button>
+        <UtilityLink href="/settings" icon={Settings} label="Settings" />
         <button
           type="button"
           className="flex w-full items-center gap-3 rounded-lg py-2.5 pl-3 pr-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800/50 hover:text-slate-100"

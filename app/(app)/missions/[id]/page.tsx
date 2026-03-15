@@ -64,6 +64,9 @@ import {
   getMockAdaptiveAdvice,
 } from "@/lib/mock/fieldOps";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
+import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
+import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
+import { ExposurePlannerCard, SessionSimulatorCard } from "@/components/intelligence";
 import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
@@ -187,6 +190,9 @@ function MissionDashboardContent() {
   const firstTargetId = mission.targets[0]?.targetId;
   const currentTargetId = mission.currentTargetId ?? firstTargetId;
   const currentTarget = mission.targets.find((t) => t.targetId === currentTargetId) ?? mission.targets[0];
+  const primaryTargetName = mission.targets[0]?.targetName ?? null;
+  const exposurePlan = firstTargetId ? (EXPOSURE_PLANS_BY_TARGET[firstTargetId] ?? null) : null;
+  const sessionSimulation = firstTargetId ? (SESSION_SIMULATIONS_BY_TARGET[firstTargetId] ?? null) : null;
   const selectedTarget = uiState.selectedTargetId
     ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ?? null)
     : null;
@@ -627,6 +633,18 @@ function MissionDashboardContent() {
                 className="!border-0 !rounded-none !bg-transparent !shadow-none"
               />
             </div>
+          </div>
+
+          {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ExposurePlannerCard
+              targetName={primaryTargetName}
+              plan={exposurePlan}
+            />
+            <SessionSimulatorCard
+              targetName={primaryTargetName}
+              simulation={sessionSimulation}
+            />
           </div>
 
           {/* ========== PLANNING ROW: Target Queue + Selected Target ========== */}

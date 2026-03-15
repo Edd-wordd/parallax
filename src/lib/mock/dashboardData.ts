@@ -120,64 +120,6 @@ export function getLiveSkyIntelligenceForSiteDate(
   return { ...MOCK_LIVE_STATE, ...base };
 }
 
-export interface ImagingWindowData {
-  /** e.g. "10:15 PM – 2:40 AM" or "M42 Capture Window" */
-  label: string;
-  /** e.g. "10:15 PM – 2:40 AM" */
-  timeRange: string;
-  /** e.g. "3.2 hours" */
-  duration: string;
-  /** Optional secondary line, e.g. "Best Capture: 9:50 PM – 11:30 PM" */
-  subtitle?: string;
-}
-
-/** Get general imaging window for the night (no mission). */
-export function getGeneralImagingWindow(
-  siteId: string,
-  dateTime: string
-): ImagingWindowData {
-  const forecast = getForecastForSiteDate(siteId, dateTime);
-  return {
-    label: "Usable Imaging Window",
-    timeRange: forecast.targetVisibilityWindow,
-    duration: forecast.imagingWindow,
-    subtitle: "Best overall period for general imaging tonight",
-  };
-}
-
-/** Get mission-specific capture window for the primary target. */
-export function getMissionCaptureWindow(
-  siteId: string,
-  dateTime: string,
-  targetName: string,
-  plannedWindowStart: string,
-  plannedWindowEnd: string
-): ImagingWindowData {
-  const forecast = getForecastForSiteDate(siteId, dateTime);
-  // Mock best capture window as slightly narrower than full
-  const bestStart = "9:50 PM";
-  const bestEnd = "11:30 PM";
-  const hours = "3.5";
-  return {
-    label: `${targetName} Capture Window`,
-    timeRange: `${plannedWindowStart} – ${plannedWindowEnd}`,
-    duration: `${hours} hours usable`,
-    subtitle: `Best Capture: ${bestStart} – ${bestEnd}`,
-  };
-}
-
-/** Get imaging window data for site + date (legacy). */
-export function getImagingWindowForSiteDate(
-  siteId: string,
-  dateTime: string
-): { targetVisibilityWindow: string; imagingWindow: string } {
-  const data = getGeneralImagingWindow(siteId, dateTime);
-  return {
-    targetVisibilityWindow: data.timeRange,
-    imagingWindow: data.duration,
-  };
-}
-
 /** Get recommendations for site + rig + date + constraints. */
 export function getRecommendationsForSiteRigDate(
   siteId: string,
@@ -197,26 +139,4 @@ export function getRecommendationsForSiteRigDate(
     constraints.targetTypes,
     constraints.driveToDarker ? constraints.driveRadius : undefined
   );
-}
-
-/** Get best target for Object Spotlight (top recommendation). */
-export function getBestTargetForSpotlight(
-  siteId: string,
-  gearId: string,
-  dateTime: string,
-  constraints: {
-    minAltitude: number;
-    moonTolerance: number;
-    targetTypes: string[];
-    driveToDarker?: boolean;
-    driveRadius?: number;
-  }
-): Recommendation | null {
-  const recs = getRecommendationsForSiteRigDate(
-    siteId,
-    gearId,
-    dateTime,
-    constraints
-  );
-  return recs[0] ?? null;
 }

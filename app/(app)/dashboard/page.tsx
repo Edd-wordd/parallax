@@ -13,32 +13,19 @@ import type { MissionTarget } from "@/lib/types";
 import {
   RECOMMENDED_TARGETS,
   REJECTED_TARGETS,
-  TONIGHT_CONDITIONS_NO_MISSION,
-  getMissionWhyTonightPoints,
-  ADAPTATION_INSIGHTS,
-  ADAPTATION_EFFECTS,
-  SETUP_IMPACT_BY_TARGET,
   TARGET_WINDOW_PARTS,
 } from "@/lib/mock/intelligenceLayer";
-import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
-import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
 import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { TargetCard } from "@/components/TargetCard";
 import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
 import { AdaptiveMissionCard } from "@/components/AdaptiveMissionCard";
 import { CaptureRunSheetCard } from "@/components/CaptureRunSheetCard";
-import { ObjectSpotlightCard } from "@/components/ObjectSpotlightCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
 import { DashboardSkyIntelligenceCard } from "@/components/dashboard/DashboardSkyIntelligenceCard";
-import { DashboardImagingWindowCard } from "@/components/dashboard/DashboardImagingWindowCard";
 import {
   TonightRecommendationsSection,
-  MissionWhyTonightCard,
-  LearnedFromSessionsCard,
   RejectedTargetPanel,
-  ExposurePlannerCard,
-  SessionSimulatorCard,
 } from "@/components/intelligence";
 
 function generateId(): string {
@@ -116,8 +103,6 @@ export default function DashboardPage() {
     removeFromPlan,
     clearPlan,
     setPlannedTargets,
-    selectedSetupImpactTargetId,
-    setSelectedSetupImpactTargetId,
   } = useDashboardRecommendationStore();
 
   const activeLoc = useMemo(
@@ -194,7 +179,6 @@ export default function DashboardPage() {
       addMission(mission);
       setActiveMission(mission.id);
       clearPlan();
-      setSelectedSetupImpactTargetId(target.id);
     },
     [
       activeLocationId,
@@ -207,7 +191,6 @@ export default function DashboardPage() {
       addMission,
       setActiveMission,
       clearPlan,
-      setSelectedSetupImpactTargetId,
     ],
   );
 
@@ -246,7 +229,6 @@ export default function DashboardPage() {
     addMission(mission);
     setActiveMission(mission.id);
     setPlannedTargets(optimalIds);
-    setSelectedSetupImpactTargetId(targets[0]?.id ?? null);
   }, [
     activeLocationId,
     activeGearId,
@@ -258,7 +240,6 @@ export default function DashboardPage() {
     addMission,
     setActiveMission,
     setPlannedTargets,
-    setSelectedSetupImpactTargetId,
   ]);
 
   const handleStartPlannedMission = useCallback(() => {
@@ -362,83 +343,11 @@ export default function DashboardPage() {
     setActiveMission(null);
   }, [setActiveMission]);
 
-  const setupImpactTargetId =
-    selectedSetupImpactTargetId ??
-    activeMissionFirstTargetId ??
-    plannedFirstTargetId ??
-    null;
-  const setupImpactItems = setupImpactTargetId
-    ? (SETUP_IMPACT_BY_TARGET[setupImpactTargetId] ??
-      SETUP_IMPACT_BY_TARGET.m42 ??
-      [])
-    : [];
-  const setupImpactTargetName = setupImpactTargetId
-    ? (RECOMMENDED_TARGETS.find((t) => t.id === setupImpactTargetId)?.name ??
-      activeMission?.targets.find((t) => t.targetId === setupImpactTargetId)
-        ?.targetName ??
-      null)
-    : null;
-  const setupImpactEmpty = !setupImpactTargetId && !hasActiveMission;
-
-  /**
-   * Single derived target context for all mission-dependent cards.
-   * Resolves in order: active mission target > selected planned target > first planned target > null.
-   */
-  const firstMissionTarget = activeMission?.targets?.[0];
-  const currentMissionTargetContext = useMemo(() => {
-    if (hasActiveMission && firstMissionTarget) {
-      return {
-        targetId: firstMissionTarget.targetId,
-        targetName: firstMissionTarget.targetName,
-      };
-    }
-    if (plannedTargetsResolved.length > 0) {
-      const selectedInPlan =
-        selectedSetupImpactTargetId &&
-        plannedTargets.includes(selectedSetupImpactTargetId);
-      const target = selectedInPlan
-        ? plannedTargetsResolved.find(
-            (t) => t.id === selectedSetupImpactTargetId,
-          )
-        : plannedTargetsResolved[0];
-      return target ? { targetId: target.id, targetName: target.name } : null;
-    }
-    return null;
-  }, [
-    hasActiveMission,
-    firstMissionTarget,
-    plannedTargetsResolved,
-    plannedTargets,
-    selectedSetupImpactTargetId,
-  ]);
-
-  const currentPlanningTargetId = currentMissionTargetContext?.targetId ?? null;
-  const currentPlanningTargetName =
-    currentMissionTargetContext?.targetName ?? null;
-
-  const exposurePlan = currentPlanningTargetId
-    ? (EXPOSURE_PLANS_BY_TARGET[currentPlanningTargetId] ?? null)
-    : null;
-  const sessionSimulation = currentPlanningTargetId
-    ? (SESSION_SIMULATIONS_BY_TARGET[currentPlanningTargetId] ?? null)
-    : null;
-
-  const constraints = useMemo(
-    () => ({
-      minAltitude,
-      moonTolerance,
-      targetTypes,
-      driveToDarker,
-      driveRadius: driveToDarker ? driveRadius : undefined,
-    }),
-    [minAltitude, moonTolerance, targetTypes, driveToDarker, driveRadius],
-  );
-
   // No Framer Motion — removed staggered card animations for performance
   return (
     <div className="space-y-4">
-      {/* Top row: Mission Control, Conditions/Why Mission, Observing Conditions, Capture Window */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Top row: Mission Control, Observing Conditions, Last Session */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardMissionStatusCard
           mission={displayMission}
           missionStatus={missionStatus}
@@ -471,58 +380,16 @@ export default function DashboardPage() {
             )
           }
         />
-        <MissionWhyTonightCard
-          hasActiveMission={
-            hasActiveMission || plannedTargetsResolved.length > 0
-          }
-          points={
-            hasActiveMission && activeMission?.targets[0]
-              ? getMissionWhyTonightPoints(activeMission.targets[0].targetName)
-              : plannedTargetsResolved[0]
-                ? getMissionWhyTonightPoints(plannedTargetsResolved[0].name)
-                : TONIGHT_CONDITIONS_NO_MISSION.points
-          }
-        />
         <DashboardSkyIntelligenceCard
           activeLocationId={activeLocationId}
           dateTime={dateTime}
           locationName={activeLoc?.name}
           isLiveConnected={isLiveConnected}
         />
-        <DashboardImagingWindowCard
-          activeLocationId={activeLocationId}
-          dateTime={dateTime}
-          hasActiveMission={
-            hasActiveMission || plannedTargetsResolved.length > 0
-          }
-          primaryTarget={
-            hasActiveMission && activeMission?.targets[0]
-              ? {
-                  name: activeMission.targets[0].targetName,
-                  plannedWindowStart:
-                    activeMission.targets[0].plannedWindowStart,
-                  plannedWindowEnd: activeMission.targets[0].plannedWindowEnd,
-                }
-              : plannedTargetsResolved[0]
-                ? (() => {
-                    const win = TARGET_WINDOW_PARTS[
-                      plannedTargetsResolved[0].id
-                    ] ?? {
-                      start: "21:00",
-                      end: "00:00",
-                    };
-                    return {
-                      name: plannedTargetsResolved[0].name,
-                      plannedWindowStart: win.start,
-                      plannedWindowEnd: win.end,
-                    };
-                  })()
-                : undefined
-          }
-        />
+        <SessionHistoryCard compact />
       </div>
 
-      {/* NO MISSION: Sky tabs (Tonight Sky + Live Sky), Intelligence layer, Session History, Object Spotlight */}
+      {/* NO MISSION: Sky tabs, Rejected Tonight, then Recommendations, Last Session, etc. */}
       {missionStatus === "NONE" && (
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
@@ -530,14 +397,11 @@ export default function DashboardPage() {
               activeLocationId={activeLocationId}
               dateTime={dateTime}
             />
-            <SessionHistoryCard compact />
+            <RejectedTargetPanel targets={REJECTED_TARGETS} />
           </div>
           <TonightRecommendationsSection
-            selectedTargetId={selectedSetupImpactTargetId}
-            onSelectTarget={setSelectedSetupImpactTargetId}
-            setupImpactTargetName={setupImpactTargetName}
-            setupImpactItems={setupImpactItems}
-            setupImpactEmpty={setupImpactEmpty}
+            selectedTargetId={null}
+            onSelectTarget={() => {}}
             activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
             plannedTargets={plannedTargetsResolved}
             onStartMission={handleStartMission}
@@ -551,31 +415,6 @@ export default function DashboardPage() {
                 : undefined
             }
           />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <LearnedFromSessionsCard
-              insights={ADAPTATION_INSIGHTS}
-              effects={ADAPTATION_EFFECTS}
-            />
-            <RejectedTargetPanel targets={REJECTED_TARGETS} />
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ExposurePlannerCard
-              targetName={currentPlanningTargetName}
-              plan={exposurePlan}
-            />
-            <SessionSimulatorCard
-              targetName={currentPlanningTargetName}
-              simulation={sessionSimulation}
-            />
-          </div>
-          <div>
-            <ObjectSpotlightCard
-              activeLocationId={activeLocationId}
-              activeGearId={activeGearId}
-              dateTime={dateTime}
-              constraints={constraints}
-            />
-          </div>
         </>
       )}
 
@@ -587,14 +426,11 @@ export default function DashboardPage() {
               activeLocationId={activeLocationId}
               dateTime={dateTime}
             />
-            <SessionHistoryCard compact />
+            <RejectedTargetPanel targets={REJECTED_TARGETS} />
           </div>
           <TonightRecommendationsSection
-            selectedTargetId={selectedSetupImpactTargetId}
-            onSelectTarget={setSelectedSetupImpactTargetId}
-            setupImpactTargetName={setupImpactTargetName}
-            setupImpactItems={setupImpactItems}
-            setupImpactEmpty={setupImpactEmpty}
+            selectedTargetId={null}
+            onSelectTarget={() => {}}
             activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
             plannedTargets={plannedTargetsResolved}
             onStartMission={handleStartMission}
@@ -608,31 +444,6 @@ export default function DashboardPage() {
                 : undefined
             }
           />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <LearnedFromSessionsCard
-              insights={ADAPTATION_INSIGHTS}
-              effects={ADAPTATION_EFFECTS}
-            />
-            <RejectedTargetPanel targets={REJECTED_TARGETS} />
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ExposurePlannerCard
-              targetName={currentPlanningTargetName}
-              plan={exposurePlan}
-            />
-            <SessionSimulatorCard
-              targetName={currentPlanningTargetName}
-              simulation={sessionSimulation}
-            />
-          </div>
-          <div>
-            <ObjectSpotlightCard
-              activeLocationId={activeLocationId}
-              activeGearId={activeGearId}
-              dateTime={dateTime}
-              constraints={constraints}
-            />
-          </div>
         </>
       )}
 
@@ -686,18 +497,9 @@ export default function DashboardPage() {
 
             <div className="space-y-4">
               <RejectedTargetPanel targets={REJECTED_TARGETS} />
-              <ExposurePlannerCard
-                targetName={currentPlanningTargetName}
-                plan={exposurePlan}
-              />
-              <SessionSimulatorCard
-                targetName={currentPlanningTargetName}
-                simulation={sessionSimulation}
-              />
               {missionStatus === "CAPTURING" && <AdaptiveMissionCard />}
               {(missionStatus === "CAPTURING" ||
                 missionStatus === "LOGGING") && <CaptureRunSheetCard />}
-              <SessionHistoryCard />
             </div>
           </div>
         </div>

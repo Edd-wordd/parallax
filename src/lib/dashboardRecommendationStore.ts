@@ -8,8 +8,6 @@ import { create } from "zustand";
 export interface DashboardRecommendationState {
   /** Target IDs in mission plan (Add to Plan flow). */
   plannedTargets: string[];
-  /** Target ID used for Setup Impact display. */
-  selectedSetupImpactTargetId: string | null;
   /** Target ID for "Why this was chosen" drawer. */
   selectedWhyChosenTargetId: string | null;
   /** Whether Build Optimal Mission has been run this session. */
@@ -21,7 +19,6 @@ export interface DashboardRecommendationActions {
   removeFromPlan: (targetId: string) => void;
   clearPlan: () => void;
   setPlannedTargets: (ids: string[]) => void;
-  setSelectedSetupImpactTargetId: (id: string | null) => void;
   setSelectedWhyChosenTargetId: (id: string | null) => void;
   setOptimalMissionBuilt: (built: boolean) => void;
   isInPlan: (targetId: string) => boolean;
@@ -30,7 +27,6 @@ export interface DashboardRecommendationActions {
 
 const initialState: DashboardRecommendationState = {
   plannedTargets: [],
-  selectedSetupImpactTargetId: null,
   selectedWhyChosenTargetId: null,
   isOptimalMissionBuilt: false,
 };
@@ -60,7 +56,6 @@ export const useDashboardRecommendationStore = create<
 
   setPlannedTargets: (ids) => set({ plannedTargets: ids, isOptimalMissionBuilt: true }),
 
-  setSelectedSetupImpactTargetId: (id) => set({ selectedSetupImpactTargetId: id }),
   setSelectedWhyChosenTargetId: (id) => set({ selectedWhyChosenTargetId: id }),
   setOptimalMissionBuilt: (built) => set({ isOptimalMissionBuilt: built }),
 

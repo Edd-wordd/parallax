@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { RecommendedTargetCard } from "./RecommendedTargetCard";
-import { SetupImpactCard } from "./SetupImpactCard";
 import { MissionPlanPanel } from "./MissionPlanPanel";
 import { MissionDecisionDrawer } from "./MissionDecisionDrawer";
 import { Button } from "@/components/ui/button";
@@ -11,20 +10,13 @@ import {
   ENGINE_CONFIDENCE,
   ENGINE_CONFIDENCE_SUBTEXT,
 } from "@/lib/mock/intelligenceLayer";
-import type {
-  RecommendedTarget,
-  RejectedTarget,
-  SetupImpactItem,
-} from "@/lib/mock/intelligenceLayer";
+import type { RecommendedTarget, RejectedTarget } from "@/lib/mock/intelligenceLayer";
 
 type DrawerTarget = (RecommendedTarget | RejectedTarget) & { isRejected: boolean };
 
 interface TonightRecommendationsSectionProps {
   selectedTargetId: string | null;
   onSelectTarget: (id: string | null) => void;
-  setupImpactTargetName: string | null;
-  setupImpactItems: SetupImpactItem[];
-  setupImpactEmpty?: boolean;
   activeMissionTargetId?: string | null;
   plannedTargets?: RecommendedTarget[];
   onStartMission?: (target: RecommendedTarget) => void;
@@ -38,9 +30,6 @@ interface TonightRecommendationsSectionProps {
 export function TonightRecommendationsSection({
   selectedTargetId,
   onSelectTarget,
-  setupImpactTargetName,
-  setupImpactItems,
-  setupImpactEmpty = false,
   activeMissionTargetId = null,
   plannedTargets = [],
   onStartMission,
@@ -103,15 +92,14 @@ export function TonightRecommendationsSection({
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-            Recommended Targets
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            {RECOMMENDED_TARGETS.map((target) => (
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+          Recommended Targets
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+          {RECOMMENDED_TARGETS.map((target) => (
+            <div key={target.id} className="min-h-0 flex">
               <RecommendedTargetCard
-                key={target.id}
                 target={target}
                 selected={selectedTargetId === target.id}
                 isActive={activeMissionTargetId === target.id}
@@ -119,19 +107,10 @@ export function TonightRecommendationsSection({
                 onSelect={() => onSelectTarget(selectedTargetId === target.id ? null : target.id)}
                 onStartMission={() => onStartMission?.(target)}
                 onAddToPlan={() => onAddToPlan?.(target)}
-                onViewSetupImpact={() => onSelectTarget(target.id)}
                 onOpenDecisionDrawer={() => openDrawerForRecommended(target)}
               />
-            ))}
-          </div>
-        </div>
-
-        <div className="lg:min-h-[240px] space-y-3">
-          <SetupImpactCard
-            targetName={setupImpactTargetName}
-            items={setupImpactItems}
-            empty={setupImpactEmpty}
-          />
+            </div>
+          ))}
         </div>
       </div>
 

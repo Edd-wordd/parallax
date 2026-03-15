@@ -7,6 +7,12 @@
 import type { SkyState } from "@/lib/mock/dashboardData";
 import { MoonPhaseVisual } from "@/components/MoonPhaseVisual";
 import { cn } from "@/lib/utils";
+import {
+  Sparkles,
+  Moon,
+  Clock,
+  ScanEye,
+} from "lucide-react";
 
 interface TonightSkyCardProps {
   /** Sky-state data (site + date derived). */
@@ -81,6 +87,42 @@ export function TonightSkyCard({
 
   const summary = buildTonightSummary(skyState, forecastConfidence);
 
+  /** AI-style details (narrative insights only). */
+  const aiDetails: { icon: React.ReactNode; text: string }[] = [
+    {
+      icon: <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500/80" />,
+      text: summary,
+    },
+    {
+      icon: <Moon className="h-3.5 w-3.5 shrink-0 text-indigo-400/80" />,
+      text:
+        skyState.moonPhasePercent < 25
+          ? "Low lunar interference — good for faint targets and broadband."
+          : skyState.moonPhasePercent < 60
+            ? "Moderate moon — favor targets away from the moon or narrowband."
+            : "Bright moon — best for lunar/planetary or narrowband targets.",
+    },
+    {
+      icon: <ScanEye className="h-3.5 w-3.5 shrink-0 text-emerald-500/80" />,
+      text:
+        skyState.seeing >= 3.5
+          ? "Seeing above average — suitable for longer focal lengths."
+          : "Seeing typical — medium focal length and shorter subs recommended.",
+    },
+  ];
+
+  /** Capture window: usable imaging window and duration. */
+  const hoursMatch = skyState.astronomicalDarknessStart.match(/(\d+):(\d+)/);
+  const endMatch = skyState.astronomicalDarknessEnd.match(/(\d+):(\d+)/);
+  let windowHours: string = "3.2";
+  if (hoursMatch && endMatch) {
+    const startH = parseInt(hoursMatch[1], 10) + parseInt(hoursMatch[2], 10) / 60;
+    const endH = parseInt(endMatch[1], 10) + parseInt(endMatch[2], 10) / 60;
+    const span = endH > startH ? endH - startH : 24 - startH + endH;
+    windowHours = span.toFixed(1);
+  }
+  const captureWindowTimeRange = `${skyState.astronomicalDarknessStart} — ${skyState.astronomicalDarknessEnd}`;
+
   return (
     <div
       className={cn(
@@ -117,11 +159,43 @@ export function TonightSkyCard({
           ))}
         </div>
       </div>
-      {/* Compact footer insight */}
-      <div className="mt-4 pt-3 border-t border-zinc-800/60">
-        <p className="text-xs text-zinc-500 leading-snug line-clamp-2">
-          {summary}
-        </p>
+      {/* Bottom: AI Generated Details + Capture Window Details (side by side) */}
+      <div className="mt-4 pt-3 border-t border-zinc-800/60 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-0">
+        <div className="min-w-0 sm:pr-4 sm:border-r border-zinc-800/60">
+          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2.5">
+            Tonight AI Generated Details
+          </h3>
+          <div className="space-y-2">
+            {aiDetails.map(({ icon, text }, i) => (
+              <div
+                key={i}
+                className="flex gap-2.5 items-start text-xs text-zinc-500 leading-snug"
+              >
+                <span className="mt-0.5 shrink-0" aria-hidden>
+                  {icon}
+                </span>
+                <span className="min-w-0 flex-1">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0 sm:pl-4">
+          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2.5">
+            Capture Window Details
+          </h3>
+          <div className="space-y-1">
+            <p className="font-display text-sm font-medium text-zinc-200 tabular-nums">
+              Usable Imaging Window
+            </p>
+            <p className="text-sm text-zinc-300 tabular-nums">
+              {captureWindowTimeRange}
+            </p>
+            <p className="text-xs text-zinc-500">{windowHours} hours</p>
+            <p className="text-xs text-zinc-500 mt-1">
+              Best overall period for general imaging tonight
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

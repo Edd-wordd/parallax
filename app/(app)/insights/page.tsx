@@ -17,6 +17,11 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ChartResizeGuard } from "@/components/ChartResizeGuard";
+import { LearnedFromSessionsCard } from "@/components/intelligence";
+import {
+  ADAPTATION_INSIGHTS,
+  ADAPTATION_EFFECTS,
+} from "@/lib/mock/intelligenceLayer";
 
 const successTrends = [
   { month: "Sep", rate: 60 },
@@ -48,6 +53,11 @@ export default function InsightsPage() {
       className="space-y-6"
     >
       <h1 className="text-2xl font-bold">Analytics & Insights</h1>
+
+      <LearnedFromSessionsCard
+        insights={ADAPTATION_INSIGHTS}
+        effects={ADAPTATION_EFFECTS}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

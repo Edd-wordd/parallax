@@ -11,7 +11,11 @@ interface DashboardImagingWindowCardProps {
   /** When true, shows target-specific capture window. When false, shows general night window. */
   hasActiveMission?: boolean;
   /** Primary target for mission-specific window (required when hasActiveMission is true). */
-  primaryTarget?: { name: string; plannedWindowStart: string; plannedWindowEnd: string };
+  primaryTarget?: {
+    name: string;
+    plannedWindowStart: string;
+    plannedWindowEnd: string;
+  };
 }
 
 /**
@@ -32,7 +36,7 @@ export function DashboardImagingWindowCard({
         dateTime,
         primaryTarget.name,
         primaryTarget.plannedWindowStart,
-        primaryTarget.plannedWindowEnd
+        primaryTarget.plannedWindowEnd,
       );
     }
     return getGeneralImagingWindow(activeLocationId, dateTime);

@@ -11,7 +11,7 @@ import {
 
 const LiveSkyView = dynamic(
   () => import("./LiveSkyView").then((m) => m.LiveSkyView),
-  { ssr: false }
+  { ssr: false },
 );
 
 type SkyView = "sky" | "live";
@@ -36,11 +36,11 @@ export function SkyTabsCard({
 
   const skyState = useMemo(
     () => getSkyStateForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime]
+    [activeLocationId, dateTime],
   );
   const forecast = useMemo(
     () => getForecastForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime]
+    [activeLocationId, dateTime],
   );
 
   return (
@@ -60,7 +60,7 @@ export function SkyTabsCard({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900",
               view === "sky"
                 ? "bg-indigo-500/20 text-indigo-400 shadow-sm"
-                : "text-zinc-500 hover:bg-zinc-700/40 hover:text-zinc-400"
+                : "text-zinc-500 hover:bg-zinc-700/40 hover:text-zinc-400",
             )}
           >
             Tonight&apos;s Sky
@@ -74,7 +74,7 @@ export function SkyTabsCard({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900",
               view === "live"
                 ? "bg-indigo-500/20 text-indigo-400 shadow-sm"
-                : "text-zinc-500 hover:bg-zinc-700/40 hover:text-zinc-400"
+                : "text-zinc-500 hover:bg-zinc-700/40 hover:text-zinc-400",
             )}
           >
             Live Sky View
@@ -99,7 +99,11 @@ export function SkyTabsCard({
           role="tabpanel"
           aria-hidden={view !== "live"}
         >
-          <LiveSkyView compact={compact} embedded locationBortle={skyState.bortle} />
+          <LiveSkyView
+            compact={compact}
+            embedded
+            locationBortle={skyState.bortle}
+          />
         </div>
       </div>
     </div>

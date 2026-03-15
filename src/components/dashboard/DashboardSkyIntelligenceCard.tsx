@@ -37,29 +37,32 @@ export function DashboardSkyIntelligenceCard({
 
   const forecastState = useMemo(
     () => getSkyIntelligenceForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime]
+    [activeLocationId, dateTime],
   );
   const liveState = useMemo(
     () => getLiveSkyIntelligenceForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime]
+    [activeLocationId, dateTime],
   );
   const state = mode === "forecast" ? forecastState : liveState;
 
   const loc = useMemo(
     () => MOCK_LOCATIONS.find((l) => l.id === activeLocationId),
-    [activeLocationId]
+    [activeLocationId],
   );
   const displayLocation = state.locationName ?? fallbackName ?? "—";
   const coords = useMemo(
     () => (loc ? formatCoordinates(loc.lat, loc.lon) : null),
-    [loc]
+    [loc],
   );
 
   return (
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
       <div className="px-3 py-2 border-b border-zinc-800/60 flex items-center justify-between gap-2 shrink-0">
         <h2 className="dash-section-title">Observing Conditions</h2>
-        <div className="inline-flex rounded border border-zinc-700/60 bg-zinc-800/30 p-0.5" role="group">
+        <div
+          className="inline-flex rounded border border-zinc-700/60 bg-zinc-800/30 p-0.5"
+          role="group"
+        >
           <button
             type="button"
             onClick={() => setMode("forecast")}
@@ -67,7 +70,7 @@ export function DashboardSkyIntelligenceCard({
               "rounded px-2 py-1 text-xs font-medium transition-colors",
               mode === "forecast"
                 ? "bg-indigo-500/15 text-indigo-400/90"
-                : "text-zinc-500 hover:text-zinc-400"
+                : "text-zinc-500 hover:text-zinc-400",
             )}
           >
             Forecast
@@ -79,7 +82,7 @@ export function DashboardSkyIntelligenceCard({
               "rounded px-2 py-1 text-xs font-medium transition-colors",
               mode === "live"
                 ? "bg-indigo-500/15 text-indigo-400/90"
-                : "text-zinc-500 hover:text-zinc-400"
+                : "text-zinc-500 hover:text-zinc-400",
             )}
           >
             Live Site
@@ -111,13 +114,30 @@ export function DashboardSkyIntelligenceCard({
                 label="Forecast Confidence"
                 size="sm"
               />
-              <SkyMetricPill label="Cloud Cover" value={`${forecastState.forecast.cloudCover}%`} />
-              <SkyMetricPill label="Humidity" value={`${forecastState.forecast.humidity}%`} />
-              <SkyMetricPill label="Seeing" value={`${forecastState.forecast.seeing}/5`} />
-              <SkyMetricPill label="Wind" value={`${forecastState.forecast.windMph} mph`} />
-              <SkyMetricPill label="Moon Impact" value={forecastState.forecast.moonInterference} />
+              <SkyMetricPill
+                label="Cloud Cover"
+                value={`${forecastState.forecast.cloudCover}%`}
+              />
+              <SkyMetricPill
+                label="Humidity"
+                value={`${forecastState.forecast.humidity}%`}
+              />
+              <SkyMetricPill
+                label="Seeing"
+                value={`${forecastState.forecast.seeing}/5`}
+              />
+              <SkyMetricPill
+                label="Wind"
+                value={`${forecastState.forecast.windMph} mph`}
+              />
+              <SkyMetricPill
+                label="Moon Impact"
+                value={forecastState.forecast.moonInterference}
+              />
             </div>
-            <p className="text-xs text-zinc-500 leading-snug line-clamp-2">{forecastState.status}</p>
+            <p className="text-xs text-zinc-500 leading-snug line-clamp-2">
+              {forecastState.status}
+            </p>
           </>
         )}
 
@@ -127,7 +147,10 @@ export function DashboardSkyIntelligenceCard({
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   <MissionConfidenceCard
-                    confidence={liveState.liveConfidence ?? forecastState.forecastConfidence}
+                    confidence={
+                      liveState.liveConfidence ??
+                      forecastState.forecastConfidence
+                    }
                     label="Live Confidence"
                     size="sm"
                   />
@@ -161,11 +184,15 @@ export function DashboardSkyIntelligenceCard({
                     variant="success"
                   />
                 </div>
-                <p className="text-xs text-zinc-500 leading-snug line-clamp-2">{liveState.status}</p>
+                <p className="text-xs text-zinc-500 leading-snug line-clamp-2">
+                  {liveState.status}
+                </p>
               </>
             ) : (
               <div className="flex flex-col gap-1.5 py-2">
-                <p className="text-sm text-zinc-500 font-medium">Live telemetry unavailable</p>
+                <p className="text-sm text-zinc-500 font-medium">
+                  Live telemetry unavailable
+                </p>
                 <p className="text-xs text-zinc-600 leading-snug">
                   Connect your rig or field controller to view live site data
                 </p>

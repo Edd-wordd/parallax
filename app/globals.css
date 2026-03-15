@@ -43,13 +43,17 @@ body {
   font-family: var(--font-sans);
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   font-family: var(--font-orbitron), var(--font-sans);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-a, button, select {
+a,
+button,
+select {
   cursor: pointer;
 }
 
@@ -63,44 +67,156 @@ button:disabled {
   position: relative;
   background:
     /* Very subtle radial gradients for space depth */
-    radial-gradient(ellipse 90% 60% at 50% 40%, rgba(60, 100, 180, 0.02) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 20% 25%, rgba(80, 120, 200, 0.015) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 45% at 85% 75%, rgba(80, 120, 200, 0.015) 0%, transparent 50%),
+    radial-gradient(
+      ellipse 90% 60% at 50% 40%,
+      rgba(60, 100, 180, 0.02) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 20% 25%,
+      rgba(80, 120, 200, 0.015) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 85% 75%,
+      rgba(80, 120, 200, 0.015) 0%,
+      transparent 50%
+    ),
     /* Faint star noise - 1px points, random-like distribution */
     radial-gradient(circle 1px at 3% 7%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 17% 23%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 42% 11%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 68% 31%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 91% 19%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 8% 58%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 33% 72%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 55% 84%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 79% 67%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 12% 91%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 88% 93%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 26% 42%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 61% 52%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 73% 8%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 5% 38%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 47% 27%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 94% 45%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 19% 65%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 85% 78%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 37% 16%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 52% 61%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 11% 83%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 96% 56%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 44% 35%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 22% 78%, rgba(200, 220, 255, 0.12), transparent),
-    radial-gradient(circle 1px at 67% 14%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(
+      circle 1px at 17% 23%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 42% 11%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 68% 31%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 91% 19%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 8% 58%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 33% 72%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 55% 84%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 79% 67%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 12% 91%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 88% 93%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 26% 42%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 61% 52%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 73% 8%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 5% 38%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 47% 27%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 94% 45%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 19% 65%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 85% 78%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 37% 16%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 52% 61%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 11% 83%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 96% 56%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 44% 35%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 22% 78%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 67% 14%,
+      rgba(200, 220, 255, 0.12),
+      transparent
+    ),
     /* Secondary diagonal grid - very low opacity to break box appearance */
     repeating-linear-gradient(
-      45deg,
-      transparent 0,
-      transparent calc(180px * 0.707 - 1px),
-      rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
-      rgba(120, 150, 200, 0.015) calc(180px * 0.707)
-    ),
+        45deg,
+        transparent 0,
+        transparent calc(180px * 0.707 - 1px),
+        rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
+        rgba(120, 150, 200, 0.015) calc(180px * 0.707)
+      ),
     repeating-linear-gradient(
       -45deg,
       transparent 0,
@@ -110,12 +226,12 @@ button:disabled {
     ),
     /* Primary grid - vertical & horizontal, 180px spacing, extremely subtle */
     repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent 179px,
-      rgba(120, 150, 200, 0.03) 179px,
-      rgba(120, 150, 200, 0.03) 180px
-    ),
+        90deg,
+        transparent 0,
+        transparent 179px,
+        rgba(120, 150, 200, 0.03) 179px,
+        rgba(120, 150, 200, 0.03) 180px
+      ),
     repeating-linear-gradient(
       0deg,
       transparent 0,
@@ -124,12 +240,7 @@ button:disabled {
       rgba(120, 150, 200, 0.03) 180px
     ),
     /* Base deep-space gradient */
-    linear-gradient(
-      180deg,
-      #05070a 0%,
-      #06090f 50%,
-      #020305 100%
-    );
+    linear-gradient(180deg, #05070a 0%, #06090f 50%, #020305 100%);
   background-attachment: fixed;
 }
 
@@ -147,7 +258,11 @@ button:disabled {
   overflow: visible; /* allow native date picker popup to render (was hidden, which clipped it) */
   /* Layer 1: dark blue base + vignette */
   background:
-    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0, 5, 15, 0.5) 100%),
+    radial-gradient(
+      ellipse 100% 100% at 50% 50%,
+      transparent 40%,
+      rgba(0, 5, 15, 0.5) 100%
+    ),
     linear-gradient(180deg, #050a14 0%, #060d1a 40%, #060d1a 60%, #030712 100%);
   background-color: #050a14;
   background-attachment: scroll;
@@ -181,13 +296,34 @@ button:disabled {
   z-index: 3;
   background-image:
     /* One faint off-center moon - top-right, cool gray-blue */
-    radial-gradient(circle 35% at 92% 8%, rgba(190, 200, 220, 0.04) 0%, rgba(150, 165, 190, 0.02) 40%, transparent 70%),
+    radial-gradient(
+      circle 35% at 92% 8%,
+      rgba(190, 200, 220, 0.04) 0%,
+      rgba(150, 165, 190, 0.02) 40%,
+      transparent 70%
+    ),
     /* Sparse stars - very low density */
-    radial-gradient(circle 1px at 8% 12%, rgba(220, 230, 255, 0.10), transparent),
-    radial-gradient(circle 1px at 78% 22%, rgba(220, 230, 255, 0.10), transparent),
-    radial-gradient(circle 1px at 22% 68%, rgba(220, 230, 255, 0.10), transparent),
-    radial-gradient(circle 1px at 88% 88%, rgba(220, 230, 255, 0.10), transparent),
-    radial-gradient(circle 1px at 52% 8%, rgba(220, 230, 255, 0.10), transparent);
+    radial-gradient(circle 1px at 8% 12%, rgba(220, 230, 255, 0.1), transparent),
+    radial-gradient(
+      circle 1px at 78% 22%,
+      rgba(220, 230, 255, 0.1),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 22% 68%,
+      rgba(220, 230, 255, 0.1),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 88% 88%,
+      rgba(220, 230, 255, 0.1),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 52% 8%,
+      rgba(220, 230, 255, 0.1),
+      transparent
+    );
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
@@ -219,7 +355,11 @@ button:disabled {
 
 .mission-space-page .mission-page-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, rgba(96, 165, 250, 0.5) 0%, rgba(59, 130, 246, 0.65) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(96, 165, 250, 0.5) 0%,
+    rgba(59, 130, 246, 0.65) 100%
+  );
   border-radius: 1px;
   transition: width 0.3s ease;
 }
@@ -279,16 +419,34 @@ button:disabled {
 
 /* Parallax Dark design system utilities */
 @layer utilities {
-  .font-display { font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif; }
-  .page-container { @apply max-w-6xl mx-auto space-y-4; }
-  .section-card { @apply rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)]; }
-  .compact-card { @apply rounded-xl border border-white/10 bg-white/[0.03] p-3; }
-  .subtle-divider { @apply border-t border-white/10; }
-  .label-text { @apply text-xs font-medium text-white/60; }
+  .font-display {
+    font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
+  }
+  .page-container {
+    @apply max-w-6xl mx-auto space-y-4;
+  }
+  .section-card {
+    @apply rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)];
+  }
+  .compact-card {
+    @apply rounded-xl border border-white/10 bg-white/[0.03] p-3;
+  }
+  .subtle-divider {
+    @apply border-t border-white/10;
+  }
+  .label-text {
+    @apply text-xs font-medium text-white/60;
+  }
   /* Dashboard: space/technical font for structure only */
-  .dash-section-title { @apply font-display text-xs font-medium uppercase tracking-[0.1em] text-zinc-500; }
-  .dash-pill { @apply font-display text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-400; }
-  .dash-metric { @apply font-display text-xs tabular-nums; }
+  .dash-section-title {
+    @apply font-display text-xs font-medium uppercase tracking-[0.1em] text-zinc-500;
+  }
+  .dash-pill {
+    @apply font-display text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-400;
+  }
+  .dash-metric {
+    @apply font-display text-xs tabular-nums;
+  }
 }
 
 /* Dashboard premium color tokens - graphite, steel-blue, soft amber */
@@ -340,17 +498,61 @@ button:disabled {
 [data-theme="field"] .space-background,
 .field-mode .space-background {
   background:
-    radial-gradient(circle 1px at 3% 7%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 17% 23%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 42% 11%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 68% 31%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 91% 19%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 8% 58%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 33% 72%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 55% 84%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 79% 67%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(ellipse 90% 60% at 50% 40%, var(--theme-ambient-a) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 20% 25%, var(--theme-ambient-b) 0%, transparent 50%),
+    radial-gradient(
+      circle 1px at 3% 7%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 17% 23%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 42% 11%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 68% 31%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 91% 19%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 8% 58%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 33% 72%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 55% 84%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 79% 67%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 90% 60% at 50% 40%,
+      var(--theme-ambient-a) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 20% 25%,
+      var(--theme-ambient-b) 0%,
+      transparent 50%
+    ),
     linear-gradient(180deg, #080406 0%, #0a0507 50%, #060304 100%) !important;
   background-color: var(--theme-app-bg) !important;
 }
@@ -378,12 +580,36 @@ button:disabled {
 [data-theme="field"] .mission-space-page::after,
 .field-mode .mission-space-page::after {
   background-image:
-    radial-gradient(circle 35% at 92% 8%, rgba(140, 80, 90, 0.03) 0%, transparent 70%),
-    radial-gradient(circle 1px at 8% 12%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 78% 22%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 22% 68%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 88% 88%, rgba(200, 140, 140, 0.08), transparent),
-    radial-gradient(circle 1px at 52% 8%, rgba(200, 140, 140, 0.08), transparent) !important;
+    radial-gradient(
+      circle 35% at 92% 8%,
+      rgba(140, 80, 90, 0.03) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      circle 1px at 8% 12%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 78% 22%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 22% 68%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 88% 88%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle 1px at 52% 8%,
+      rgba(200, 140, 140, 0.08),
+      transparent
+    ) !important;
 }
 
 /* ----- Side rail / navigation ----- */
@@ -598,7 +824,11 @@ button:disabled {
 /* ----- Progress bar ----- */
 [data-theme="field"] .mission-page-progress-fill,
 .field-mode .mission-page-progress-fill {
-  background: linear-gradient(90deg, var(--theme-accent-soft) 0%, var(--theme-accent) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    var(--theme-accent-soft) 0%,
+    var(--theme-accent) 100%
+  ) !important;
 }
 
 /* ----- Left rail specific ----- */

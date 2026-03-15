@@ -7,14 +7,12 @@ import {
   LayoutDashboard,
   Crosshair,
   Map,
-  Calendar,
   Settings,
   HelpCircle,
   BarChart3,
   Rocket,
   History,
   User,
-  ScanSearch,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,8 +23,6 @@ const mainNavItems = [
   { href: "/missions", label: "Missions", icon: Rocket },
   { href: "/targets", label: "Targets", icon: Crosshair },
   { href: "/skymap", label: "Sky Map", icon: Map },
-  { href: "/planner", label: "Planner", icon: Calendar },
-  { href: "/site-check", label: "Site Check", icon: ScanSearch },
   { href: "/sessions", label: "Sessions", icon: History },
   { href: "/insights", label: "Insights", icon: BarChart3 },
 ];

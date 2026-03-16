@@ -14,7 +14,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -22,7 +22,6 @@ import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { MOCK_GEAR } from "@/lib/mock/gear";
-import { MOCK_NIGHT } from "@/lib/mock/night";
 import { mockRig } from "@/lib/mockMissionData";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
@@ -39,10 +38,10 @@ import {
   ClipboardList,
   Moon,
   XCircle,
-  ScanSearch,
   Target,
   LogOut,
   Plus,
+  Pencil,
 } from "lucide-react";
 import { NightSimulationModal } from "@/components/missions/NightSimulationModal";
 import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
@@ -53,21 +52,16 @@ import { ConditionsCard } from "@/components/missions/ConditionsCard";
 import {
   LiveSkyMonitorCard,
   NightHealthCard,
-  AdaptiveMissionAdviceCard,
 } from "@/components/sky-intelligence";
-import {
-  MOCK_LIVE_STATE,
-  MOCK_LIVE_EVENTS,
-} from "@/lib/mock/skyIntelligence";
-import {
-  getMockNightHealth,
-  getMockAdaptiveAdvice,
-} from "@/lib/mock/fieldOps";
+import { MOCK_LIVE_STATE, MOCK_LIVE_EVENTS } from "@/lib/mock/skyIntelligence";
+import { getMockNightHealth, getMockAdaptiveAdvice } from "@/lib/mock/fieldOps";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
 import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
-import { ExposurePlannerCard, SessionSimulatorCard } from "@/components/intelligence";
-import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
+import {
+  ExposurePlannerCard,
+  SessionSimulatorCard,
+} from "@/components/intelligence";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget } from "@/lib/types";
@@ -127,6 +121,8 @@ function MissionDashboardContent() {
   const [cancelReason, setCancelReason] = useState("");
   const [abortReason, setAbortReason] = useState("");
   const [rig, setRig] = useState<RigProfile>(mockRig);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
 
@@ -134,30 +130,43 @@ function MissionDashboardContent() {
 
   const availableTargetsForAdd = useMemo(
     () => getAvailableTargetsForAdd(mission?.targets ?? []),
-    [mission?.targets]
+    [mission?.targets],
   );
 
-  const noteLog = mission?.noteLog ?? (mission?.notes ? [{ text: mission.notes, at: mission.createdAt }] : []);
+  const noteLog =
+    mission?.noteLog ??
+    (mission?.notes ? [{ text: mission.notes, at: mission.createdAt }] : []);
 
   const status = getMissionStatus(mission ?? null);
   const isPlanning = status === "PLANNING" || status === "SETUP";
   const isCapturing = status === "CAPTURING";
   const isLogging = status === "LOGGING";
-  const isTerminal = status === "COMPLETED" || status === "ABORTED" || status === "CANCELLED";
+  const isTerminal =
+    status === "COMPLETED" || status === "ABORTED" || status === "CANCELLED";
 
   const nightHealth = useMemo(
     () => getMockNightHealth({}),
     [uiState.conditions],
   );
   const adaptiveAdvice = useMemo(
-    () => getMockAdaptiveAdvice({ clouds: uiState.conditions.clouds, transparency: uiState.conditions.transparency }),
-    [uiState.conditions.clouds, uiState.conditions.transparency, uiState.planStale],
+    () =>
+      getMockAdaptiveAdvice({
+        clouds: uiState.conditions.clouds,
+        transparency: uiState.conditions.transparency,
+      }),
+    [
+      uiState.conditions.clouds,
+      uiState.conditions.transparency,
+      uiState.planStale,
+    ],
   );
 
   if (!mounted) {
     return (
       <div className="mission-space-page relative -m-4 min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-zinc-500 text-sm">Loading mission…</div>
+        <div className="animate-pulse text-zinc-500 text-sm">
+          Loading mission…
+        </div>
       </div>
     );
   }
@@ -189,12 +198,19 @@ function MissionDashboardContent() {
       : "planning";
   const firstTargetId = mission.targets[0]?.targetId;
   const currentTargetId = mission.currentTargetId ?? firstTargetId;
-  const currentTarget = mission.targets.find((t) => t.targetId === currentTargetId) ?? mission.targets[0];
+  const currentTarget =
+    mission.targets.find((t) => t.targetId === currentTargetId) ??
+    mission.targets[0];
   const primaryTargetName = mission.targets[0]?.targetName ?? null;
-  const exposurePlan = firstTargetId ? (EXPOSURE_PLANS_BY_TARGET[firstTargetId] ?? null) : null;
-  const sessionSimulation = firstTargetId ? (SESSION_SIMULATIONS_BY_TARGET[firstTargetId] ?? null) : null;
+  const exposurePlan = firstTargetId
+    ? (EXPOSURE_PLANS_BY_TARGET[firstTargetId] ?? null)
+    : null;
+  const sessionSimulation = firstTargetId
+    ? (SESSION_SIMULATIONS_BY_TARGET[firstTargetId] ?? null)
+    : null;
   const selectedTarget = uiState.selectedTargetId
-    ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ?? null)
+    ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ??
+      null)
     : null;
 
   const handlePhaseClick = (phase: ActivePhase) => {
@@ -203,7 +219,11 @@ function MissionDashboardContent() {
   };
 
   const handleStart = () => {
-    updateMission(id, { status: "in_progress", phase: "capturing", currentTargetId: firstTargetId });
+    updateMission(id, {
+      status: "in_progress",
+      phase: "capturing",
+      currentTargetId: firstTargetId,
+    });
     setActiveMission(id);
     handlePhaseClick("capturing");
     toast("Mission started");
@@ -226,7 +246,10 @@ function MissionDashboardContent() {
   };
   const handleCancelMission = () => {
     const reason = cancelReason.trim() || "No reason given";
-    const entry = { text: `[Cancelled] ${reason}`, at: new Date().toISOString() };
+    const entry = {
+      text: `[Cancelled] ${reason}`,
+      at: new Date().toISOString(),
+    };
     updateMission(id, {
       status: "cancelled",
       phase: "completed",
@@ -304,7 +327,8 @@ function MissionDashboardContent() {
     e?.stopPropagation();
     const next = mission.targets.filter((t) => t.targetId !== targetId);
     updateMission(id, { targets: next });
-    if (uiState.selectedTargetId === targetId) setSelectedTarget(next[0]?.targetId ?? null);
+    if (uiState.selectedTargetId === targetId)
+      setSelectedTarget(next[0]?.targetId ?? null);
     toast("Target removed");
   };
   const handleMoveTarget = (index: number, direction: "up" | "down") => {
@@ -328,7 +352,14 @@ function MissionDashboardContent() {
       ),
     });
   };
-  const handleAddTarget = (opt: { targetId: string; targetName: string; targetType: string; score: number; bestWindowStart: string; bestWindowEnd: string }) => {
+  const handleAddTarget = (opt: {
+    targetId: string;
+    targetName: string;
+    targetType: string;
+    score: number;
+    bestWindowStart: string;
+    bestWindowEnd: string;
+  }) => {
     const seq = mission.targets.length + 1;
     const newTarget: MissionTarget = {
       targetId: opt.targetId,
@@ -373,30 +404,71 @@ function MissionDashboardContent() {
           <header className="mission-page-header">
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95">
-                    {mission.name}
-                  </h1>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                      STATUS_COLORS[mission.status] ?? STATUS_COLORS.draft,
-                    )}
-                  >
-                    {STATUS_LABELS[mission.status]}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {isEditingTitle ? (
+                    <input
+                      ref={titleInputRef}
+                      value={mission.name}
+                      onChange={(e) =>
+                        updateMission(id, { name: e.target.value })
+                      }
+                      onBlur={() => setIsEditingTitle(false)}
+                      className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95 bg-transparent border-b border-transparent focus:border-violet-500 focus:outline-none"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h1 className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95">
+                        {mission.name}
+                      </h1>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingTitle(true);
+                          requestAnimationFrame(() => {
+                            titleInputRef.current?.focus();
+                          });
+                        }}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white"
+                        aria-label="Edit mission title"
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                  <PhaseTabs activePhase={activePhase} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* PLANNING STATE */}
                   {isPlanning && (
                     <>
-                      {mission.status === "ready" && (
-                        <Button variant="cta" size="sm" onClick={handleStart} className="mission-page-cta">
-                          <Play className="h-4 w-4 mr-1" />
-                          Start Mission
+                      {activePhase === "planning" && (
+                        <Button
+                          variant="cta"
+                          size="sm"
+                          onClick={() => handlePhaseClick("setup")}
+                          className="mission-page-cta"
+                        >
+                          Planning Complete
                         </Button>
                       )}
-                      <Button variant="secondary" size="sm" onClick={handleClearPlan} className="border-white/10 bg-white/5">
+                      {activePhase === "setup" &&
+                        mission.status === "ready" && (
+                          <Button
+                            variant="cta"
+                            size="sm"
+                            onClick={handleStart}
+                            className="mission-page-cta"
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Start Mission
+                          </Button>
+                        )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleClearPlan}
+                        className="border-white/10 bg-white/5"
+                      >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Reset Plan
                       </Button>
@@ -409,12 +481,6 @@ function MissionDashboardContent() {
                         <XCircle className="h-4 w-4 mr-1" />
                         Cancel Mission
                       </Button>
-                      <Link href="/site-check">
-                        <Button variant="secondary" size="sm" className="border-white/10 bg-white/5">
-                          <ScanSearch className="h-4 w-4 mr-1" />
-                          Check Sky Conditions
-                        </Button>
-                      </Link>
                     </>
                   )}
 
@@ -443,22 +509,26 @@ function MissionDashboardContent() {
                         <ClipboardList className="h-4 w-4 mr-1" />
                         Log Results
                       </Button>
-                      <Link href="/site-check">
-                        <Button variant="secondary" size="sm" className="border-white/10 bg-white/5">
-                          <ScanSearch className="h-4 w-4 mr-1" />
-                          Check Sky Conditions
-                        </Button>
-                      </Link>
                     </>
                   )}
 
                   {/* LOGGING STATE */}
                   {isLogging && (
                     <>
-                      <Button variant="cta" size="sm" onClick={handleSaveResults} className="mission-page-cta">
+                      <Button
+                        variant="cta"
+                        size="sm"
+                        onClick={handleSaveResults}
+                        className="mission-page-cta"
+                      >
                         Save Results
                       </Button>
-                      <Button variant="secondary" size="sm" onClick={handleReturnToDashboard} className="border-white/10 bg-white/5">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleReturnToDashboard}
+                        className="border-white/10 bg-white/5"
+                      >
                         <LogOut className="h-4 w-4 mr-1" />
                         Return to Dashboard
                       </Button>
@@ -467,7 +537,12 @@ function MissionDashboardContent() {
 
                   {/* TERMINAL STATE */}
                   {isTerminal && (
-                    <Button variant="secondary" size="sm" onClick={handleReturnToDashboard} className="border-white/10 bg-white/5">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleReturnToDashboard}
+                      className="border-white/10 bg-white/5"
+                    >
                       <LogOut className="h-4 w-4 mr-1" />
                       Return to Dashboard
                     </Button>
@@ -475,7 +550,12 @@ function MissionDashboardContent() {
 
                   <ConnectivityStatusChip connectivity={uiState.connectivity} />
                   {!isActive && !isTerminal && (
-                    <Button variant="secondary" size="sm" onClick={handleSetActive} className="border-white/10 bg-white/5">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSetActive}
+                      className="border-white/10 bg-white/5"
+                    >
                       Set Active
                     </Button>
                   )}
@@ -486,15 +566,6 @@ function MissionDashboardContent() {
               </p>
             </div>
           </header>
-
-          {/* Phase stepper */}
-          <div>
-            <PhaseTabs
-              activePhase={activePhase}
-              onPhaseClick={handlePhaseClick}
-              firstTargetId={firstTargetId}
-            />
-          </div>
 
           {/* Planning tools — only in Plan phase */}
           {activePhase === "planning" && (
@@ -515,136 +586,128 @@ function MissionDashboardContent() {
           {uiState.planStale && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
               <span className="text-sm text-amber-200">
-                Plan may be stale — adjust field conditions below and tap Update Mission Plan.
+                Plan may be stale — adjust field conditions below and tap Update
+                Mission Plan.
               </span>
             </div>
           )}
 
-          {/* CURRENT FOCUS strip */}
-          {currentTarget && (
-            <div className={cn(PANEL_STYLE, "p-4 py-3")}>
-              <h2 className="mission-section-label mb-2">Current Focus</h2>
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="font-medium text-zinc-100">{currentTarget.targetName}</span>
-                <span className="text-zinc-500">Phase: {activePhase}</span>
-                <span className="text-zinc-500">
-                  Recipe: {currentTarget.subLength ?? 60}s / ISO 800 / {currentTarget.frames ?? 60} subs
-                </span>
-                <span className="text-zinc-500 tabular-nums">
-                  Window: {currentTarget.plannedWindowStart} – {currentTarget.plannedWindowEnd}
-                </span>
-                {isCapturing && (
-                  <span className="text-cyan-400 tabular-nums">
-                    Frame 18/60 · Integration 00:18:00
-                  </span>
+          {/* ========== MAIN OPERATIONS ROW ========== */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
+              <h2 className="mission-section-label mb-1">Notes / Session Log</h2>
+              {noteLog.length > 0 && (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] font-mono tabular-nums">
+                  {noteLog.map((entry) => (
+                    <div
+                      key={entry.at}
+                      className="flex gap-2 rounded border border-white/5 bg-black/20 px-2 py-1.5"
+                    >
+                      <span className="text-xs text-zinc-500 shrink-0">
+                        {new Date(entry.at).toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </span>
+                      <span className="text-zinc-200 leading-snug">
+                        {entry.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddNote();
+                }}
+                className="mt-auto flex gap-2 pt-1"
+              >
+                <input
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  placeholder="Log what just happened…"
+                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="secondary"
+                  disabled={!noteInput.trim()}
+                  className="border-white/10 bg-white/5"
+                >
+                  Add
+                </Button>
+              </form>
+            </div>
+
+            <section
+              className={cn(
+                PANEL_STYLE,
+                "p-4 min-h-0 flex flex-col overflow-hidden",
+              )}
+            >
+              <div className="flex items-center justify-between mb-3 text-sm">
+                <h2 className="mission-section-label mb-0">Mission Timeline</h2>
+                {currentTarget && (
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                    <span className="font-medium text-zinc-100">
+                      {currentTarget.targetName}
+                    </span>
+                    <span>Phase: {activePhase}</span>
+                    <span>
+                      Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
+                      {currentTarget.frames ?? 60} subs
+                    </span>
+                    <span className="tabular-nums">
+                      Window: {currentTarget.plannedWindowStart} –{" "}
+                      {currentTarget.plannedWindowEnd}
+                    </span>
+                  </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* ========== MAIN OPERATIONS ROW ========== */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)_280px]">
-            <div className={cn(PANEL_STYLE, "p-4")}>
-              <h2 className="mission-section-label">Mission Status</h2>
-              <dl className="space-y-2 text-sm">
-                <div>
-                  <dt className="mission-meta-label">Location</dt>
-                  <dd className="mission-meta-value">{loc?.name}</dd>
-                </div>
-                <div>
-                  <dt className="mission-meta-label">Rig</dt>
-                  <dd className="mission-meta-value">{gear?.name}</dd>
-                </div>
-                <div>
-                  <dt className="mission-meta-label">Date</dt>
-                  <dd className="mission-meta-value">{formatDate(mission.dateTime)}</dd>
-                </div>
-                <div>
-                  <dt className="mission-meta-label">Moon</dt>
-                  <dd className="mission-meta-value">{MOCK_NIGHT.moonPhase} · {MOCK_NIGHT.moonPhasePercent}%</dd>
-                </div>
-                <div>
-                  <dt className="mission-meta-label">Min altitude</dt>
-                  <dd className="mission-meta-value">{mission.constraints.minAltitude}°</dd>
-                </div>
-                <div>
-                  <dt className="mission-meta-label">Field conditions</dt>
-                  <dd className="mission-meta-value">
-                    Seeing {uiState.conditions.seeing}/5 · {uiState.conditions.clouds}% clouds
-                  </dd>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <dt className="mission-meta-label mb-2">Software</dt>
-                  <SoftwareSelect software={uiState.software} onChange={setSoftware} />
-                </div>
-              </dl>
-            </div>
-
-            <section className={cn(PANEL_STYLE, "p-4 min-h-0 flex flex-col overflow-hidden")}>
               <div className="flex-1 min-h-0 flex flex-col">
                 <MissionTimeline
-                targets={mission.targets}
-                onTargetClick={handleTargetClick}
-                missionDate={mission.dateTime}
-                hero
-                selectedTargetId={uiState.selectedTargetId ?? currentTargetId}
-                currentTargetId={currentTargetId}
-                fieldMode={isFieldMode}
-              />
+                  targets={mission.targets}
+                  onTargetClick={handleTargetClick}
+                  missionDate={mission.dateTime}
+                  hero
+                  selectedTargetId={uiState.selectedTargetId ?? currentTargetId}
+                  currentTargetId={currentTargetId}
+                  fieldMode={isFieldMode}
+                />
               </div>
             </section>
-
-            <div className={cn(PANEL_STYLE, "p-4 min-h-0 flex flex-col overflow-y-auto")}>
-              <h3 className="mission-section-label mb-3 shrink-0">Live Sky Monitor</h3>
-              <LiveSkyMonitorCard
-                cloudCover={MOCK_LIVE_STATE.live?.cloudCover ?? 6}
-                starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? 168}
-                skyBrightness={MOCK_LIVE_STATE.live?.skyBrightness ?? 21.5}
-                missionConfidence={MOCK_LIVE_STATE.liveConfidence ?? 91}
-                status="Conditions stable — better than forecast"
-                events={MOCK_LIVE_EVENTS}
-                compact
-                className="!border-0 !rounded-none !bg-transparent !shadow-none"
-              />
-            </div>
           </div>
 
           {/* ========== SECOND OPERATIONS ROW ========== */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className={cn(PANEL_STYLE, "p-4")}>
-              <h3 className="mission-section-label mb-3">Night Health</h3>
-              <NightHealthCard health={nightHealth} compact className="!border-0 !rounded-none !bg-transparent !shadow-none" />
-            </div>
-            <div className={cn(PANEL_STYLE, "p-4")}>
-              <h3 className="mission-section-label mb-3">Adaptive Mission Advice</h3>
-              <AdaptiveMissionAdviceCard
-                advice={adaptiveAdvice}
-                compact
-                className="!border-0 !rounded-none !bg-transparent !shadow-none"
-              />
-            </div>
-            <div className={cn(PANEL_STYLE, "p-4")}>
-              <h3 className="mission-section-label mb-3">Field Conditions</h3>
-              <ConditionsCard
-                conditions={uiState.conditions}
-                onChange={setConditions}
-                onReset={handleResetConditions}
-                onUpdatePlan={handleRecalculate}
-                className="!border-0 !rounded-none !bg-transparent !shadow-none"
-              />
-            </div>
-          </div>
-
-          {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ExposurePlannerCard
-              targetName={primaryTargetName}
-              plan={exposurePlan}
-            />
-            <SessionSimulatorCard
-              targetName={primaryTargetName}
-              simulation={sessionSimulation}
-            />
+            {(activePhase === "capturing" || activePhase === "logging") && (
+              <div className={cn(PANEL_STYLE, "p-4")}>
+                <h3 className="mission-section-label mb-3">Night Health</h3>
+                <NightHealthCard
+                  health={nightHealth}
+                  compact
+                  className="!border-0 !rounded-none !bg-transparent !shadow-none"
+                />
+              </div>
+            )}
+            {/* Adaptive Mission Advice card removed */}
+            {(activePhase === "setup" ||
+              activePhase === "capturing" ||
+              activePhase === "logging") && (
+              <div className={cn(PANEL_STYLE, "p-4")}>
+                <h3 className="mission-section-label mb-3">Field Conditions</h3>
+                <ConditionsCard
+                  conditions={uiState.conditions}
+                  onChange={setConditions}
+                  onReset={handleResetConditions}
+                  onUpdatePlan={handleRecalculate}
+                  className="!border-0 !rounded-none !bg-transparent !shadow-none"
+                />
+              </div>
+            )}
           </div>
 
           {/* ========== PLANNING ROW: Target Queue + Selected Target ========== */}
@@ -664,7 +727,9 @@ function MissionDashboardContent() {
               </div>
               {mission.targets.length === 0 ? (
                 <div className="py-8 text-center rounded-lg border border-dashed border-white/10">
-                  <p className="text-sm text-zinc-500 mb-3">No targets in this mission plan yet.</p>
+                  <p className="text-sm text-zinc-500 mb-3">
+                    No targets in this mission plan yet.
+                  </p>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -678,8 +743,14 @@ function MissionDashboardContent() {
               ) : (
                 <div className="space-y-2">
                   {mission.targets.map((t, idx) => {
-                    const isSelected = uiState.selectedTargetId === t.targetId || currentTargetId === t.targetId;
-                    const seqLabel = t.roleLabel ?? (t.isFallback ? "Fallback" : `SEQ ${t.sequenceIndex ?? idx + 1}`);
+                    const isSelected =
+                      uiState.selectedTargetId === t.targetId ||
+                      currentTargetId === t.targetId;
+                    const seqLabel =
+                      t.roleLabel ??
+                      (t.isFallback
+                        ? "Fallback"
+                        : `SEQ ${t.sequenceIndex ?? idx + 1}`);
                     return (
                       <div
                         key={t.targetId}
@@ -691,11 +762,16 @@ function MissionDashboardContent() {
                             : "border-white/10 hover:border-white/20 bg-white/[0.02]",
                         )}
                       >
-                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex items-center gap-1 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <span
                             className={cn(
                               "min-w-[2.5rem] shrink-0 text-center text-[10px] font-medium uppercase tabular-nums",
-                              t.isFallback ? "text-amber-400/80" : "text-zinc-500",
+                              t.isFallback
+                                ? "text-amber-400/80"
+                                : "text-zinc-500",
                             )}
                           >
                             {seqLabel}
@@ -739,15 +815,22 @@ function MissionDashboardContent() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <label className="flex items-center gap-3 flex-1 cursor-pointer min-w-0" onClick={(e) => e.stopPropagation()}>
+                        <label
+                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Checkbox
                             checked={t.captured ?? false}
-                            onCheckedChange={() => handleCaptureToggle(t.targetId)}
+                            onCheckedChange={() =>
+                              handleCaptureToggle(t.targetId)
+                            }
                           />
                           <span
                             className={cn(
                               "truncate text-sm",
-                              t.captured ? "text-zinc-500 line-through" : "text-zinc-200",
+                              t.captured
+                                ? "text-zinc-500 line-through"
+                                : "text-zinc-200",
                             )}
                           >
                             {t.targetName}
@@ -758,7 +841,9 @@ function MissionDashboardContent() {
                         </label>
                         {isSelected && (
                           <span className="text-[10px] shrink-0 font-medium uppercase text-violet-400">
-                            {currentTargetId === t.targetId ? "Current Focus" : "Selected"}
+                            {currentTargetId === t.targetId
+                              ? "Current Focus"
+                              : "Selected"}
                           </span>
                         )}
                       </div>
@@ -780,37 +865,43 @@ function MissionDashboardContent() {
             />
           </div>
 
-          {/* ========== NOTES / SESSION LOG ========== */}
-          <div className={cn(PANEL_STYLE, "p-4")}>
-            <h2 className="mission-section-label mb-3">Notes / Session Log</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAddNote();
-              }}
-              className="flex gap-2 mb-3"
-            >
-              <input
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="Add a note..."
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
-              />
-              <Button type="submit" size="sm" variant="secondary" disabled={!noteInput.trim()} className="border-white/10 bg-white/5">
-                Add
-              </Button>
-            </form>
-            {noteLog.length > 0 && (
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {[...noteLog].reverse().map((entry) => (
-                  <div key={entry.at} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
-                    <p className="text-zinc-200">{entry.text}</p>
-                    <p className="text-xs text-zinc-500 mt-1">{new Date(entry.at).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <ExposurePlannerCard
+              targetName={primaryTargetName}
+              plan={exposurePlan}
+            />
+            <SessionSimulatorCard
+              targetName={primaryTargetName}
+              simulation={sessionSimulation}
+            />
           </div>
+
+          {/* ========== NOTES / SESSION LOG (moved above; current focus now here) ========== */}
+          {currentTarget && (
+            <div className={cn(PANEL_STYLE, "p-4 py-3")}>
+              <h2 className="mission-section-label mb-2">Current Focus</h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <span className="font-medium text-zinc-100">
+                  {currentTarget.targetName}
+                </span>
+                <span className="text-zinc-500">Phase: {activePhase}</span>
+                <span className="text-zinc-500">
+                  Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
+                  {currentTarget.frames ?? 60} subs
+                </span>
+                <span className="text-zinc-500 tabular-nums">
+                  Window: {currentTarget.plannedWindowStart} –{" "}
+                  {currentTarget.plannedWindowEnd}
+                </span>
+                {isCapturing && (
+                  <span className="text-cyan-400 tabular-nums">
+                    Frame 18/60 · Integration 00:18:00
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -836,7 +927,11 @@ function MissionDashboardContent() {
         onUpdateSoftware={setSoftware}
       />
 
-      <NightSimulationModal isOpen={simOpen} onClose={() => setSimOpen(false)} targets={mission.targets} />
+      <NightSimulationModal
+        isOpen={simOpen}
+        onClose={() => setSimOpen(false)}
+        targets={mission.targets}
+      />
       <AddTargetPicker
         isOpen={addTargetPickerOpen}
         onClose={() => setAddTargetPickerOpen(false)}
@@ -846,10 +941,19 @@ function MissionDashboardContent() {
 
       {cancelOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setCancelOpen(false)} aria-hidden />
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setCancelOpen(false)}
+            aria-hidden
+          />
           <div className="relative w-full max-w-md mission-panel p-4">
-            <h3 className="text-base font-semibold text-white mb-2">Cancel Mission</h3>
-            <p className="text-sm text-zinc-400 mb-4">Discard this mission and return to planning. Log a reason (saved to notes).</p>
+            <h3 className="text-base font-semibold text-white mb-2">
+              Cancel Mission
+            </h3>
+            <p className="text-sm text-zinc-400 mb-4">
+              Discard this mission and return to planning. Log a reason (saved
+              to notes).
+            </p>
             <textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -857,10 +961,22 @@ function MissionDashboardContent() {
               className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => { setCancelOpen(false); setCancelReason(""); }} className="border-white/10 bg-white/5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setCancelOpen(false);
+                  setCancelReason("");
+                }}
+                className="border-white/10 bg-white/5"
+              >
                 Keep Mission
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleCancelMission}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleCancelMission}
+              >
                 <XCircle className="h-4 w-4 mr-1" />
                 Cancel Mission
               </Button>
@@ -871,11 +987,18 @@ function MissionDashboardContent() {
 
       {abortOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setAbortOpen(false)} aria-hidden />
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setAbortOpen(false)}
+            aria-hidden
+          />
           <div className="relative w-full max-w-md mission-panel p-4">
-            <h3 className="text-base font-semibold text-white mb-2">Abort Mission</h3>
+            <h3 className="text-base font-semibold text-white mb-2">
+              Abort Mission
+            </h3>
             <p className="text-sm text-zinc-400 mb-4">
-              Stop the in-field mission and preserve partial state. You can still log results.
+              Stop the in-field mission and preserve partial state. You can
+              still log results.
             </p>
             <textarea
               value={abortReason}
@@ -884,10 +1007,22 @@ function MissionDashboardContent() {
               className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
             />
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => { setAbortOpen(false); setAbortReason(""); }} className="border-white/10 bg-white/5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setAbortOpen(false);
+                  setAbortReason("");
+                }}
+                className="border-white/10 bg-white/5"
+              >
                 Keep Going
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleAbortMission}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleAbortMission}
+              >
                 <XCircle className="h-4 w-4 mr-1" />
                 Abort Mission
               </Button>

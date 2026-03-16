@@ -19,7 +19,6 @@ import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { TargetCard } from "@/components/TargetCard";
 import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
-import { AdaptiveMissionCard } from "@/components/AdaptiveMissionCard";
 import { CaptureRunSheetCard } from "@/components/CaptureRunSheetCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
 import { DashboardSkyIntelligenceCard } from "@/components/dashboard/DashboardSkyIntelligenceCard";
@@ -497,7 +496,6 @@ export default function DashboardPage() {
 
             <div className="space-y-4">
               <RejectedTargetPanel targets={REJECTED_TARGETS} />
-              {missionStatus === "CAPTURING" && <AdaptiveMissionCard />}
               {(missionStatus === "CAPTURING" ||
                 missionStatus === "LOGGING") && <CaptureRunSheetCard />}
             </div>

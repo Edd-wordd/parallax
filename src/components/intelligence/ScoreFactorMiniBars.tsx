@@ -15,7 +15,9 @@ interface ScoreFactorMiniBarsProps {
 }
 
 export function ScoreFactorMiniBars({ factors, className }: ScoreFactorMiniBarsProps) {
-  const entries = Object.entries(factors) as [keyof typeof factors, number][];
+  const entries = Object.entries(factors).filter(
+    ([key]) => key !== "sessionFit",
+  ) as [keyof typeof factors, number][];
 
   return (
     <div className={cn("space-y-2", className)}>

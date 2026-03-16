@@ -96,7 +96,7 @@ export function TonightRecommendationsSection({
         <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
           Recommended Targets
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 items-stretch">
           {RECOMMENDED_TARGETS.map((target) => (
             <div key={target.id} className="min-h-0 flex">
               <RecommendedTargetCard

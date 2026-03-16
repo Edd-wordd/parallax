@@ -71,12 +71,43 @@ export function NightHealthCard({ health, compact, className }: NightHealthCardP
           <span className="text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">
             Recommendation
           </span>
-          <p className="text-sm font-medium text-zinc-200">{health.recommendation}</p>
+          <p className="text-sm font-medium text-zinc-200">
+            {health.recommendation}
+          </p>
           {health.recheckTime && (
             <p className="text-xs text-zinc-500 mt-1">
               Recheck after {health.recheckTime}
             </p>
           )}
+        </div>
+
+        <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">
+            Adaptive Mission Advice
+          </span>
+          <p className="text-xs font-medium text-zinc-200">
+            Continue primary target
+          </p>
+          <p className="text-[11px] text-emerald-400 mt-0.5">
+            Stable vs forecast
+          </p>
+          <p className="text-xs text-zinc-400 mt-2">
+            Conditions stable vs forecast. Planned exposures remain valid.
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-zinc-300">
+            <li className="flex gap-2">
+              <span className="mt-[3px] text-zinc-500">•</span>
+              <span>Proceed with primary target</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-[3px] text-zinc-500">•</span>
+              <span>Conditions support planned sub lengths</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-[3px] text-zinc-500">•</span>
+              <span>Recheck after 10:45 PM if cloud confidence falls</span>
+            </li>
+          </ul>
         </div>
       </CardContent>
     </Card>

@@ -50,10 +50,20 @@ import { PhaseTabs } from "@/components/missions/PhaseTabs";
 import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
 import { ConditionsCard } from "@/components/missions/ConditionsCard";
 import {
+  SiteVerificationBanner,
+  MissionConfidenceCard,
   LiveSkyMonitorCard,
-  NightHealthCard,
+  ForecastVsLiveComparison,
+  SessionConditionSummary,
+  AdaptationRecommendationCard,
 } from "@/components/sky-intelligence";
-import { MOCK_LIVE_STATE, MOCK_LIVE_EVENTS } from "@/lib/mock/skyIntelligence";
+import {
+  MOCK_LIVE_STATE,
+  MOCK_LIVE_EVENTS,
+  MOCK_COMPARISON_BETTER,
+  MOCK_ADAPTATION_BETTER,
+  MOCK_SESSION_CONDITIONS,
+} from "@/lib/mock/skyIntelligence";
 import { getMockNightHealth, getMockAdaptiveAdvice } from "@/lib/mock/fieldOps";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
@@ -869,6 +879,51 @@ function MissionDashboardContent() {
               />
             )}
           </div>
+
+          {activePhase === "setup" && (
+            <div className={cn(PANEL_STYLE, "p-4 space-y-4")}>
+              <h2 className="mission-section-label">Sky Verification</h2>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <SiteVerificationBanner
+                    message="Conditions stable — better than forecast. Proceed with planned exposure settings."
+                    variant="better"
+                  />
+                  <div className="flex items-center gap-4">
+                    <MissionConfidenceCard
+                      confidence={MOCK_LIVE_STATE.liveConfidence ?? 91}
+                      label="Mission Confidence"
+                      size="md"
+                    />
+                  </div>
+                  <ForecastVsLiveComparison rows={MOCK_COMPARISON_BETTER} compact />
+                </div>
+                <div className="space-y-3">
+                  <LiveSkyMonitorCard
+                    cloudCover={MOCK_LIVE_STATE.live?.cloudCover ?? 6}
+                    starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? 168}
+                    skyBrightness={MOCK_LIVE_STATE.live?.skyBrightness ?? 21.5}
+                    missionConfidence={MOCK_LIVE_STATE.liveConfidence ?? 91}
+                    status="Conditions stable — better than forecast"
+                    events={MOCK_LIVE_EVENTS}
+                    compact
+                    className="!border-0 !rounded-none !bg-transparent !shadow-none"
+                  />
+                  <SessionConditionSummary
+                    metadata={
+                      MOCK_SESSION_CONDITIONS["home-suburban"] ??
+                      Object.values(MOCK_SESSION_CONDITIONS)[0]
+                    }
+                    compact
+                  />
+                  <AdaptationRecommendationCard
+                    scenario={MOCK_ADAPTATION_BETTER}
+                    compact
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
           {activePhase === "planning" && (

@@ -62,6 +62,8 @@ import {
   ExposurePlannerCard,
   SessionSimulatorCard,
 } from "@/components/intelligence";
+import { RigSetupCard } from "@/components/missions/RigSetupCard";
+import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget } from "@/lib/types";
@@ -547,8 +549,6 @@ function MissionDashboardContent() {
                       Return to Dashboard
                     </Button>
                   )}
-
-                  <ConnectivityStatusChip connectivity={uiState.connectivity} />
                   {!isActive && !isTerminal && (
                     <Button
                       variant="secondary"
@@ -561,8 +561,15 @@ function MissionDashboardContent() {
                   )}
                 </div>
               </div>
-              <p className="text-xs text-white/45 tracking-wide">
+              <p className="mt-1 flex items-center gap-2 text-xs text-white/45 tracking-wide">
                 {loc?.name} · {gear?.name} · {formatDate(mission.dateTime)}
+                <span className="text-emerald-400/90">
+                  {uiState.connectivity.status === "online"
+                    ? uiState.connectivity.isCached
+                      ? "Offline ready"
+                      : "Online"
+                    : "Offline"}
+                </span>
               </p>
             </div>
           </header>
@@ -595,7 +602,9 @@ function MissionDashboardContent() {
           {/* ========== MAIN OPERATIONS ROW ========== */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-              <h2 className="mission-section-label mb-1">Notes / Session Log</h2>
+              <h2 className="mission-section-label mb-1">
+                Notes / Session Log
+              </h2>
               {noteLog.length > 0 && (
                 <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] font-mono tabular-nums">
                   {noteLog.map((entry) => (
@@ -679,35 +688,6 @@ function MissionDashboardContent() {
                 />
               </div>
             </section>
-          </div>
-
-          {/* ========== SECOND OPERATIONS ROW ========== */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {(activePhase === "capturing" || activePhase === "logging") && (
-              <div className={cn(PANEL_STYLE, "p-4")}>
-                <h3 className="mission-section-label mb-3">Night Health</h3>
-                <NightHealthCard
-                  health={nightHealth}
-                  compact
-                  className="!border-0 !rounded-none !bg-transparent !shadow-none"
-                />
-              </div>
-            )}
-            {/* Adaptive Mission Advice card removed */}
-            {(activePhase === "setup" ||
-              activePhase === "capturing" ||
-              activePhase === "logging") && (
-              <div className={cn(PANEL_STYLE, "p-4")}>
-                <h3 className="mission-section-label mb-3">Field Conditions</h3>
-                <ConditionsCard
-                  conditions={uiState.conditions}
-                  onChange={setConditions}
-                  onReset={handleResetConditions}
-                  onUpdatePlan={handleRecalculate}
-                  className="!border-0 !rounded-none !bg-transparent !shadow-none"
-                />
-              </div>
-            )}
           </div>
 
           {/* ========== PLANNING ROW: Target Queue + Selected Target ========== */}
@@ -865,18 +845,44 @@ function MissionDashboardContent() {
             />
           </div>
 
-          {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
+          {/* ========== SECOND OPERATIONS ROW ========== */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ExposurePlannerCard
-              targetName={primaryTargetName}
-              plan={exposurePlan}
-            />
-            <SessionSimulatorCard
-              targetName={primaryTargetName}
-              simulation={sessionSimulation}
-            />
+            {(activePhase === "setup" ||
+              activePhase === "capturing" ||
+              activePhase === "logging") && (
+              <div className={cn(PANEL_STYLE, "p-4")}>
+                <h3 className="mission-section-label mb-3">Field Conditions</h3>
+                <ConditionsCard
+                  conditions={uiState.conditions}
+                  onChange={setConditions}
+                  onReset={handleResetConditions}
+                  onUpdatePlan={handleRecalculate}
+                  className="!border-0 !rounded-none !bg-transparent !shadow-none"
+                />
+              </div>
+            )}
+
+            {activePhase === "setup" && (
+              <RigSetupCard
+                software={uiState.software}
+                onSoftwareChange={setSoftware}
+              />
+            )}
           </div>
 
+          {/* ========== EXPOSURE PLAN + SESSION SIMULATOR ========== */}
+          {activePhase === "planning" && (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <ExposurePlannerCard
+                targetName={primaryTargetName}
+                plan={exposurePlan}
+              />
+              <SessionSimulatorCard
+                targetName={primaryTargetName}
+                simulation={sessionSimulation}
+              />
+            </div>
+          )}
         </motion.div>
       </div>
 

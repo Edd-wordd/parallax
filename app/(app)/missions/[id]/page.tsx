@@ -877,31 +877,6 @@ function MissionDashboardContent() {
             />
           </div>
 
-          {/* ========== NOTES / SESSION LOG (moved above; current focus now here) ========== */}
-          {currentTarget && (
-            <div className={cn(PANEL_STYLE, "p-4 py-3")}>
-              <h2 className="mission-section-label mb-2">Current Focus</h2>
-              <div className="flex flex-wrap items-center gap-4 text-sm">
-                <span className="font-medium text-zinc-100">
-                  {currentTarget.targetName}
-                </span>
-                <span className="text-zinc-500">Phase: {activePhase}</span>
-                <span className="text-zinc-500">
-                  Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
-                  {currentTarget.frames ?? 60} subs
-                </span>
-                <span className="text-zinc-500 tabular-nums">
-                  Window: {currentTarget.plannedWindowStart} –{" "}
-                  {currentTarget.plannedWindowEnd}
-                </span>
-                {isCapturing && (
-                  <span className="text-cyan-400 tabular-nums">
-                    Frame 18/60 · Integration 00:18:00
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </motion.div>
       </div>
 

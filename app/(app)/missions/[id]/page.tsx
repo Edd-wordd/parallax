@@ -15,7 +15,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
@@ -39,15 +39,15 @@ import {
   Moon,
   XCircle,
   Target,
-  LogOut,
   Plus,
   Pencil,
+  ChevronRight,
 } from "lucide-react";
 import { NightSimulationModal } from "@/components/missions/NightSimulationModal";
 import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
-import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
+// import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
 import { ConditionsCard } from "@/components/missions/ConditionsCard";
 import {
   SiteVerificationBanner,
@@ -56,6 +56,7 @@ import {
   ForecastVsLiveComparison,
   SessionConditionSummary,
   AdaptationRecommendationCard,
+  SkyMetricPill,
 } from "@/components/sky-intelligence";
 import {
   MOCK_LIVE_STATE,
@@ -64,7 +65,6 @@ import {
   MOCK_ADAPTATION_BETTER,
   MOCK_SESSION_CONDITIONS,
 } from "@/lib/mock/skyIntelligence";
-import { getMockNightHealth, getMockAdaptiveAdvice } from "@/lib/mock/fieldOps";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
 import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
@@ -73,7 +73,7 @@ import {
   SessionSimulatorCard,
 } from "@/components/intelligence";
 import { RigSetupCard } from "@/components/missions/RigSetupCard";
-import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
+// import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget } from "@/lib/types";
@@ -82,35 +82,19 @@ import type { ActivePhase } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
 
 /** Status badge labels for mission header */
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Planning",
-  ready: "Ready",
-  in_progress: "Capturing",
-  completed: "Complete",
-  cancelled: "Cancelled",
-  aborted: "Aborted",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-zinc-600 text-zinc-200",
-  ready: "bg-emerald-500/20 text-emerald-400",
-  in_progress: "bg-violet-500/20 text-violet-400",
-  completed: "bg-zinc-500/20 text-zinc-400",
-  cancelled: "bg-amber-500/20 text-amber-400",
-  aborted: "bg-rose-500/20 text-rose-400",
-};
+// Legacy status label/color maps retained for potential future use
+// const STATUS_LABELS: Record<string, string> = { ... };
+// const STATUS_COLORS: Record<string, string> = { ... };
 
 const PANEL_STYLE = "mission-panel";
 
 function MissionDashboardContent() {
   const params = useParams();
-  const router = useRouter();
   const { toast } = useToast();
   const id = params.id as string;
   const isFieldMode = useAppStore((s) => s.isFieldMode);
-  const toggleFieldMode = useAppStore((s) => s.toggleFieldMode);
   const fieldModeOptions = useAppStore((s) => s.fieldModeOptions);
-  const setFieldModeOptions = useAppStore((s) => s.setFieldModeOptions);
+  // const setFieldModeOptions = useAppStore((s) => s.setFieldModeOptions);
   const {
     state: uiState,
     setSidebarOpen,
@@ -137,8 +121,20 @@ function MissionDashboardContent() {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
+  const [logNotes, setLogNotes] = useState(mission?.notes ?? "");
+  const [expandedLogTargets, setExpandedLogTargets] = useState<Set<string>>(
+    () => new Set(),
+  );
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    let frame: number;
+    if (!mounted) {
+      frame = requestAnimationFrame(() => setMounted(true));
+    }
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [mounted]);
 
   const availableTargetsForAdd = useMemo(
     () => getAvailableTargetsForAdd(mission?.targets ?? []),
@@ -152,26 +148,45 @@ function MissionDashboardContent() {
   const status = getMissionStatus(mission ?? null);
   const isPlanning = status === "PLANNING" || status === "SETUP";
   const isCapturing = status === "CAPTURING";
-  const isLogging = status === "LOGGING";
   const isTerminal =
-    status === "COMPLETED" || status === "ABORTED" || status === "CANCELLED";
+    mission?.status === "completed" ||
+    mission?.status === "aborted" ||
+    mission?.status === "cancelled";
+  const isReadOnlySession =
+    !!mission?.logLocked || isTerminal || mission?.status === "completed";
 
-  const nightHealth = useMemo(
-    () => getMockNightHealth({}),
-    [uiState.conditions],
-  );
-  const adaptiveAdvice = useMemo(
-    () =>
-      getMockAdaptiveAdvice({
-        clouds: uiState.conditions.clouds,
-        transparency: uiState.conditions.transparency,
-      }),
-    [
-      uiState.conditions.clouds,
-      uiState.conditions.transparency,
-      uiState.planStale,
-    ],
-  );
+  // Precomputed mock intelligence values (currently unused on this page)
+  const [sessionNow, setSessionNow] = useState(() => new Date());
+  useEffect(() => {
+    const timerId = setInterval(() => setSessionNow(new Date()), 60_000);
+    return () => clearInterval(timerId);
+  }, []);
+
+  const sessionStart = useMemo(() => {
+    const startedAt =
+      (mission as { startedAt?: string } | null)?.startedAt ?? mission?.dateTime;
+    return new Date(startedAt ?? new Date().toISOString());
+  }, [mission]);
+  const elapsedMs = Math.max(0, sessionNow.getTime() - sessionStart.getTime());
+  const elapsedMinutes = Math.floor(elapsedMs / 60000);
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  const elapsedMinutesRemainder = elapsedMinutes % 60;
+  const sessionElapsedLabel =
+    elapsedHours > 0
+      ? `Session: ${elapsedHours}h ${elapsedMinutesRemainder}m`
+      : `Session: ${elapsedMinutesRemainder}m`;
+
+  const [conditionsLog, setConditionsLog] = useState<
+    {
+      id: string;
+      at: string;
+      seeing: number;
+      transparency: number;
+      clouds: number;
+      wind: string;
+      moonGlare: boolean;
+    }[]
+  >([]);
 
   if (!mounted) {
     return (
@@ -223,7 +238,21 @@ function MissionDashboardContent() {
   const selectedTarget = uiState.selectedTargetId
     ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ??
       null)
-    : null;
+    : currentTarget ?? null;
+
+  const currentIndex = mission.targets.findIndex(
+    (t) => t.targetId === currentTargetId,
+  );
+  const nextTarget =
+    currentIndex >= 0 && currentIndex + 1 < mission.targets.length
+      ? mission.targets[currentIndex + 1]
+      : mission.targets[1] ?? null;
+
+  let nextTargetLabel: string | null = null;
+  if (nextTarget) {
+    // Mocked countdown for demo: fixed label per product copy
+    nextTargetLabel = "M42 opens in 47 min";
+  }
 
   const handlePhaseClick = (phase: ActivePhase) => {
     updateMission(id, { phase });
@@ -240,12 +269,12 @@ function MissionDashboardContent() {
     handlePhaseClick("capturing");
     toast("Mission started");
   };
-  const handleComplete = () => {
-    updateMission(id, { status: "completed", phase: "logging" });
-    setSidebarMode("log");
-    setSidebarOpen(true);
-    toast("Switched to logging");
-  };
+  // const handleComplete = () => {
+  //   updateMission(id, { status: "completed", phase: "logging" });
+  //   setSidebarMode("log");
+  //   setSidebarOpen(true);
+  //   toast("Switched to logging");
+  // };
   const handleSetActive = () => {
     setActiveMission(id);
     toast("Active mission set");
@@ -301,6 +330,19 @@ function MissionDashboardContent() {
     setNoteInput("");
     toast("Note added");
   };
+  const QUICK_EVENT_LABELS = [
+    "Clouds moving in",
+    "Guiding lost",
+    "Meridian flip",
+    "Conditions improved",
+  ] as const;
+  const handleQuickEventLog = (label: string) => {
+    const entry = { text: `[Event] ${label}`, at: new Date().toISOString() };
+    updateMission(id, {
+      noteLog: [...noteLog, entry],
+    });
+    toast("Event logged");
+  };
   const handleResetConditions = () => {
     resetConditions();
     toast("Conditions reset");
@@ -309,13 +351,29 @@ function MissionDashboardContent() {
     recalculate();
     toast("Plan updated");
   };
-  const handleSaveResults = () => {
-    updateMission(id, { status: "completed", phase: "completed" });
-    toast("Results saved");
+  const handleStampConditions = () => {
+    const nowIso = new Date().toISOString();
+    setConditionsLog((prev) => [
+      ...prev,
+      {
+        id: `stamp-${prev.length + 1}`,
+        at: nowIso,
+        seeing: uiState.conditions.seeing,
+        transparency: uiState.conditions.transparency,
+        clouds: uiState.conditions.clouds,
+        wind: uiState.conditions.wind,
+        moonGlare: uiState.conditions.moonGlare,
+      },
+    ]);
+    toast("Conditions stamped");
   };
-  const handleReturnToDashboard = () => {
-    router.push("/dashboard");
-  };
+  // const handleSaveResults = () => {
+  //   updateMission(id, { status: "completed", phase: "completed" });
+  //   toast("Results saved");
+  // };
+  // const handleReturnToDashboard = () => {
+  //   router.push("/dashboard");
+  // };
 
   const handleTargetClick = (t: MissionTarget) => {
     setSelectedTarget(t.targetId);
@@ -432,22 +490,27 @@ function MissionDashboardContent() {
                       <h1 className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95">
                         {mission.name}
                       </h1>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingTitle(true);
-                          requestAnimationFrame(() => {
-                            titleInputRef.current?.focus();
-                          });
-                        }}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white"
-                        aria-label="Edit mission title"
-                      >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
+                      {!isReadOnlySession && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingTitle(true);
+                            requestAnimationFrame(() => {
+                              titleInputRef.current?.focus();
+                            });
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white"
+                          aria-label="Edit mission title"
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   )}
-                  <PhaseTabs activePhase={activePhase} />
+                  <PhaseTabs
+                    activePhase={activePhase}
+                    loggingLocked={!!mission.logLocked}
+                  />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* PLANNING STATE */}
@@ -509,56 +572,28 @@ function MissionDashboardContent() {
                         Abort Mission
                       </Button>
                       <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          updateMission(id, { phase: "logging" });
-                          setSidebarMode("log");
-                          setSidebarOpen(true);
-                        }}
-                        className="border-white/10 bg-white/5"
-                      >
-                        <ClipboardList className="h-4 w-4 mr-1" />
-                        Log Results
-                      </Button>
-                    </>
-                  )}
-
-                  {/* LOGGING STATE */}
-                  {isLogging && (
-                    <>
-                      <Button
                         variant="cta"
                         size="sm"
-                        onClick={handleSaveResults}
+                        onClick={() => {
+                          updateMission(id, {
+                            status: "completed",
+                            phase: "logging",
+                            logLocked: false,
+                          });
+                          if (activeMissionId === id) setActiveMission(null);
+                          setLogNotes(mission.notes ?? "");
+                          setExpandedLogTargets(new Set());
+                          toast("Session ended — log results below");
+                        }}
                         className="mission-page-cta"
                       >
-                        Save Results
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleReturnToDashboard}
-                        className="border-white/10 bg-white/5"
-                      >
-                        <LogOut className="h-4 w-4 mr-1" />
-                        Return to Dashboard
+                        <ClipboardList className="h-4 w-4 mr-1" />
+                        End Session
                       </Button>
                     </>
                   )}
 
-                  {/* TERMINAL STATE */}
-                  {isTerminal && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleReturnToDashboard}
-                      className="border-white/10 bg-white/5"
-                    >
-                      <LogOut className="h-4 w-4 mr-1" />
-                      Return to Dashboard
-                    </Button>
-                  )}
+                  {/* No header actions in logging/terminal on mission page */}
                   {!isActive && !isTerminal && (
                     <Button
                       variant="secondary"
@@ -573,6 +608,7 @@ function MissionDashboardContent() {
               </div>
               <p className="mt-1 flex items-center gap-2 text-xs text-white/45 tracking-wide">
                 {loc?.name} · {gear?.name} · {formatDate(mission.dateTime)}
+                <span className="text-zinc-500">· {sessionElapsedLabel}</span>
                 <span className="text-emerald-400/90">
                   {uiState.connectivity.status === "online"
                     ? uiState.connectivity.isCached
@@ -636,29 +672,52 @@ function MissionDashboardContent() {
                   ))}
                 </div>
               )}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleAddNote();
-                }}
-                className="mt-auto flex gap-2 pt-1"
-              >
-                <input
-                  value={noteInput}
-                  onChange={(e) => setNoteInput(e.target.value)}
-                  placeholder="Log what just happened…"
-                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  variant="secondary"
-                  disabled={!noteInput.trim()}
-                  className="border-white/10 bg-white/5"
+              {!isReadOnlySession && (
+                <div className="flex flex-wrap gap-2 pt-2 pb-1">
+                  {QUICK_EVENT_LABELS.map((label) => (
+                    <Button
+                      key={label}
+                      type="button"
+                      size="lg"
+                      variant="ghost"
+                      className="min-w-[9rem] h-9 px-3 text-[11px] border border-white/10 bg-white/5 justify-start"
+                      onClick={() => handleQuickEventLog(label)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {!isReadOnlySession && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddNote();
+                  }}
+                  className="mt-auto flex gap-2 pt-1"
                 >
-                  Add
-                </Button>
-              </form>
+                  <input
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                    placeholder="Log what just happened…"
+                    className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="secondary"
+                    disabled={!noteInput.trim()}
+                    className="border-white/10 bg-white/5"
+                  >
+                    Add
+                  </Button>
+                </form>
+              )}
+              {isReadOnlySession && (
+                <p className="mt-auto pt-3 text-[11px] text-zinc-500">
+                  Session ended — notes and events are locked for this mission.
+                </p>
+              )}
             </div>
 
             <section
@@ -669,24 +728,31 @@ function MissionDashboardContent() {
             >
               <div className="flex items-center justify-between mb-3 text-sm">
                 <h2 className="mission-section-label mb-0">Mission Timeline</h2>
-                {currentTarget && (
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-                    <span className="font-medium text-zinc-100">
-                      {currentTarget.targetName}
+                <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                  {currentTarget && (
+                    <>
+                      <span className="font-medium text-zinc-100">
+                        {currentTarget.targetName}
+                      </span>
+                      <span>Phase: {activePhase}</span>
+                      <span>
+                        Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
+                        {currentTarget.frames ?? 60} subs
+                      </span>
+                      <span className="tabular-nums">
+                        Window: {currentTarget.plannedWindowStart} –{" "}
+                        {currentTarget.plannedWindowEnd}
+                      </span>
+                    </>
+                  )}
+                  {nextTargetLabel && (
+                    <span className="text-cyan-300 tabular-nums">
+                      {nextTargetLabel}
                     </span>
-                    <span>Phase: {activePhase}</span>
-                    <span>
-                      Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
-                      {currentTarget.frames ?? 60} subs
-                    </span>
-                    <span className="tabular-nums">
-                      Window: {currentTarget.plannedWindowStart} –{" "}
-                      {currentTarget.plannedWindowEnd}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-h-0 flex flex-col">
+              <div className={cn("flex-1 min-h-0 flex flex-col", isReadOnlySession && "opacity-70 pointer-events-none")}>
                 <MissionTimeline
                   targets={mission.targets}
                   onTargetClick={handleTargetClick}
@@ -705,21 +771,7 @@ function MissionDashboardContent() {
             <div className={cn(PANEL_STYLE, "p-4")}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="mission-section-label">Target Queue</h2>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="border-white/10 bg-white/5"
-                  onClick={() => setAddTargetPickerOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Add Target
-                </Button>
-              </div>
-              {mission.targets.length === 0 ? (
-                <div className="py-8 text-center rounded-lg border border-dashed border-white/10">
-                  <p className="text-sm text-zinc-500 mb-3">
-                    No targets in this mission plan yet.
-                  </p>
+                {!isReadOnlySession && (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -729,6 +781,24 @@ function MissionDashboardContent() {
                     <Plus className="h-4 w-4 mr-1.5" />
                     Add Target
                   </Button>
+                )}
+              </div>
+              {mission.targets.length === 0 ? (
+                <div className="py-8 text-center rounded-lg border border-dashed border-white/10">
+                  <p className="text-sm text-zinc-500 mb-3">
+                    No targets in this mission plan yet.
+                  </p>
+                  {!isReadOnlySession && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="border-white/10 bg-white/5"
+                      onClick={() => setAddTargetPickerOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Add Target
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -736,6 +806,12 @@ function MissionDashboardContent() {
                     const isSelected =
                       uiState.selectedTargetId === t.targetId ||
                       currentTargetId === t.targetId;
+                    const isActiveTarget = currentTargetId === t.targetId;
+                    const totalFrames = t.frames ?? 60;
+                    const capturedFrames = Math.max(
+                      0,
+                      Math.min(totalFrames, Math.floor(totalFrames * 0.4) + (idx % 10)),
+                    );
                     const seqLabel =
                       t.roleLabel ??
                       (t.isFallback
@@ -744,12 +820,15 @@ function MissionDashboardContent() {
                     return (
                       <div
                         key={t.targetId}
-                        onClick={() => handleTargetQueueClick(t)}
+                        onClick={
+                          isReadOnlySession ? undefined : () => handleTargetQueueClick(t)
+                        }
                         className={cn(
-                          "flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors",
+                          "flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-colors",
                           isSelected
                             ? "border-violet-500/50 bg-violet-500/10"
                             : "border-white/10 hover:border-white/20 bg-white/[0.02]",
+                          isReadOnlySession ? "cursor-default" : "cursor-pointer",
                         )}
                       >
                         <div
@@ -766,44 +845,48 @@ function MissionDashboardContent() {
                           >
                             {seqLabel}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-zinc-400 hover:text-cyan-400"
-                            onClick={(e) => handleFocusTarget(t, e)}
-                            title="Set as Current Focus"
-                          >
-                            <Target className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-zinc-400 hover:text-zinc-200 disabled:opacity-30"
-                            onClick={(e) => handleMoveTarget(idx, "up")}
-                            disabled={idx === 0}
-                            title="Move up"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-zinc-400 hover:text-zinc-200 disabled:opacity-30"
-                            onClick={(e) => handleMoveTarget(idx, "down")}
-                            disabled={idx === mission.targets.length - 1}
-                            title="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-zinc-400 hover:text-rose-400"
-                            onClick={(e) => handleRemoveTarget(t.targetId, e)}
-                            title="Remove"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isReadOnlySession && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-zinc-400 hover:text-cyan-400"
+                                onClick={(e) => handleFocusTarget(t, e)}
+                                title="Set as Current Focus"
+                              >
+                                <Target className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-zinc-400 hover:text-zinc-200 disabled:opacity-30"
+                                onClick={() => handleMoveTarget(idx, "up")}
+                                disabled={idx === 0}
+                                title="Move up"
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-zinc-400 hover:text-zinc-200 disabled:opacity-30"
+                                onClick={() => handleMoveTarget(idx, "down")}
+                                disabled={idx === mission.targets.length - 1}
+                                title="Move down"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-zinc-400 hover:text-rose-400"
+                                onClick={(e) => handleRemoveTarget(t.targetId, e)}
+                                title="Remove"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                         <label
                           className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
@@ -811,23 +894,65 @@ function MissionDashboardContent() {
                         >
                           <Checkbox
                             checked={t.captured ?? false}
-                            onCheckedChange={() =>
-                              handleCaptureToggle(t.targetId)
+                            onCheckedChange={
+                              isReadOnlySession
+                                ? undefined
+                                : () => handleCaptureToggle(t.targetId)
                             }
+                            disabled={isReadOnlySession}
                           />
-                          <span
-                            className={cn(
-                              "truncate text-sm",
-                              t.captured
-                                ? "text-zinc-500 line-through"
-                                : "text-zinc-200",
+                          <div className="flex-1 min-w-0">
+                            {!isActiveTarget && (
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={cn(
+                                    "truncate text-sm",
+                                    t.captured
+                                      ? "text-zinc-500 line-through"
+                                      : "text-zinc-200",
+                                  )}
+                                >
+                                  {t.targetName}
+                                </span>
+                                <span className="text-xs text-zinc-500 shrink-0 tabular-nums">
+                                  {t.plannedWindowStart}–{t.plannedWindowEnd}
+                                </span>
+                              </div>
                             )}
-                          >
-                            {t.targetName}
-                          </span>
-                          <span className="text-xs text-zinc-500 shrink-0 tabular-nums">
-                            {t.plannedWindowStart}–{t.plannedWindowEnd}
-                          </span>
+                            {isActiveTarget && (
+                              <>
+                                <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                                  <span
+                                    className={cn(
+                                      "truncate",
+                                      t.captured
+                                        ? "text-zinc-500 line-through"
+                                        : "text-zinc-200",
+                                    )}
+                                  >
+                                    {t.targetName}
+                                  </span>
+                                  <span className="font-mono tabular-nums text-zinc-100">
+                                    {capturedFrames} / {totalFrames}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-zinc-500 mt-0.5 tabular-nums">
+                                  {t.plannedWindowStart}–{t.plannedWindowEnd}
+                                </div>
+                                <div className="mt-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                  <div
+                                    className="h-full bg-cyan-500"
+                                    style={{
+                                      width: `${Math.min(
+                                        100,
+                                        (capturedFrames / totalFrames) * 100,
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </label>
                         {isSelected && (
                           <span className="text-[10px] shrink-0 font-medium uppercase text-violet-400">
@@ -855,20 +980,372 @@ function MissionDashboardContent() {
             />
           </div>
 
+          {/* ========== INLINE SESSION LOGGING ========== */}
+          {activePhase === "logging" && (
+            <section className={cn(PANEL_STYLE, "p-4 space-y-4")}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="mission-section-label mb-0">Log Results</h2>
+                {!mission.logLocked && (
+                  <span className="text-[11px] text-zinc-500">
+                    Capture how the session went before you wrap for the night.
+                  </span>
+                )}
+              </div>
+
+              {!mission.logLocked ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-xs text-zinc-400">
+                      Overall session notes
+                    </label>
+                    <textarea
+                      value={logNotes}
+                      onChange={(e) => setLogNotes(e.target.value)}
+                      placeholder="What worked, what didn&apos;t, gear issues, sky surprises…"
+                      className="w-full min-h-[80px] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
+                      Per-target outcomes
+                    </h3>
+                    <div className="space-y-2">
+                      {mission.targets.map((t) => {
+                        const expanded = expandedLogTargets.has(t.targetId);
+                        const handleUpdateTarget = (
+                          updates: Partial<MissionTarget>,
+                        ) => {
+                          updateMission(id, {
+                            targets: mission.targets.map((mt) =>
+                              mt.targetId === t.targetId ? { ...mt, ...updates } : mt,
+                            ),
+                          });
+                        };
+                        const currentResult = t.result;
+                        return (
+                          <div
+                            key={t.targetId}
+                            className="rounded-lg border border-white/10 overflow-hidden"
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedLogTargets((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(t.targetId)) next.delete(t.targetId);
+                                  else next.add(t.targetId);
+                                  return next;
+                                })
+                              }
+                              className="w-full flex items-center gap-2 p-3 text-left hover:bg-white/5 transition-colors"
+                            >
+                              {expanded ? (
+                                <ChevronDown className="h-4 w-4 shrink-0 text-white/50" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 shrink-0 text-white/50" />
+                              )}
+                              <span className="flex-1 font-medium text-sm truncate">
+                                {t.targetName}
+                              </span>
+                              <span className="shrink-0 text-[10px] uppercase px-1.5 py-0.5 rounded bg-white/5 text-white/40">
+                                {t.frames ?? "—"} fr · {t.subLength ?? "—"}s
+                              </span>
+                              <span
+                                className={cn(
+                                  "shrink-0 text-[10px] uppercase px-1.5 py-0.5 rounded",
+                                  currentResult === "success" &&
+                                    "text-emerald-400/90 bg-emerald-500/10",
+                                  currentResult === "partial" &&
+                                    "text-amber-400/90 bg-amber-500/10",
+                                  currentResult === "failed" &&
+                                    "text-red-400/90 bg-red-500/10",
+                                  !currentResult && "text-white/40 bg-white/5",
+                                )}
+                              >
+                                {currentResult === "success"
+                                  ? "Success"
+                                  : currentResult === "partial"
+                                    ? "Partial"
+                                    : currentResult === "failed"
+                                      ? "Failed"
+                                      : "Not set"}
+                              </span>
+                            </button>
+                            {expanded && (
+                              <div className="border-t border-white/10 p-3 space-y-3 bg-white/[0.02]">
+                                <div className="flex flex-wrap gap-1.5">
+                                  {[
+                                    { value: "success", label: "Success" },
+                                    { value: "partial", label: "Partial" },
+                                    { value: "failed", label: "Failed" },
+                                  ].map((opt) => (
+                                    <Button
+                                      key={opt.value}
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className={cn(
+                                        "h-7 px-2.5 text-[11px]",
+                                        currentResult === opt.value
+                                          ? "bg-teal-500/20 text-teal-300 border border-teal-500/40"
+                                          : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/[0.08]",
+                                      )}
+                                      onClick={() =>
+                                        handleUpdateTarget({
+                                          result: opt.value as MissionTarget["result"],
+                                          captured:
+                                            opt.value === "success" ||
+                                            opt.value === "partial",
+                                        })
+                                      }
+                                    >
+                                      {opt.label}
+                                    </Button>
+                                  ))}
+                                </div>
+                                <div className="flex gap-3 items-end flex-wrap">
+                                  <div>
+                                    <label className="text-xs text-white/50 block">
+                                      Sub length (sec)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={t.subLength ?? ""}
+                                      onChange={(e) =>
+                                        handleUpdateTarget({
+                                          subLength: e.target.value
+                                            ? Number(e.target.value)
+                                            : undefined,
+                                        })
+                                      }
+                                      placeholder="60"
+                                      className="mt-0.5 w-20 h-8 rounded border border-white/10 bg-black/40 px-2 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-white/50 block">
+                                      Frames
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={t.frames ?? ""}
+                                      onChange={(e) =>
+                                        handleUpdateTarget({
+                                          frames: e.target.value
+                                            ? Number(e.target.value)
+                                            : undefined,
+                                        })
+                                      }
+                                      placeholder="30"
+                                      className="mt-0.5 w-20 h-8 rounded border border-white/10 bg-black/40 px-2 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-[160px]">
+                                    <label className="text-xs text-white/50 block">
+                                      Notes
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={t.notes ?? ""}
+                                      onChange={(e) =>
+                                        handleUpdateTarget({ notes: e.target.value })
+                                      }
+                                      placeholder="Optional per-target notes"
+                                      className="mt-0.5 h-8 w-full rounded border border-white/10 bg-black/40 px-2 text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10 mt-2">
+                    <p className="text-[11px] text-zinc-500">
+                      Save once you&apos;ve logged each target&apos;s outcome.
+                    </p>
+                    <Button
+                      variant="cta"
+                      size="sm"
+                      onClick={() => {
+                        const updatedTargets = mission.targets.map((t) => t);
+                        const completed = updatedTargets.filter(
+                          (t) => t.result === "success" || t.result === "partial",
+                        ).length;
+                        updateMission(id, {
+                          targets: updatedTargets,
+                          notes: logNotes,
+                          status:
+                            completed === updatedTargets.length
+                              ? "completed"
+                              : mission.status,
+                          phase:
+                            completed === updatedTargets.length
+                              ? "completed"
+                              : "logging",
+                          logLocked: true,
+                        });
+                        toast("Session log saved");
+                      }}
+                      className="mission-page-cta"
+                    >
+                      Save Log
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
+                      Session summary
+                    </h3>
+                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">
+                      {mission.notes || "No overall notes recorded for this session."}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wide">
+                      Target outcomes
+                    </h3>
+                    <div className="space-y-1.5">
+                      {mission.targets.map((t) => (
+                        <div
+                          key={t.targetId}
+                          className="flex flex-wrap items-center gap-2 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2"
+                        >
+                          <span className="flex-1 text-sm text-zinc-200 truncate">
+                            {t.targetName}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[10px] uppercase px-1.5 py-0.5 rounded",
+                              t.result === "success" &&
+                                "text-emerald-400/90 bg-emerald-500/10",
+                              t.result === "partial" &&
+                                "text-amber-400/90 bg-amber-500/10",
+                              t.result === "failed" &&
+                                "text-red-400/90 bg-red-500/10",
+                              !t.result && "text-white/40 bg-white/5",
+                            )}
+                          >
+                            {t.result === "success"
+                              ? "Success"
+                              : t.result === "partial"
+                                ? "Partial"
+                                : t.result === "failed"
+                                  ? "Failed"
+                                  : "Not logged"}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 tabular-nums">
+                            {t.frames ?? "—"} fr · {t.subLength ?? "—"}s
+                          </span>
+                          {t.notes && (
+                            <span className="w-full text-[11px] text-zinc-400">
+                              {t.notes}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* ========== SECOND OPERATIONS ROW ========== */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {(activePhase === "setup" ||
               activePhase === "capturing" ||
               activePhase === "logging") && (
               <div className={cn(PANEL_STYLE, "p-4")}>
-                <h3 className="mission-section-label mb-3">Field Conditions</h3>
+                <h3 className="mission-section-label mb-3">Observing Conditions</h3>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <MissionConfidenceCard
+                      confidence={MOCK_LIVE_STATE.forecastConfidence ?? 89}
+                      label="Forecast Confidence"
+                      size="sm"
+                    />
+                    <div className="flex flex-wrap gap-1.5">
+                      <SkyMetricPill
+                        label="Cloud Cover"
+                        value={`${MOCK_LIVE_STATE.forecast?.cloudCover ?? 12}%`}
+                      />
+                      <SkyMetricPill
+                        label="Humidity"
+                        value={`${MOCK_LIVE_STATE.forecast?.humidity ?? 45}%`}
+                      />
+                      <SkyMetricPill
+                        label="Seeing"
+                        value={`${MOCK_LIVE_STATE.forecast?.seeing ?? 3}/5`}
+                      />
+                      <SkyMetricPill
+                        label="Wind"
+                        value={`${MOCK_LIVE_STATE.forecast?.windMph ?? 5} mph`}
+                      />
+                      <SkyMetricPill
+                        label="Moon Impact"
+                        value={
+                          MOCK_LIVE_STATE.forecast?.moonInterference ?? "Moderate"
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="mission-section-label mt-5 mb-3">
+                  Field Conditions
+                </h3>
                 <ConditionsCard
                   conditions={uiState.conditions}
                   onChange={setConditions}
                   onReset={handleResetConditions}
                   onUpdatePlan={handleRecalculate}
                   className="!border-0 !rounded-none !bg-transparent !shadow-none"
+                  readOnly={isReadOnlySession}
                 />
+
+                <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-zinc-500">
+                      Conditions timeline
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-3 text-[11px]"
+                      onClick={handleStampConditions}
+                    >
+                      Stamp current conditions
+                    </Button>
+                  </div>
+                  <div className="space-y-1.5 max-h-32 overflow-y-auto text-[11px] font-mono tabular-nums">
+                    {conditionsLog.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="flex flex-wrap items-center gap-2 rounded border border-white/5 bg-black/20 px-2 py-1.5"
+                      >
+                        <span className="text-zinc-500">
+                          {new Date(entry.at).toLocaleTimeString(undefined, {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="text-zinc-300">
+                          S{entry.seeing} · T{entry.transparency} ·{" "}
+                          {entry.clouds}% clouds · {entry.wind} wind ·{" "}
+                          {entry.moonGlare ? "moon" : "no moon"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

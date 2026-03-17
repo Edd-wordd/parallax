@@ -311,7 +311,9 @@ function AstroTimeline({
       {/* Header: title + session progress */}
       <div className="flex justify-between items-center shrink-0">
         <span className="text-sm font-medium text-zinc-300">Mission Timeline</span>
-        <span className="text-xs tabular-nums text-zinc-500">{Math.round(progress * 100)}%</span>
+        <span className="text-xs tabular-nums text-zinc-500">
+          Progress {Math.round(progress * 100)}%
+        </span>
       </div>
 
       {/* Shared grid: time axis row */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapPin, Telescope, Moon, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
@@ -15,16 +15,18 @@ export function ContextChipsBar() {
 
   const activeLoc = MOCK_LOCATIONS.find((l) => l.id === activeLocationId);
   const activeGear = MOCK_GEAR.find((g) => g.id === activeGearId);
-  const siteLabel = activeLoc?.name ?? "—";
-  const rigLabel = activeGear?.name ?? "—";
 
-  const isToday = (d: Date) =>
-    d.getFullYear() === new Date().getFullYear() &&
-    d.getMonth() === new Date().getMonth() &&
-    d.getDate() === new Date().getDate();
-  const dateLabel = isToday(new Date(dateTime))
-    ? `Tonight (${formatDate(dateTime)})`
-    : formatDate(dateTime);
+  const [dateLabel, setDateLabel] = useState(() => formatDate(dateTime));
+
+  useEffect(() => {
+    const d = new Date(dateTime);
+    const now = new Date();
+    const isSameDay =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    setDateLabel(isSameDay ? `Tonight (${formatDate(dateTime)})` : formatDate(dateTime));
+  }, [dateTime]);
 
   const chipBase = "inline-flex items-center gap-2 text-xs w-[200px] shrink-0";
   const iconClass = "size-[14px] shrink-0 text-zinc-300";

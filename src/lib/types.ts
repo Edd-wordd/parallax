@@ -165,5 +165,7 @@ export interface Mission {
   noteLog?: { text: string; at: string }[];
   /** Reason logged when mission was cancelled */
   cancelledReason?: string;
+  /** True once inline session logging has been finalized on the mission page */
+  logLocked?: boolean;
   createdAt: string;
 }

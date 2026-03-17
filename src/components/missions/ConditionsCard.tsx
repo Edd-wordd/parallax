@@ -15,6 +15,7 @@ interface ConditionsCardProps {
   onReset?: () => void;
   onUpdatePlan?: () => void;
   className?: string;
+  readOnly?: boolean;
 }
 
 const WIND_OPTIONS: WindLevel[] = ["low", "med", "high"];
@@ -59,6 +60,7 @@ export function ConditionsCard({
   onReset,
   onUpdatePlan,
   className,
+  readOnly = false,
 }: ConditionsCardProps) {
   return (
     <Card className={className}>
@@ -68,7 +70,8 @@ export function ConditionsCard({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onReset}
+            onClick={readOnly ? undefined : onReset}
+            disabled={readOnly}
             className="text-xs text-zinc-400 hover:text-cyan-400 h-7 px-2"
           >
             Reset to forecast
@@ -90,7 +93,7 @@ export function ConditionsCard({
               <button
                 key={v}
                 type="button"
-                onClick={() => onChange({ seeing: v })}
+                onClick={readOnly ? undefined : () => onChange({ seeing: v })}
                 className={cn(
                   "flex-1 rounded px-2 py-1 text-sm font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
@@ -111,7 +114,7 @@ export function ConditionsCard({
               <button
                 key={v}
                 type="button"
-                onClick={() => onChange({ transparency: v })}
+                onClick={readOnly ? undefined : () => onChange({ transparency: v })}
                 className={cn(
                   "flex-1 rounded px-2 py-1 text-sm font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
@@ -132,7 +135,7 @@ export function ConditionsCard({
               <button
                 key={v}
                 type="button"
-                onClick={() => onChange({ wind: v })}
+                onClick={readOnly ? undefined : () => onChange({ wind: v })}
                 className={cn(
                   "flex-1 rounded px-2 py-1 text-sm font-medium capitalize transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
@@ -155,7 +158,10 @@ export function ConditionsCard({
             min={0}
             max={100}
             value={[conditions.clouds]}
-            onValueChange={([v]) => onChange({ clouds: v ?? 0 })}
+            onValueChange={
+              readOnly ? undefined : ([v]) => onChange({ clouds: v ?? 0 })
+            }
+            disabled={readOnly}
           />
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -175,7 +181,11 @@ export function ConditionsCard({
             type="button"
             role="switch"
             aria-checked={conditions.moonGlare}
-            onClick={() => onChange({ moonGlare: !conditions.moonGlare })}
+            onClick={
+              readOnly
+                ? undefined
+                : () => onChange({ moonGlare: !conditions.moonGlare })
+            }
             className={cn(
               "h-2 w-8 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50",
               conditions.moonGlare ? "bg-cyan-500" : "bg-zinc-600",
@@ -187,7 +197,8 @@ export function ConditionsCard({
             <Button
               variant="cta"
               size="sm"
-              onClick={onUpdatePlan}
+              onClick={readOnly ? undefined : onUpdatePlan}
+              disabled={readOnly}
               className="w-full"
             >
               Update Mission Plan

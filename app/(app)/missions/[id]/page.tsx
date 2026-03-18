@@ -47,6 +47,7 @@ import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { PlanningView } from "@/components/missions/views/PlanningView";
 import { SetupView } from "@/components/missions/views/SetupView";
+import { CapturingView } from "@/components/missions/views/CapturingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
 // import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
 import { ConditionsCard } from "@/components/missions/ConditionsCard";
@@ -149,6 +150,7 @@ function MissionDashboardContent() {
   const status = getMissionStatus(mission ?? null);
   const isPlanning = status === "PLANNING" || status === "SETUP";
   const isCapturing = status === "CAPTURING";
+  const isCapturingStatus = status === "CAPTURING";
   const isTerminal =
     mission?.status === "completed" ||
     mission?.status === "aborted" ||
@@ -434,6 +436,26 @@ function MissionDashboardContent() {
       ),
     });
   };
+  const handleMarkTargetComplete = () => {
+    if (!currentTargetId) return;
+    const idx = mission.targets.findIndex((t) => t.targetId === currentTargetId);
+    if (idx === -1) return;
+    const updatedTargets = mission.targets.map((t, i) =>
+      i === idx ? { ...t, captured: true } : t,
+    );
+    const next =
+      idx + 1 < updatedTargets.length ? updatedTargets[idx + 1] : null;
+    updateMission(id, {
+      targets: updatedTargets,
+      currentTargetId: next?.targetId ?? currentTargetId,
+    });
+    if (next) {
+      setSelectedTarget(next.targetId);
+      toast("Target marked complete — advanced to next");
+    } else {
+      toast("Target marked complete — no further targets in queue");
+    }
+  };
   const handleAddTarget = (opt: {
     targetId: string;
     targetName: string;
@@ -462,6 +484,7 @@ function MissionDashboardContent() {
 
   const isPlanningStatus = status === "PLANNING";
   const isSetupStatus = status === "SETUP";
+  const isOffline = uiState.connectivity.status !== "online";
 
   return (
     <div
@@ -682,6 +705,31 @@ function MissionDashboardContent() {
               onQuickEvent={handleQuickEventLog}
               onStartMission={handleStart}
               onCancelMission={() => setCancelOpen(true)}
+            />
+          ) : isCapturingStatus ? (
+            <CapturingView
+              mission={mission as Mission}
+              noteLog={noteLog}
+              isReadOnlySession={isReadOnlySession}
+              isFieldMode={isFieldMode}
+              currentTarget={currentTarget ?? null}
+              currentTargetId={currentTargetId ?? null}
+              selectedTarget={selectedTarget}
+              nextTarget={nextTarget}
+              nextTargetLabel={nextTargetLabel}
+              selectedTargetId={uiState.selectedTargetId ?? null}
+              conditions={uiState.conditions}
+              conditionsLog={conditionsLog}
+              isOffline={isOffline}
+              onAddNote={handleAddNoteFromView}
+              onQuickEvent={handleQuickEventLog}
+              onMarkTargetComplete={handleMarkTargetComplete}
+              onStampConditions={handleStampConditions}
+              onConditionsChange={(c) =>
+                setConditions({ ...uiState.conditions, ...c })
+              }
+              onResetConditions={handleResetConditions}
+              onUpdatePlan={handleRecalculate}
             />
           ) : (
             <>

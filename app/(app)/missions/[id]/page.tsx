@@ -15,7 +15,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
@@ -48,6 +48,7 @@ import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { PlanningView } from "@/components/missions/views/PlanningView";
 import { SetupView } from "@/components/missions/views/SetupView";
 import { CapturingView } from "@/components/missions/views/CapturingView";
+import { LoggingView } from "@/components/missions/views/LoggingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
 // import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
 import { ConditionsCard } from "@/components/missions/ConditionsCard";
@@ -92,6 +93,7 @@ const PANEL_STYLE = "mission-panel";
 
 function MissionDashboardContent() {
   const params = useParams();
+  const router = useRouter();
   const { toast } = useToast();
   const id = params.id as string;
   const isFieldMode = useAppStore((s) => s.isFieldMode);
@@ -151,6 +153,7 @@ function MissionDashboardContent() {
   const isPlanning = status === "PLANNING" || status === "SETUP";
   const isCapturing = status === "CAPTURING";
   const isCapturingStatus = status === "CAPTURING";
+  const isLoggingStatus = status === "LOGGING";
   const isTerminal =
     mission?.status === "completed" ||
     mission?.status === "aborted" ||
@@ -320,6 +323,16 @@ function MissionDashboardContent() {
     setSidebarMode("log");
     setSidebarOpen(true);
     toast("Mission aborted — log results to save partial data");
+  };
+
+  const handleSaveLog = () => {
+    updateMission(id, {
+      status: "completed",
+      phase: "completed",
+      logLocked: true,
+    });
+    toast("Session log saved");
+    router.push("/dashboard");
   };
 
   const handleAddNoteFromView = (text: string) => {
@@ -631,6 +644,19 @@ function MissionDashboardContent() {
                     </>
                   )}
 
+                  {/* LOGGING STATE */}
+                  {isLoggingStatus && (
+                    <Button
+                      variant="cta"
+                      size="sm"
+                      onClick={handleSaveLog}
+                      className="mission-page-cta"
+                    >
+                      <ClipboardList className="h-4 w-4 mr-1" />
+                      Save Log
+                    </Button>
+                  )}
+
                   {/* No header actions in logging/terminal on mission page */}
                   {!isActive && !isTerminal && activePhase !== "planning" && (
                     <Button
@@ -730,6 +756,13 @@ function MissionDashboardContent() {
               }
               onResetConditions={handleResetConditions}
               onUpdatePlan={handleRecalculate}
+            />
+          ) : isLoggingStatus ? (
+            <LoggingView
+              mission={mission as Mission}
+              noteLog={noteLog}
+              conditionsLog={conditionsLog}
+              onSaveLog={handleSaveLog}
             />
           ) : (
             <>

@@ -170,7 +170,8 @@ function MissionDashboardContent() {
 
   const sessionStart = useMemo(() => {
     const startedAt =
-      (mission as { startedAt?: string } | null)?.startedAt ?? mission?.dateTime;
+      (mission as { startedAt?: string } | null)?.startedAt ??
+      mission?.dateTime;
     return new Date(startedAt ?? new Date().toISOString());
   }, [mission]);
   const elapsedMs = Math.max(0, sessionNow.getTime() - sessionStart.getTime());
@@ -244,7 +245,7 @@ function MissionDashboardContent() {
   const selectedTarget = uiState.selectedTargetId
     ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ??
       null)
-    : currentTarget ?? null;
+    : (currentTarget ?? null);
 
   const currentIndex = mission.targets.findIndex(
     (t) => t.targetId === currentTargetId,
@@ -252,7 +253,7 @@ function MissionDashboardContent() {
   const nextTarget =
     currentIndex >= 0 && currentIndex + 1 < mission.targets.length
       ? mission.targets[currentIndex + 1]
-      : mission.targets[1] ?? null;
+      : (mission.targets[1] ?? null);
 
   let nextTargetLabel: string | null = null;
   if (nextTarget) {
@@ -451,7 +452,9 @@ function MissionDashboardContent() {
   };
   const handleMarkTargetComplete = () => {
     if (!currentTargetId) return;
-    const idx = mission.targets.findIndex((t) => t.targetId === currentTargetId);
+    const idx = mission.targets.findIndex(
+      (t) => t.targetId === currentTargetId,
+    );
     if (idx === -1) return;
     const updatedTargets = mission.targets.map((t, i) =>
       i === idx ? { ...t, captured: true } : t,
@@ -627,7 +630,7 @@ function MissionDashboardContent() {
                         size="sm"
                         onClick={() => {
                           updateMission(id, {
-                            status: "completed",
+                            status: "in_progress",
                             phase: "logging",
                             logLocked: false,
                           });
@@ -658,16 +661,19 @@ function MissionDashboardContent() {
                   )}
 
                   {/* No header actions in logging/terminal on mission page */}
-                  {!isActive && !isTerminal && activePhase !== "planning" && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleSetActive}
-                      className="border-white/10 bg-white/5"
-                    >
-                      Set Active
-                    </Button>
-                  )}
+                  {!isActive &&
+                    !isTerminal &&
+                    activePhase !== "planning" &&
+                    !isLoggingStatus && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleSetActive}
+                        className="border-white/10 bg-white/5"
+                      >
+                        Set Active
+                      </Button>
+                    )}
                 </div>
               </div>
               <p className="mt-1 flex items-center gap-2 text-xs text-white/45 tracking-wide">
@@ -761,6 +767,7 @@ function MissionDashboardContent() {
             <LoggingView
               mission={mission as Mission}
               noteLog={noteLog}
+              conditions={uiState.conditions}
               conditionsLog={conditionsLog}
               onSaveLog={handleSaveLog}
             />

@@ -46,6 +46,7 @@ import { NightSimulationModal } from "@/components/missions/NightSimulationModal
 import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { PlanningView } from "@/components/missions/views/PlanningView";
+import { SetupView } from "@/components/missions/views/SetupView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
 // import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
 import { ConditionsCard } from "@/components/missions/ConditionsCard";
@@ -460,6 +461,7 @@ function MissionDashboardContent() {
   };
 
   const isPlanningStatus = status === "PLANNING";
+  const isSetupStatus = status === "SETUP";
 
   return (
     <div
@@ -671,6 +673,15 @@ function MissionDashboardContent() {
               }}
               canEditTargets={!isReadOnlySession}
               onOpenAddTarget={() => setAddTargetPickerOpen(true)}
+            />
+          ) : isSetupStatus ? (
+            <SetupView
+              noteLog={noteLog}
+              isReadOnlySession={isReadOnlySession}
+              onAddNote={handleAddNoteFromView}
+              onQuickEvent={handleQuickEventLog}
+              onStartMission={handleStart}
+              onCancelMission={() => setCancelOpen(true)}
             />
           ) : (
             <>

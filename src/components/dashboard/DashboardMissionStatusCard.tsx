@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<DashboardMissionStatus, string> = {
   PLANNING: "Planning",
   SETUP: "Ready",
   CAPTURING: "Capturing",
-  LOGGING: "Capturing",
+  LOGGING: "Logging",
   COMPLETED: "Completed",
 };
 

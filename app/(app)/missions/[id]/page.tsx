@@ -25,49 +25,17 @@ import { MOCK_GEAR } from "@/lib/mock/gear";
 import { mockRig } from "@/lib/mockMissionData";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ContextDrawer } from "@/components/drawer/ContextDrawer";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/utils";
-import {
-  Play,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  ClipboardList,
-  Moon,
-  XCircle,
-  Target,
-  Plus,
-  Pencil,
-  ChevronRight,
-} from "lucide-react";
+import { Play, Trash2, ClipboardList, XCircle, Pencil } from "lucide-react";
 import { NightSimulationModal } from "@/components/missions/NightSimulationModal";
 import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
-import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { PlanningView } from "@/components/missions/views/PlanningView";
 import { SetupView } from "@/components/missions/views/SetupView";
 import { CapturingView } from "@/components/missions/views/CapturingView";
 import { LoggingView } from "@/components/missions/views/LoggingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
-// import { ConnectivityStatusChip } from "@/components/missions/ConnectivityPopover";
-import { ConditionsCard } from "@/components/missions/ConditionsCard";
-import {
-  SiteVerificationBanner,
-  MissionConfidenceCard,
-  LiveSkyMonitorCard,
-  ForecastVsLiveComparison,
-  SessionConditionSummary,
-  AdaptationRecommendationCard,
-  SkyMetricPill,
-} from "@/components/sky-intelligence";
-import {
-  MOCK_LIVE_STATE,
-  MOCK_LIVE_EVENTS,
-  MOCK_COMPARISON_BETTER,
-  MOCK_ADAPTATION_BETTER,
-  MOCK_SESSION_CONDITIONS,
-} from "@/lib/mock/skyIntelligence";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
 import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
@@ -76,18 +44,12 @@ import {
   SessionSimulatorCard,
 } from "@/components/intelligence";
 import { RigSetupCard } from "@/components/missions/RigSetupCard";
-// import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget, Mission } from "@/lib/types";
 import type { RigProfile } from "@/lib/mockMissionData";
 import type { ActivePhase } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
-
-/** Status badge labels for mission header */
-// Legacy status label/color maps retained for potential future use
-// const STATUS_LABELS: Record<string, string> = { ... };
-// const STATUS_COLORS: Record<string, string> = { ... };
 
 const PANEL_STYLE = "mission-panel";
 
@@ -98,7 +60,6 @@ function MissionDashboardContent() {
   const id = params.id as string;
   const isFieldMode = useAppStore((s) => s.isFieldMode);
   const fieldModeOptions = useAppStore((s) => s.fieldModeOptions);
-  // const setFieldModeOptions = useAppStore((s) => s.setFieldModeOptions);
   const {
     state: uiState,
     setSidebarOpen,
@@ -114,7 +75,6 @@ function MissionDashboardContent() {
   const { getMission, updateMission, setActiveMission, activeMissionId } =
     useMissionStore();
   const mission = getMission(id);
-  const [noteInput, setNoteInput] = useState("");
   const [simOpen, setSimOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [abortOpen, setAbortOpen] = useState(false);
@@ -125,10 +85,6 @@ function MissionDashboardContent() {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
-  const [logNotes, setLogNotes] = useState(mission?.notes ?? "");
-  const [expandedLogTargets, setExpandedLogTargets] = useState<Set<string>>(
-    () => new Set(),
-  );
 
   useEffect(() => {
     let frame: number;
@@ -152,7 +108,6 @@ function MissionDashboardContent() {
   const status = getMissionStatus(mission ?? null);
   const isPlanning = status === "PLANNING" || status === "SETUP";
   const isCapturing = status === "CAPTURING";
-  const isCapturingStatus = status === "CAPTURING";
   const isLoggingStatus = status === "LOGGING";
   const isTerminal =
     mission?.status === "completed" ||
@@ -276,12 +231,6 @@ function MissionDashboardContent() {
     handlePhaseClick("capturing");
     toast("Mission started");
   };
-  // const handleComplete = () => {
-  //   updateMission(id, { status: "completed", phase: "logging" });
-  //   setSidebarMode("log");
-  //   setSidebarOpen(true);
-  //   toast("Switched to logging");
-  // };
   const handleSetActive = () => {
     setActiveMission(id);
     toast("Active mission set");
@@ -332,6 +281,7 @@ function MissionDashboardContent() {
       phase: "completed",
       logLocked: true,
     });
+    setActiveMission(null);
     toast("Session log saved");
     router.push("/dashboard");
   };
@@ -347,23 +297,6 @@ function MissionDashboardContent() {
     toast("Note added");
   };
 
-  const handleAddNote = () => {
-    const text = noteInput.trim();
-    if (!text) return;
-    const entry = { text, at: new Date().toISOString() };
-    updateMission(id, {
-      noteLog: [...noteLog, entry],
-      notes: text,
-    });
-    setNoteInput("");
-    toast("Note added");
-  };
-  const QUICK_EVENT_LABELS = [
-    "Clouds moving in",
-    "Guiding lost",
-    "Meridian flip",
-    "Conditions improved",
-  ] as const;
   const handleQuickEventLog = (label: string) => {
     const entry = { text: `[Event] ${label}`, at: new Date().toISOString() };
     updateMission(id, {
@@ -395,19 +328,7 @@ function MissionDashboardContent() {
     ]);
     toast("Conditions stamped");
   };
-  // const handleSaveResults = () => {
-  //   updateMission(id, { status: "completed", phase: "completed" });
-  //   toast("Results saved");
-  // };
-  // const handleReturnToDashboard = () => {
-  //   router.push("/dashboard");
-  // };
 
-  const handleTargetClick = (t: MissionTarget) => {
-    setSelectedTarget(t.targetId);
-    setSidebarMode("target");
-    setSidebarOpen(true);
-  };
   const handleTargetQueueClick = (t: MissionTarget) => {
     setSelectedTarget(t.targetId);
     updateMission(id, { currentTargetId: t.targetId });
@@ -634,10 +555,8 @@ function MissionDashboardContent() {
                             phase: "logging",
                             logLocked: false,
                           });
-                          if (activeMissionId === id) setActiveMission(null);
-                          setLogNotes(mission.notes ?? "");
-                          setExpandedLogTargets(new Set());
-                          toast("Session ended — log results below");
+                          if (activeMissionId === id)
+                            toast("Session ended — log results below");
                         }}
                         className="mission-page-cta"
                       >
@@ -738,7 +657,7 @@ function MissionDashboardContent() {
               onStartMission={handleStart}
               onCancelMission={() => setCancelOpen(true)}
             />
-          ) : isCapturingStatus ? (
+          ) : isCapturing ? (
             <CapturingView
               mission={mission as Mission}
               noteLog={noteLog}

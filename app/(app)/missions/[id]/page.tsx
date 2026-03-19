@@ -22,10 +22,8 @@ import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { MOCK_GEAR } from "@/lib/mock/gear";
-import { mockRig } from "@/lib/mockMissionData";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
-import { ContextDrawer } from "@/components/drawer/ContextDrawer";
 import { useToast } from "@/components/ui/toast";
 import { formatDate } from "@/lib/utils";
 import { Play, Trash2, ClipboardList, XCircle, Pencil } from "lucide-react";
@@ -47,7 +45,6 @@ import { RigSetupCard } from "@/components/missions/RigSetupCard";
 import { phaseFromStatus } from "@/lib/missions/phase";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget, Mission } from "@/lib/types";
-import type { RigProfile } from "@/lib/mockMissionData";
 import type { ActivePhase } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
 
@@ -62,15 +59,12 @@ function MissionDashboardContent() {
   const fieldModeOptions = useAppStore((s) => s.fieldModeOptions);
   const {
     state: uiState,
-    setSidebarOpen,
-    setSidebarMode,
     setSelectedTarget,
     setConditions,
     resetConditions,
     setSoftware,
     recalculate,
     phaseClick,
-    sidebarTabClick,
   } = useMissionUI();
   const { getMission, updateMission, setActiveMission, activeMissionId } =
     useMissionStore();
@@ -80,7 +74,6 @@ function MissionDashboardContent() {
   const [abortOpen, setAbortOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [abortReason, setAbortReason] = useState("");
-  const [rig, setRig] = useState<RigProfile>(mockRig);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -270,8 +263,6 @@ function MissionDashboardContent() {
     if (activeMissionId === id) setActiveMission(null);
     setAbortOpen(false);
     setAbortReason("");
-    setSidebarMode("log");
-    setSidebarOpen(true);
     toast("Mission aborted — log results to save partial data");
   };
 
@@ -332,15 +323,11 @@ function MissionDashboardContent() {
   const handleTargetQueueClick = (t: MissionTarget) => {
     setSelectedTarget(t.targetId);
     updateMission(id, { currentTargetId: t.targetId });
-    setSidebarMode("target");
-    setSidebarOpen(true);
   };
   const handleFocusTarget = (t: MissionTarget, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedTarget(t.targetId);
     updateMission(id, { currentTargetId: t.targetId });
-    setSidebarMode("target");
-    setSidebarOpen(true);
   };
   const handleRemoveTarget = (targetId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -744,28 +731,6 @@ function MissionDashboardContent() {
           )}
         </motion.div>
       </div>
-
-      <ContextDrawer
-        isOpen={uiState.isSidebarOpen}
-        sidebarMode={uiState.sidebarMode}
-        selectedTarget={selectedTarget}
-        mission={mission}
-        rig={rig}
-        software={uiState.software}
-        activePhase={activePhase}
-        onClose={() => setSidebarOpen(false)}
-        onSidebarTabClick={sidebarTabClick}
-        onUpdateMission={(u) => updateMission(id, u)}
-        onUpdateTarget={(targetId, u) =>
-          updateMission(id, {
-            targets: mission.targets.map((t) =>
-              t.targetId === targetId ? { ...t, ...u } : t,
-            ),
-          })
-        }
-        onUpdateRig={(u) => setRig((p) => ({ ...p, ...u }))}
-        onUpdateSoftware={setSoftware}
-      />
 
       <NightSimulationModal
         isOpen={simOpen}

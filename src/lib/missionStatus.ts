@@ -15,12 +15,19 @@ export type DashboardMissionStatus =
   | "CANCELLED";
 
 /** Derive dashboard status from mission (or null). */
-export function getMissionStatus(mission: Mission | null): DashboardMissionStatus {
+export function getMissionStatus(
+  mission: Mission | null,
+): DashboardMissionStatus {
   if (!mission) return "NONE";
+  if (mission.status === "aborted" && mission.phase === "logging")
+    return "LOGGING";
   if (mission.status === "aborted") return "ABORTED";
   if (mission.status === "cancelled") return "CANCELLED";
-  const phase = mission.phase ?? (mission.status === "completed" ? "completed" : "planning");
-  if (phase === "completed" || mission.status === "completed") return "COMPLETED";
+  const phase =
+    mission.phase ??
+    (mission.status === "completed" ? "completed" : "planning");
+  if (phase === "completed" || mission.status === "completed")
+    return "COMPLETED";
   switch (phase) {
     case "planning":
       return "PLANNING";

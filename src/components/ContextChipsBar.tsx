@@ -16,9 +16,15 @@ export function ContextChipsBar() {
   const activeLoc = MOCK_LOCATIONS.find((l) => l.id === activeLocationId);
   const activeGear = MOCK_GEAR.find((g) => g.id === activeGearId);
 
-  const [dateLabel, setDateLabel] = useState(() => formatDate(dateTime));
+  const [dateLabel, setDateLabel] = useState("—");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const d = new Date(dateTime);
     const now = new Date();
     const isSameDay =
@@ -26,7 +32,7 @@ export function ContextChipsBar() {
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
     setDateLabel(isSameDay ? `Tonight (${formatDate(dateTime)})` : formatDate(dateTime));
-  }, [dateTime]);
+  }, [dateTime, mounted]);
 
   const chipBase = "inline-flex items-center gap-2 text-xs w-[200px] shrink-0";
   const iconClass = "size-[14px] shrink-0 text-zinc-300";

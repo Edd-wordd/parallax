@@ -165,6 +165,9 @@ function MissionDashboardContent() {
       </div>
     );
   }
+  if (isTerminal) {
+    return null;
+  }
 
   const loc = MOCK_LOCATIONS.find((l) => l.id === mission.locationId);
   const gear = MOCK_GEAR.find((g) => g.id === mission.gearId);
@@ -250,6 +253,7 @@ function MissionDashboardContent() {
     setCancelOpen(false);
     setCancelReason("");
     toast("Mission cancelled");
+    router.push("/dashboard");
   };
   const handleAbortMission = () => {
     const reason = abortReason.trim() || "Aborted in field";
@@ -677,7 +681,7 @@ function MissionDashboardContent() {
               conditionsLog={conditionsLog}
               onSaveLog={handleSaveLog}
             />
-          ) : (
+          ) : isTerminal ? null : (
             <>
               {/* ========== INLINE SESSION LOGGING ========== */}
               {activePhase === "logging" && (

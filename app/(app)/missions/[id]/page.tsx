@@ -37,6 +37,7 @@ import { PhaseTabs } from "@/components/missions/PhaseTabs";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
 import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
+import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import {
   ExposurePlannerCard,
   SessionSimulatorCard,
@@ -68,6 +69,7 @@ function MissionDashboardContent() {
   } = useMissionUI();
   const { getMission, updateMission, setActiveMission, activeMissionId } =
     useMissionStore();
+  const clearPlan = useDashboardRecommendationStore((s) => s.clearPlan);
   const mission = getMission(id);
   const [simOpen, setSimOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -253,6 +255,7 @@ function MissionDashboardContent() {
     setCancelOpen(false);
     setCancelReason("");
     toast("Mission cancelled");
+    clearPlan();
     router.push("/dashboard");
   };
   const handleAbortMission = () => {

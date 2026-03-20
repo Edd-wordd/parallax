@@ -1,14 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, memo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { useMissionStore } from "@/lib/missionStore";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
-import { generateMockPlan } from "@/lib/mock/missions";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { getTargetById } from "@/lib/mock/recommendations";
 import { getMissionStatus } from "@/lib/missionStatus";
-import { formatTime } from "@/lib/utils";
 import type { MissionTarget } from "@/lib/types";
 import {
   RECOMMENDED_TARGETS,
@@ -16,10 +13,7 @@ import {
   TARGET_WINDOW_PARTS,
 } from "@/lib/mock/intelligenceLayer";
 import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
-import { MissionTimeline } from "@/components/MissionTimeline";
-import { TargetCard } from "@/components/TargetCard";
 import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
-import { CaptureRunSheetCard } from "@/components/CaptureRunSheetCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
 import { DashboardSkyIntelligenceCard } from "@/components/dashboard/DashboardSkyIntelligenceCard";
 import {
@@ -58,26 +52,6 @@ function recommendedToMissionTarget(
   };
 }
 
-/**
- * Isolated clock component — only this rerenders on time tick, not the whole page.
- * Runs setInterval(60_000) to avoid full-page rerenders every second.
- */
-const HeaderClock = memo(function HeaderClock() {
-  const [time, setTime] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <span
-      className="text-xs tabular-nums text-zinc-500 font-medium"
-      aria-label="Current time"
-    >
-      {time ? formatTime(time.toISOString()) : "—"}
-    </span>
-  );
-});
-
 export default function DashboardPage() {
   const {
     activeMissionId,
@@ -110,8 +84,8 @@ export default function DashboardPage() {
       MOCK_LOCATIONS[0],
     [activeLocationId],
   );
-  const [hasGear, setHasGear] = useState(true);
-  const [hasLocation, setHasLocation] = useState(true);
+  const hasGear = true;
+  const hasLocation = true;
   const canCreateMission = hasGear && hasLocation;
   const createMissionHelperText =
     !hasGear && !hasLocation
@@ -153,6 +127,14 @@ export default function DashboardPage() {
   const displayMission =
     activeMission ??
     (missionStatus === "COMPLETED" ? lastSessionMission : null);
+
+  const plannedTargetsResolved = useMemo(
+    () =>
+      plannedTargets
+        .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
+        .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t),
+    [plannedTargets],
+  );
 
   const handleStartMission = useCallback(
     (target: (typeof RECOMMENDED_TARGETS)[0]) => {
@@ -282,52 +264,6 @@ export default function DashboardPage() {
     clearPlan,
   ]);
 
-  const timelineDateContext = useMemo(() => {
-    const dt = activeMission?.dateTime ?? dateTime;
-    if (!dt) return null;
-    const d = new Date(dt);
-    const today = new Date();
-    const isToday =
-      d.getFullYear() === today.getFullYear() &&
-      d.getMonth() === today.getMonth() &&
-      d.getDate() === today.getDate();
-    return isToday
-      ? "Tonight"
-      : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }, [activeMission?.dateTime, dateTime]);
-
-  const missionRecommendations = useMemo(
-    () =>
-      activeMission?.targets
-        .map((t) => {
-          const target = getTargetById(t.targetId);
-          if (!target) return null;
-          return {
-            target,
-            shootability_score: t.score,
-            best_window_start: t.plannedWindowStart,
-            best_window_end: t.plannedWindowEnd,
-            peak_altitude: 60,
-            moon_separation: 30,
-            difficulty: "moderate" as const,
-            why: [`Planned ${t.plannedWindowStart}–${t.plannedWindowEnd}`],
-          };
-        })
-        .filter((r): r is NonNullable<typeof r> => r !== null) ?? [],
-    [activeMission?.targets],
-  );
-
-  const activeMissionFirstTargetId =
-    activeMission?.targets[0]?.targetId ?? null;
-  const plannedTargetsResolved = useMemo(
-    () =>
-      plannedTargets
-        .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
-        .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t),
-    [plannedTargets],
-  );
-  const plannedFirstTargetId = plannedTargetsResolved[0]?.id ?? null;
-
   /** Highest-ranked recommended target by score (used for mission-initialized hint). */
   const topRecommendedTarget = useMemo(
     () =>
@@ -389,7 +325,7 @@ export default function DashboardPage() {
       </div>
 
       {/* NO MISSION: Sky tabs, Rejected Tonight, then Recommendations, Last Session, etc. */}
-      {missionStatus === "NONE" && (
+      {(missionStatus === "NONE" || missionStatus === "COMPLETED") && (
         <>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
             <SkyTabsCard
@@ -415,92 +351,6 @@ export default function DashboardPage() {
             }
           />
         </>
-      )}
-
-      {/* COMPLETED (no active mission, but has displayMission for context) */}
-      {missionStatus === "COMPLETED" && !hasActiveMission && (
-        <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
-            <SkyTabsCard
-              activeLocationId={activeLocationId}
-              dateTime={dateTime}
-            />
-            <RejectedTargetPanel targets={REJECTED_TARGETS} />
-          </div>
-          <TonightRecommendationsSection
-            selectedTargetId={null}
-            onSelectTarget={() => {}}
-            activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
-            plannedTargets={plannedTargetsResolved}
-            onStartMission={handleStartMission}
-            onAddToPlan={handleAddToPlan}
-            onBuildOptimalMission={handleBuildOptimalMission}
-            onRemoveFromPlan={removeFromPlan}
-            onClearPlan={clearPlan}
-            onStartPlannedMission={
-              plannedTargetsResolved.length > 0
-                ? handleStartPlannedMission
-                : undefined
-            }
-          />
-        </>
-      )}
-
-      {/* ACTIVE MISSION: timeline, mission plan, session history, etc. */}
-      {hasActiveMission && activeMission && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr] items-stretch">
-            <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/80 p-4 flex flex-col min-h-0">
-              <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
-                <h2 className="text-sm font-semibold text-zinc-200">
-                  Mission Timeline
-                  {timelineDateContext && (
-                    <span className="text-zinc-500 font-normal">
-                      {" "}
-                      — {timelineDateContext}
-                    </span>
-                  )}
-                </h2>
-                <HeaderClock />
-              </div>
-              <div className="flex-1 min-h-0 flex flex-col">
-                <MissionTimeline
-                  targets={activeMission.targets}
-                  missionDate={activeMission.dateTime}
-                  compact
-                />
-              </div>
-            </div>
-            <SkyTabsCard
-              activeLocationId={activeLocationId}
-              dateTime={dateTime}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
-            <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-zinc-200">
-                Mission Plan (Targets)
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {missionRecommendations.map((rec) => (
-                  <TargetCard
-                    key={rec.target.id}
-                    target={rec.target}
-                    recommendation={rec}
-                    missionPlan
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <RejectedTargetPanel targets={REJECTED_TARGETS} />
-              {(missionStatus === "CAPTURING" ||
-                missionStatus === "LOGGING") && <CaptureRunSheetCard />}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

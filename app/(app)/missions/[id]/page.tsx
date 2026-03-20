@@ -104,7 +104,7 @@ function MissionDashboardContent() {
   const isLoggingStatus = status === "LOGGING";
   const isTerminal =
     mission?.status === "completed" ||
-    mission?.status === "aborted" ||
+    (mission?.status === "aborted" && mission?.phase !== "logging") ||
     mission?.status === "cancelled";
   const isReadOnlySession =
     !!mission?.logLocked || isTerminal || mission?.status === "completed";

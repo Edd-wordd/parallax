@@ -214,6 +214,13 @@ export default function MissionWizardPage() {
     if (v != null) return v;
     return Math.min(10, Math.max(1, Math.round((t.score || 70) / 10)));
   };
+  const overallScore = (t: MissionTarget) =>
+    Math.round(
+      (scoreValue(t, "altitudeScore") +
+        scoreValue(t, "moonSeparationScore") +
+        scoreValue(t, "rigFramingScore")) /
+        3,
+    );
 
   const handleSave = () => {
     const finalTargets = orderedTargets;
@@ -780,8 +787,18 @@ export default function MissionWizardPage() {
                                       <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
                                         {t.targetType.replace("_", " ")}
                                       </span>
-                                      <span className="text-xs tabular-nums text-zinc-500 ml-auto shrink-0">
-                                        {t.plannedWindowEnd}
+                                      <span className="flex items-center gap-2 ml-auto shrink-0">
+                                        <span className="text-xs tabular-nums text-zinc-500">
+                                          {t.plannedWindowEnd}
+                                        </span>
+                                        <span
+                                          className={cn(
+                                            "rounded border px-2 py-0.5 text-xs font-medium",
+                                            scoreBadgeColor(overallScore(t)),
+                                          )}
+                                        >
+                                          Score {overallScore(t)}/10
+                                        </span>
                                       </span>
                                     </button>
                                     <Button
@@ -900,6 +917,17 @@ export default function MissionWizardPage() {
                                             }
                                             className="h-8"
                                           />
+                                        </div>
+                                        <div className="col-span-2 text-xs text-zinc-500">
+                                          Total integration:{" "}
+                                          {(() => {
+                                            const subLength = t.subLength ?? 120;
+                                            const frames = t.frames ?? 30;
+                                            const totalSec = subLength * frames;
+                                            const h = Math.floor(totalSec / 3600);
+                                            const m = Math.floor((totalSec % 3600) / 60);
+                                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                          })()}
                                         </div>
                                       </div>
                                     </div>

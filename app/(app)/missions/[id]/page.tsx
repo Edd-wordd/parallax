@@ -188,17 +188,21 @@ function MissionDashboardContent() {
   const currentTarget =
     mission.targets.find((t) => t.targetId === currentTargetId) ??
     mission.targets[0];
-  const primaryTargetName = mission.targets[0]?.targetName ?? null;
-  const exposurePlan = firstTargetId
-    ? (EXPOSURE_PLANS_BY_TARGET[firstTargetId] ?? null)
-    : null;
-  const sessionSimulation = firstTargetId
-    ? (SESSION_SIMULATIONS_BY_TARGET[firstTargetId] ?? null)
-    : null;
   const selectedTarget = uiState.selectedTargetId
     ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ??
       null)
     : (currentTarget ?? null);
+
+  const planTarget =
+    selectedTarget ?? currentTarget ?? mission.targets[0] ?? null;
+  const planTargetId = planTarget?.targetId ?? firstTargetId ?? null;
+  const primaryTargetName = planTarget?.targetName ?? null;
+  const exposurePlan = planTargetId
+    ? (EXPOSURE_PLANS_BY_TARGET[planTargetId] ?? null)
+    : null;
+  const sessionSimulation = planTargetId
+    ? (SESSION_SIMULATIONS_BY_TARGET[planTargetId] ?? null)
+    : null;
 
   const currentIndex = mission.targets.findIndex(
     (t) => t.targetId === currentTargetId,

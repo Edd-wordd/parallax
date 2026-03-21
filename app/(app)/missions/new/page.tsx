@@ -44,9 +44,6 @@ const PLANETARY_OTHER = [
   "Mercury",
   "Uranus",
   "Neptune",
-  "Sirius",
-  "Betelgeuse",
-  "Vega",
 ] as const;
 
 function generateId(): string {
@@ -540,6 +537,11 @@ export default function MissionWizardPage() {
                             <span className="text-xs text-white/50">
                               {constraints.minAltitude}°
                             </span>
+                            {constraints.minAltitude < 30 && (
+                              <p className="mt-1.5 text-xs text-amber-400">
+                                Below 30° atmospheric distortion will significantly reduce image quality.
+                              </p>
+                            )}
                           </div>
                           <div>
                             <label className="mb-1 block text-xs text-white/60">

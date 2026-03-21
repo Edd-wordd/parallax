@@ -195,6 +195,10 @@ export function SetupView({
               <dd className="font-medium text-zinc-100">2.1″ (good)</dd>
             </div>
             <div>
+              <dt className="text-zinc-500">Transparency</dt>
+              <dd className="font-medium text-zinc-100">3 / 5 (average)</dd>
+            </div>
+            <div>
               <dt className="text-zinc-500">Wind</dt>
               <dd className="font-medium text-zinc-100">5–8 mph</dd>
             </div>

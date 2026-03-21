@@ -89,15 +89,7 @@ export function LeftRail() {
       <div className="shrink-0 space-y-0.5 border-t border-blue-950/40 px-2 py-3">
         <UtilityLink href="/help" icon={HelpCircle} label="Help" />
         <UtilityLink href="/settings" icon={Settings} label="Settings" />
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-lg py-2.5 pl-3 pr-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800/50 hover:text-slate-100"
-          title="User"
-          aria-label="User profile"
-        >
-          <User className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span className="min-w-0 flex-1 truncate">User</span>
-        </button>
+        <UtilityLink href="/user" icon={User} label="User" />
       </div>
     </motion.aside>
   );

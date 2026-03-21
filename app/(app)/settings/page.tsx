@@ -103,6 +103,11 @@ export default function SettingsPage() {
                   className="mt-1"
                 />
                 <span className="text-xs text-zinc-500">{minAltitude}°</span>
+                {minAltitude < 30 && (
+                  <p className="mt-1.5 text-xs text-amber-400">
+                    Below 30° atmospheric distortion will significantly reduce image quality.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm text-zinc-400">Default moon tolerance</label>

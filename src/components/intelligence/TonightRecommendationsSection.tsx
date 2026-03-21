@@ -10,9 +10,9 @@ import {
   ENGINE_CONFIDENCE,
   ENGINE_CONFIDENCE_SUBTEXT,
 } from "@/lib/mock/intelligenceLayer";
-import type { RecommendedTarget, RejectedTarget } from "@/lib/mock/intelligenceLayer";
+import type { RecommendedTarget } from "@/lib/mock/intelligenceLayer";
 
-type DrawerTarget = (RecommendedTarget | RejectedTarget) & { isRejected: boolean };
+type DrawerTarget = RecommendedTarget & { isRejected: boolean };
 
 interface TonightRecommendationsSectionProps {
   selectedTargetId: string | null;
@@ -47,11 +47,6 @@ export function TonightRecommendationsSection({
     setDrawerOpen(true);
   };
 
-  const openDrawerForRejected = (target: RejectedTarget) => {
-    setDrawerTarget({ ...target, isRejected: true });
-    setDrawerOpen(true);
-  };
-
   const plannedIds = new Set(plannedTargets.map((t) => t.id));
 
   return (
@@ -76,7 +71,7 @@ export function TonightRecommendationsSection({
             className="shrink-0"
             onClick={onBuildOptimalMission}
           >
-            Build Optimal Mission
+            Plan My Night
           </Button>
         )}
       </div>
@@ -104,7 +99,11 @@ export function TonightRecommendationsSection({
                 selected={selectedTargetId === target.id}
                 isActive={activeMissionTargetId === target.id}
                 inPlan={plannedIds.has(target.id)}
-                onSelect={() => onSelectTarget(selectedTargetId === target.id ? null : target.id)}
+                onSelect={() =>
+                  onSelectTarget(
+                    selectedTargetId === target.id ? null : target.id,
+                  )
+                }
                 onStartMission={() => onStartMission?.(target)}
                 onAddToPlan={() => onAddToPlan?.(target)}
                 onOpenDecisionDrawer={() => openDrawerForRecommended(target)}

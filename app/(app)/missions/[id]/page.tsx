@@ -270,6 +270,7 @@ function MissionDashboardContent() {
     if (activeMissionId === id) setActiveMission(null);
     setAbortOpen(false);
     setAbortReason("");
+    clearPlan();
     toast("Mission aborted — log results to save partial data");
   };
 
@@ -280,6 +281,7 @@ function MissionDashboardContent() {
       logLocked: true,
     });
     setActiveMission(null);
+    clearPlan();
     toast("Session log saved");
     router.push("/dashboard");
   };

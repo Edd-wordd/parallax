@@ -421,7 +421,8 @@ export default function MissionWizardPage() {
                             <span className="text-white/50">Moon:</span>
                             <span className="text-white/90">
                               {MOCK_CONDITIONS_SOURCE.moonPhase} ·{" "}
-                              {MOCK_CONDITIONS_SOURCE.moonInterference}
+                              {MOCK_CONDITIONS_SOURCE.moonInterference} ·{" "}
+                              {MOCK_CONDITIONS_SOURCE.moonRiseSet}
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
@@ -438,6 +439,22 @@ export default function MissionWizardPage() {
                               {MOCK_CONDITIONS_SOURCE.skyBrightness} mag/arcsec²
                               · Bortle {MOCK_CONDITIONS_SOURCE.bortle}
                             </span>
+                          </span>
+                        </div>
+                        <div className="flex gap-4">
+                          <span>
+                            <dt className="text-white/50 inline">Seeing:</dt>{" "}
+                            <dd className="inline text-white/90">
+                              {MOCK_CONDITIONS_SOURCE.seeing}/5{" "}
+                              {MOCK_CONDITIONS_SOURCE.seeingLabel}
+                            </dd>
+                          </span>
+                          <span>
+                            <dt className="text-white/50 inline">Transparency:</dt>{" "}
+                            <dd className="inline text-white/90">
+                              {MOCK_CONDITIONS_SOURCE.transparency}/5{" "}
+                              {MOCK_CONDITIONS_SOURCE.transparencyLabel}
+                            </dd>
                           </span>
                         </div>
                       </dl>

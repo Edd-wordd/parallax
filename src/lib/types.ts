@@ -154,6 +154,8 @@ export interface Mission {
   dateTime: string;
   locationId: string;
   gearId: string;
+  /** Mission type from Create Mission flow; shown on list when set */
+  missionType?: "deep_sky" | "planetary" | null;
   constraints: MissionConstraint;
   targets: MissionTarget[];
   status: MissionStatus;

@@ -82,7 +82,13 @@ export default function MissionsPage() {
                       </div>
                       <div className="space-y-0.5 text-xs text-white/50">
                         <div>{loc?.name} · Bortle {loc?.bortle}</div>
-                        <div>{gear?.name} · {formatDate(m.dateTime)} · {m.targets.length} targets</div>
+                        <div>
+                          {gear?.name}
+                          {m.missionType === "deep_sky" && " · Deep Sky"}
+                          {m.missionType === "planetary" && " · Planetary"}
+                          {" · "}
+                          {formatDate(m.dateTime)} · {m.targets.length} targets
+                        </div>
                       </div>
                     </CardContent>
                   </Link>

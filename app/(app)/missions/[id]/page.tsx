@@ -67,7 +67,7 @@ function MissionDashboardContent() {
     recalculate,
     phaseClick,
   } = useMissionUI();
-  const { getMission, updateMission, setActiveMission, activeMissionId } =
+  const { getMission, updateMission, deleteMission, setActiveMission, activeMissionId } =
     useMissionStore();
   const clearPlan = useDashboardRecommendationStore((s) => s.clearPlan);
   const mission = getMission(id);
@@ -245,6 +245,17 @@ function MissionDashboardContent() {
   };
   const handleCancelMission = () => {
     const reason = cancelReason.trim() || "No reason given";
+    setCancelOpen(false);
+    setCancelReason("");
+
+    if (activePhase === "planning") {
+      deleteMission(id);
+      if (activeMissionId === id) setActiveMission(null);
+      clearPlan();
+      toast("Mission discarded");
+      router.push("/dashboard");
+      return;
+    }
     const entry = {
       text: `[Cancelled] ${reason}`,
       at: new Date().toISOString(),
@@ -256,8 +267,6 @@ function MissionDashboardContent() {
       noteLog: [...noteLog, entry],
     });
     if (activeMissionId === id) setActiveMission(null);
-    setCancelOpen(false);
-    setCancelReason("");
     toast("Mission cancelled");
     clearPlan();
     router.push("/dashboard");

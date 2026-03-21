@@ -230,6 +230,7 @@ export default function MissionWizardPage() {
       dateTime: new Date(dateTime).toISOString(),
       locationId,
       gearId,
+      missionType: missionType ?? null,
       constraints,
       targets: finalTargets,
       status: "ready",

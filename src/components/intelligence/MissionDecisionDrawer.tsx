@@ -5,7 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { RecommendedTarget, RejectedTarget } from "@/lib/mock/intelligenceLayer";
+import type {
+  RecommendedTarget,
+  RejectedTarget,
+} from "@/lib/mock/intelligenceLayer";
 
 type DrawerTarget = (RecommendedTarget | RejectedTarget) & {
   isRejected: boolean;
@@ -39,7 +42,9 @@ function RecommendedContent({ target }: { target: RecommendedTarget }) {
           </ul>
         ) : (
           <p className="text-sm text-zinc-400">
-            Reaches strong altitude during your main imaging window · Fits your rig framing · Moon interference remains manageable during the best capture period.
+            Reaches strong altitude during your main imaging window · Fits your
+            rig framing · Moon interference remains manageable during the best
+            capture period.
           </p>
         )}
       </div>
@@ -50,6 +55,40 @@ function RecommendedContent({ target }: { target: RecommendedTarget }) {
         <p className="text-sm text-zinc-300 leading-relaxed">
           {target.explanation}
         </p>
+      </div>{" "}
+      <div className="pt-3 border-t border-zinc-800/80">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
+          Imaging Data
+        </p>
+        <div className="mt-3 flex flex-col gap-1 text-xs text-zinc-400">
+          <span>
+            <span className="font-semibold text-zinc-300">Exposure: </span>
+            {target.exposureRecipe.subLength}s subs ×{" "}
+            {target.exposureRecipe.plannedSubs} frames
+            {" · "}
+            ISO {target.exposureRecipe.iso}
+          </span>
+          <span>
+            <span className="font-semibold text-zinc-300">
+              Imaging Window:{" "}
+            </span>
+            {target.window}
+          </span>
+          <span>
+            <span className="font-semibold text-zinc-300">Peak Altitude: </span>
+            {target.peakAltitude.altitude}° at {target.peakAltitude.time}
+          </span>
+          <span>
+            <span className="font-semibold text-zinc-300">
+              Moon Separation:{" "}
+            </span>
+            {target.moonSeparation}°
+          </span>
+          <span>
+            <span className="font-semibold text-zinc-300">Target Size: </span>
+            {target.targetSize}' (arcmin)
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -74,7 +113,8 @@ function RejectedContent({ target }: { target: RejectedTarget }) {
           Recommendation
         </p>
         <p className="text-sm text-zinc-400">
-          Not recommended tonight. Better suited for different conditions or rig configuration.
+          Not recommended tonight. Better suited for different conditions or rig
+          configuration.
         </p>
       </div>
     </div>
@@ -126,7 +166,7 @@ export function MissionDecisionDrawer({
                         "shrink-0 rounded px-2 py-0.5 text-[10px] font-medium uppercase",
                         target.isRejected
                           ? "bg-zinc-700/60 text-zinc-400"
-                          : "bg-indigo-500/20 text-indigo-300"
+                          : "bg-indigo-500/20 text-indigo-300",
                       )}
                     >
                       {target.isRejected ? "Rejected" : "Recommended"}

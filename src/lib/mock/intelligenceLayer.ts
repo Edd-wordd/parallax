@@ -10,6 +10,13 @@ export interface ScoreFactors {
   sessionFit: number;
 }
 
+export interface ExposureRecipe {
+  subLength: number;
+  iso: number;
+  plannedSubs: number;
+}
+
+// Modify: peakAltitude is now an object with altitude and time
 export interface RecommendedTarget {
   id: string;
   name: string;
@@ -20,6 +27,10 @@ export interface RecommendedTarget {
   explanation: string;
   factors: ScoreFactors;
   chosenReasons: string[];
+  peakAltitude: { altitude: number; time: string };
+  moonSeparation: number;
+  targetSize: number;
+  exposureRecipe: ExposureRecipe;
 }
 
 export interface RejectedTarget {
@@ -49,6 +60,14 @@ export const RECOMMENDED_TARGETS: RecommendedTarget[] = [
       "Fits within a 2-target session",
       "Moderate moon impact remains acceptable",
     ],
+    peakAltitude: { altitude: 80, time: "23:15" },
+    moonSeparation: 90,
+    targetSize: 40,
+    exposureRecipe: {
+      subLength: 120,
+      iso: 800,
+      plannedSubs: 60,
+    },
   },
   {
     id: "rosette",
@@ -66,6 +85,14 @@ export const RECOMMENDED_TARGETS: RecommendedTarget[] = [
       "Available after M42 in the sequence",
       "Moon separation sufficient for broadband",
     ],
+    peakAltitude: { altitude: 74, time: "00:30" },
+    moonSeparation: 90,
+    targetSize: 40,
+    exposureRecipe: {
+      subLength: 180,
+      iso: 800,
+      plannedSubs: 50,
+    },
   },
   {
     id: "pleiades",
@@ -83,6 +110,14 @@ export const RECOMMENDED_TARGETS: RecommendedTarget[] = [
       "Good warm-up before M42",
       "Western descent limits imaging window",
     ],
+    peakAltitude: { altitude: 51, time: "21:10" },
+    moonSeparation: 90,
+    targetSize: 40,
+    exposureRecipe: {
+      subLength: 90,
+      iso: 1600,
+      plannedSubs: 45,
+    },
   },
   {
     id: "heart",
@@ -100,6 +135,14 @@ export const RECOMMENDED_TARGETS: RecommendedTarget[] = [
       "Matches your rig's field of view",
       "Good second target after M42",
     ],
+    peakAltitude: { altitude: 63, time: "01:15" },
+    moonSeparation: 90,
+    targetSize: 40,
+    exposureRecipe: {
+      subLength: 240,
+      iso: 800,
+      plannedSubs: 30,
+    },
   },
 ];
 
@@ -167,7 +210,10 @@ export const ENGINE_CONFIDENCE_SUBTEXT =
   "Confidence based on visibility, framing, and historical fit";
 
 /** Window parts for mission target creation (start/end in HH:MM 24h). */
-export const TARGET_WINDOW_PARTS: Record<string, { start: string; end: string }> = {
+export const TARGET_WINDOW_PARTS: Record<
+  string,
+  { start: string; end: string }
+> = {
   m42: { start: "21:10", end: "00:40" },
   rosette: { start: "22:20", end: "01:15" },
   pleiades: { start: "20:30", end: "23:45" },

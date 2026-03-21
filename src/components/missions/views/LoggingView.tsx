@@ -38,6 +38,7 @@ type TargetLogState = {
   status: TargetResultStatus | null;
   framesCaptured: number;
   subLengthSeconds: number;
+  isoGain: number | null;
   notes: string;
 };
 
@@ -65,6 +66,7 @@ export function LoggingView({
         status: null,
         framesCaptured: frames,
         subLengthSeconds,
+        isoGain: null,
         notes: "",
       };
     }
@@ -99,6 +101,7 @@ export function LoggingView({
         status: null,
         framesCaptured: MOCK_FRAME_COUNTER,
         subLengthSeconds: 120,
+        isoGain: null,
         notes: "",
       };
       return {
@@ -345,6 +348,24 @@ export function LoggingView({
                                 })
                               }
                               className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="flex items-center justify-between text-zinc-400">
+                              ISO / Gain
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={logState?.isoGain ?? ""}
+                              onChange={(e) =>
+                                updateTargetState(t.targetId, {
+                                  isoGain: e.target.value === "" ? null : Number(e.target.value) || 0,
+                                })
+                              }
+                              placeholder="e.g. 800"
+                              className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100 placeholder:text-zinc-500"
                             />
                           </div>
 

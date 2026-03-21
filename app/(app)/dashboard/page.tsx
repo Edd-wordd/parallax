@@ -20,6 +20,7 @@ import {
   TonightRecommendationsSection,
   RejectedTargetPanel,
 } from "@/components/intelligence";
+import { useRouter } from "next/navigation";
 
 function generateId(): string {
   return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -53,6 +54,7 @@ function recommendedToMissionTarget(
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const {
     activeMissionId,
     missions,
@@ -249,6 +251,7 @@ export default function DashboardPage() {
     };
     addMission(mission);
     setActiveMission(mission.id);
+    router.push(`/missions/${mission.id}`);
     clearPlan();
   }, [
     plannedTargets,
@@ -262,6 +265,7 @@ export default function DashboardPage() {
     addMission,
     setActiveMission,
     clearPlan,
+    router,
   ]);
 
   /** Highest-ranked recommended target by score (used for mission-initialized hint). */

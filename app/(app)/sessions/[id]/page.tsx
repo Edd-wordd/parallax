@@ -29,13 +29,13 @@ import { Moon } from "lucide-react";
 // Mock conditions for data section (aligned with MOCK_SESSIONS ids)
 const MOCK_CONDITIONS: Record<
   string,
-  { bortle: number; moon: number; cloud: number; seeing: number; wind: number; notes?: string }
+  { bortle: number; moon: number; cloud: number; seeing: number; transparency: number; wind: number; notes?: string }
 > = {
-  s1: { bortle: 4, moon: 25, cloud: 5, seeing: 4, wind: 2 },
-  s2: { bortle: 6, moon: 50, cloud: 10, seeing: 3, wind: 1 },
-  s3: { bortle: 5, moon: 10, cloud: 20, seeing: 4, wind: 1 },
-  s4: { bortle: 5, moon: 0, cloud: 0, seeing: 5, wind: 0 },
-  s5: { bortle: 7, moon: 75, cloud: 30, seeing: 2, wind: 3, notes: "Clouds cut session short. Check forecast." },
+  s1: { bortle: 4, moon: 25, cloud: 5, seeing: 4, transparency: 3, wind: 2 },
+  s2: { bortle: 6, moon: 50, cloud: 10, seeing: 3, transparency: 3, wind: 1 },
+  s3: { bortle: 5, moon: 10, cloud: 20, seeing: 4, transparency: 3, wind: 1 },
+  s4: { bortle: 5, moon: 0, cloud: 0, seeing: 5, transparency: 3, wind: 0 },
+  s5: { bortle: 7, moon: 75, cloud: 30, seeing: 2, transparency: 3, wind: 3, notes: "Clouds cut session short. Check forecast." },
 };
 
 const successByType = [
@@ -226,6 +226,7 @@ export default function SessionDetailPage() {
             <CardContent className="flex flex-wrap gap-4">
               <div>Cloud: {conditions.cloud}%</div>
               <div>Seeing: {conditions.seeing}/5</div>
+              <div>Transparency: {conditions.transparency}/5</div>
               <div>Wind: {conditions.wind}/3</div>
             </CardContent>
           </Card>

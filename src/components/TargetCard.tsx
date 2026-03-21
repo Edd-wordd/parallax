@@ -261,6 +261,9 @@ export function TargetCard({ target, recommendation, score, compact, missionPlan
                     {target.type.replace("_", " ")}
                   </span>
                 </div>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {target.angular_size} × {target.angular_size} arcmin · Mag {Number(target.magnitude).toFixed(1)}
+                </p>
               </div>
             </div>
             {recommendation?.score_breakdown && (

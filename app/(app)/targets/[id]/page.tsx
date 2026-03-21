@@ -97,6 +97,14 @@ export default function TargetDetailPage() {
               <div className="font-mono text-lg mt-1">{peakAltitude}°</div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider">
+                Moon Separation
+              </div>
+              <div className="font-mono text-lg mt-1">47° (good)</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

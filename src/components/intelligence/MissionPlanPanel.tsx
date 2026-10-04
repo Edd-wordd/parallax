@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { RecommendedTarget } from "@/lib/mock/intelligenceLayer";
+
+export type PlanPanelTarget = { id: string; name: string };
 
 interface MissionPlanPanelProps {
-  targets: RecommendedTarget[];
+  targets: PlanPanelTarget[];
   activeTargetId: string | null;
   status: "planning" | "ready" | "capturing" | "completed";
   onRemoveTarget?: (targetId: string) => void;
@@ -17,7 +18,6 @@ interface MissionPlanPanelProps {
 export function MissionPlanPanel({
   targets,
   activeTargetId,
-  status,
   onRemoveTarget,
   onClearPlan,
   onStartPlannedMission,
@@ -28,30 +28,30 @@ export function MissionPlanPanel({
   return (
     <div
       className={cn(
-        "rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col",
-        className
+        "flex flex-col overflow-hidden rounded-lg border border-zinc-800/60 bg-zinc-900/50",
+        className,
       )}
     >
-      <div className="px-3 py-2.5 border-b border-zinc-800/60 shrink-0 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800/60 px-3 py-2.5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
           Mission Plan
         </h3>
-        <span className="text-[10px] text-zinc-500 tabular-nums">
+        <span className="text-[10px] tabular-nums text-zinc-500">
           {targets.length} target{targets.length !== 1 ? "s" : ""}
         </span>
       </div>
-      <div className="p-3 space-y-2">
+      <div className="space-y-2 p-3">
         <ol className="space-y-1.5">
           {targets.map((t, i) => (
             <li
               key={t.id}
               className={cn(
-                "flex items-center justify-between gap-2 text-sm py-1",
-                activeTargetId === t.id ? "text-zinc-100" : "text-zinc-400"
+                "flex items-center justify-between gap-2 py-1 text-sm",
+                activeTargetId === t.id ? "text-zinc-100" : "text-zinc-400",
               )}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] tabular-nums text-zinc-500 w-4 shrink-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="w-4 shrink-0 text-[10px] tabular-nums text-zinc-500">
                   {i + 1}.
                 </span>
                 <span className="truncate">{t.name}</span>
@@ -73,15 +73,25 @@ export function MissionPlanPanel({
             </li>
           ))}
         </ol>
-        <div className="pt-2 flex flex-wrap gap-2 border-t border-zinc-800/60">
+        <div className="flex flex-wrap gap-2 border-t border-zinc-800/60 pt-2">
           {onStartPlannedMission && (
-            <Button variant="cta" size="sm" className="text-xs" onClick={onStartPlannedMission}>
-              Start Planned Mission
+            <Button
+              variant="cta"
+              size="sm"
+              className="text-xs"
+              onClick={onStartPlannedMission}
+            >
+              Create Mission Plan
             </Button>
           )}
           {onClearPlan && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={onClearPlan}>
-              Reset Plan
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-zinc-500"
+              onClick={onClearPlan}
+            >
+              Clear
             </Button>
           )}
         </div>

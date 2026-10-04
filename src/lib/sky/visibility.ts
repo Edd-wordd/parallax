@@ -7,6 +7,7 @@ import {
   AngleBetween,
   Body,
   DefineStar,
+  Equator,
   GeoVector,
   Horizon,
   Illumination,
@@ -49,6 +50,8 @@ export interface MoonInfo {
   riseAt: Date | null;
   setAt: Date | null;
   interferenceLabel: "Low" | "Moderate" | "High";
+  /** Apparent altitude at session/dark midpoint (degrees). */
+  altitudeDeg: number | null;
 }
 
 export interface TargetVisibility {
@@ -113,7 +116,31 @@ export function formatLocalHm(date: Date): string {
 
 export function formatLocalWindow(interval: TimeInterval | null): string {
   if (!interval) return "—";
-  return `${formatLocalHm(interval.start)} — ${formatLocalHm(interval.end)}`;
+  return formatWindowLabel(interval.start, interval.end);
+}
+
+function shortMonthDay(d: Date): string {
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function isSameLocalCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/**
+ * HH:MM–HH:MM, with calendar dates when the window crosses midnight.
+ */
+export function formatWindowLabel(start: Date, end: Date): string {
+  const startHm = formatLocalHm(start);
+  const endHm = formatLocalHm(end);
+  if (isSameLocalCalendarDay(start, end)) {
+    return `${startHm}–${endHm}`;
+  }
+  return `${startHm} ${shortMonthDay(start)} – ${endHm} ${shortMonthDay(end)}`;
 }
 
 export function moonPhaseLabel(elongationDeg: number): string {
@@ -473,6 +500,15 @@ function computeMoonInfo(
   const rise = SearchRiseSet(Body.Moon, observer, +1, searchFrom, 2);
   const set = SearchRiseSet(Body.Moon, observer, -1, searchFrom, 2);
 
+  let altitudeDeg: number | null = null;
+  try {
+    const eq = Equator(Body.Moon, mid, observer, true, true);
+    const hor = Horizon(mid, observer, eq.ra, eq.dec, "normal");
+    altitudeDeg = hor.altitude;
+  } catch {
+    altitudeDeg = null;
+  }
+
   return {
     phaseFraction,
     phaseLabel,
@@ -480,6 +516,7 @@ function computeMoonInfo(
     riseAt: rise?.date ?? null,
     setAt: set?.date ?? null,
     interferenceLabel: moonInterference(phaseFraction),
+    altitudeDeg,
   };
 }
 

@@ -3,8 +3,12 @@ export { RecommendedTargetCard } from "./RecommendedTargetCard";
 export { RejectedTargetRow } from "./RejectedTargetRow";
 export { RejectedTargetPanel } from "./RejectedTargetPanel";
 export { LearnedFromSessionsCard } from "./LearnedFromSessionsCard";
-export { MissionDecisionDrawer } from "./MissionDecisionDrawer";
+export {
+  MissionDecisionDrawer,
+  type DrawerTarget,
+} from "./MissionDecisionDrawer";
 export { TonightRecommendationsSection } from "./TonightRecommendationsSection";
+export { NotSuitableSessionPanel } from "./NotSuitableSessionPanel";
 export { MissionPlanPanel } from "./MissionPlanPanel";
 export { ExposurePlannerCard } from "./ExposurePlannerCard";
 export { ExposurePresetRow } from "./ExposurePresetRow";

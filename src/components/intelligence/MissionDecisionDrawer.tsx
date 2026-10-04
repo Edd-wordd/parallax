@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { buildEngineReasons } from "@/lib/recommendations/engineReasons";
 import type {
-  RecommendedTarget,
-  RejectedTarget,
-} from "@/lib/mock/intelligenceLayer";
+  DashboardRecommendation,
+  RejectedRecommendation,
+} from "@/lib/recommendations/types";
 
-type DrawerTarget = (RecommendedTarget | RejectedTarget) & {
-  isRejected: boolean;
-};
+type DrawerTarget =
+  | (DashboardRecommendation & { isRejected: false })
+  | (RejectedRecommendation & { isRejected: true });
 
 interface MissionDecisionDrawerProps {
   target: DrawerTarget | null;
@@ -20,103 +21,146 @@ interface MissionDecisionDrawerProps {
   onClose: () => void;
 }
 
-function RecommendedContent({ target }: { target: RecommendedTarget }) {
-  const reasons = target.chosenReasons ?? [];
+function RecommendedEvidence({ target }: { target: DashboardRecommendation }) {
+  const engineReasons = buildEngineReasons(target);
+
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
+    <div className="space-y-5">
+      <section>
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Engine reasoning
         </p>
-        {reasons.length > 0 ? (
-          <ul className="space-y-2">
-            {reasons.map((reason, i) => (
-              <li
-                key={i}
-                className="text-sm text-zinc-300 leading-relaxed flex gap-2"
-              >
-                <span className="text-indigo-500/70 shrink-0">•</span>
-                {reason}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-zinc-400">
-            Reaches strong altitude during your main imaging window · Fits your
-            rig framing · Moon interference remains manageable during the best
-            capture period.
+        <p className="mb-2 text-[10px] text-zinc-600">
+          Calculated from window, altitude, and Moon data — not AI-generated.
+        </p>
+        <ul className="space-y-2 text-sm leading-relaxed text-zinc-300">
+          {engineReasons.map((reason, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400/70" />
+              <span>{reason}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          When you can image
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          Usable window{" "}
+          <span className="font-medium text-zinc-100 tabular-nums">
+            {target.windowLabel}
+          </span>{" "}
+          ({target.windowDurationMinutes} minutes). This is when the target is
+          above your {target.minAltitudeDeg}° altitude floor during
+          astronomical darkness and inside your session.
+        </p>
+        {target.narrowWindow && (
+          <p className="mt-1.5 text-xs text-amber-300/80">
+            Narrow window — under 90 minutes. Plan to start on time.
           </p>
         )}
-      </div>
-      <div className="pt-3 border-t border-zinc-800/80">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
-          Summary
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          How high it gets
         </p>
-        <p className="text-sm text-zinc-300 leading-relaxed">
-          {target.explanation}
-        </p>
-      </div>{" "}
-      <div className="pt-3 border-t border-zinc-800/80">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
-          Imaging Data
-        </p>
-        <div className="mt-3 flex flex-col gap-1 text-xs text-zinc-400">
-          <span>
-            <span className="font-semibold text-zinc-300">Exposure: </span>
-            {target.exposureRecipe.subLength}s subs ×{" "}
-            {target.exposureRecipe.plannedSubs} frames
-            {" · "}
-            ISO {target.exposureRecipe.iso}
+        <p className="text-sm leading-relaxed text-zinc-300">
+          Peaks around{" "}
+          <span className="font-medium text-zinc-100">
+            {target.peakAltitudeDeg.toFixed(0)}°
           </span>
-          <span>
-            <span className="font-semibold text-zinc-300">
-              Imaging Window:{" "}
+          {target.peakAtLabel !== "—" ? (
+            <>
+              {" "}
+              at{" "}
+              <span className="tabular-nums text-zinc-100">
+                {target.peakAtLabel}
+              </span>
+            </>
+          ) : null}
+          . Higher altitude usually means less air and haze to shoot through.
+          For this site, the geometric maximum for this target is about{" "}
+          {target.maxPossibleAltitudeDeg.toFixed(0)}°.
+        </p>
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          Moon during that window
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          {target.moonPhaseLabel ? (
+            <>
+              {target.moonPhaseLabel}
+              {target.moonInterference
+                ? ` · ${target.moonInterference} interference`
+                : ""}
+              .{" "}
+            </>
+          ) : null}
+          Closest approach to the target in the usable window:{" "}
+          <span className="font-medium text-zinc-100 tabular-nums">
+            {target.minMoonSeparationDeg.toFixed(0)}°
+          </span>
+          . Your minimum allowed separation is {target.moonToleranceDeg}°.
+        </p>
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          What shaped the score
+        </p>
+        <ul className="space-y-1.5 text-sm text-zinc-300">
+          <li>
+            Altitude score:{" "}
+            <span className="tabular-nums text-zinc-100">
+              {target.altitudeScore}/10
             </span>
-            {target.window}
-          </span>
-          <span>
-            <span className="font-semibold text-zinc-300">Peak Altitude: </span>
-            {target.peakAltitude.altitude}° at {target.peakAltitude.time}
-          </span>
-          <span>
-            <span className="font-semibold text-zinc-300">
-              Moon Separation:{" "}
+          </li>
+          <li>
+            Moon separation score:{" "}
+            <span className="tabular-nums text-zinc-100">
+              {target.moonSeparationScore}/10
             </span>
-            {target.moonSeparation}°
-          </span>
-          <span>
-            <span className="font-semibold text-zinc-300">Target Size: </span>
-            {target.targetSize}' (arcmin)
-          </span>
-        </div>
-      </div>
+          </li>
+          <li>
+            Combined score:{" "}
+            <span className="tabular-nums text-zinc-100">{target.score}</span>{" "}
+            (altitude and Moon only)
+          </li>
+        </ul>
+        {target.whyIncluded && (
+          <p className="mt-2 text-xs text-zinc-500">{target.whyIncluded}</p>
+        )}
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          Not calculated yet
+        </p>
+        <ul className="space-y-1 text-sm text-zinc-400">
+          <li>Rig fit — field of view vs target size</li>
+          <li>Exposure time and camera settings</li>
+          <li>Weather — see Observing Conditions (separate from this score)</li>
+        </ul>
+      </section>
     </div>
   );
 }
 
-function RejectedContent({ target }: { target: RejectedTarget }) {
+function RejectedEvidence({ target }: { target: RejectedRecommendation }) {
   return (
     <div className="space-y-4">
-      <ul className="space-y-2">
-        {target.rejectedReasons.map((reason, i) => (
-          <li
-            key={i}
-            className="text-sm text-zinc-400 leading-relaxed flex gap-2"
-          >
-            <span className="text-zinc-600 shrink-0">•</span>
-            {reason}
-          </li>
-        ))}
-      </ul>
-      <div className="pt-3 border-t border-zinc-800/80">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
-          Recommendation
-        </p>
-        <p className="text-sm text-zinc-400">
-          Not recommended tonight. Better suited for different conditions or rig
-          configuration.
-        </p>
-      </div>
+      <p className="text-sm leading-relaxed text-zinc-300">
+        {target.reasonLabel}.
+      </p>
+      <p className="text-sm text-zinc-500">
+        Try a different date, a lower minimum altitude, or a wider Moon
+        tolerance if that matches your goals.
+      </p>
     </div>
   );
 }
@@ -144,7 +188,7 @@ export function MissionDecisionDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 z-40 bg-black/50"
             onClick={onClose}
           />
           <motion.aside
@@ -152,12 +196,12 @@ export function MissionDecisionDrawer({
             animate={{ x: 0 }}
             exit={{ x: 380 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-[min(380px,90vw)] max-w-full bg-zinc-900 border-l border-zinc-800 z-50 overflow-y-auto shadow-xl"
+            className="fixed bottom-0 right-0 top-0 z-50 w-[min(380px,90vw)] max-w-full overflow-y-auto border-l border-zinc-800 bg-zinc-900 shadow-xl"
           >
-            <div className="sticky top-0 bg-zinc-900/95 backdrop-blur border-b border-zinc-800 z-10">
+            <div className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-900/95 backdrop-blur">
               <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <h2 className="font-display text-base font-semibold text-zinc-100 truncate">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <h2 className="font-display truncate text-base font-semibold text-zinc-100">
                     {target.name}
                   </h2>
                   <div className="flex items-center gap-2">
@@ -169,11 +213,13 @@ export function MissionDecisionDrawer({
                           : "bg-indigo-500/20 text-indigo-300",
                       )}
                     >
-                      {target.isRejected ? "Rejected" : "Recommended"}
+                      {target.isRejected ? "Not suitable" : "Recommended"}
                     </span>
-                    <span className="text-xs font-mono tabular-nums text-zinc-500">
-                      Score: {target.score}
-                    </span>
+                    {!target.isRejected && (
+                      <span className="font-mono text-xs tabular-nums text-zinc-500">
+                        Score: {(target as DashboardRecommendation).score}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <Button
@@ -189,9 +235,9 @@ export function MissionDecisionDrawer({
             </div>
             <div className="p-4">
               {target.isRejected ? (
-                <RejectedContent target={target as RejectedTarget} />
+                <RejectedEvidence target={target} />
               ) : (
-                <RecommendedContent target={target as RecommendedTarget} />
+                <RecommendedEvidence target={target} />
               )}
             </div>
           </motion.aside>
@@ -200,3 +246,5 @@ export function MissionDecisionDrawer({
     </AnimatePresence>
   );
 }
+
+export type { DrawerTarget };

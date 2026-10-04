@@ -27,6 +27,8 @@ export interface CuratedTarget {
 
 export const CURATED_DEEP_SKY_TARGETS: CuratedTarget[] = [
   { id: "m31", name: "Andromeda Galaxy (M31)", type: "galaxy", raHours: 10.68, decDeg: 41.27, magnitude: 3.44, angularSizeArcmin: 178, constellation: "Andromeda" },
+  // angularSizeArcmin ~65′ major axis (Wikipedia/SIMBAD-scale); SEDS lists ~85×60′ for extended glow.
+  // Planning v1 only — not validated for rig framing.
   { id: "m42", name: "Orion Nebula (M42)", type: "nebula", raHours: 5.59, decDeg: -5.39, magnitude: 4.0, angularSizeArcmin: 65, constellation: "Orion" },
   { id: "m45", name: "Pleiades (M45)", type: "open_cluster", raHours: 3.78, decDeg: 24.12, magnitude: 1.6, angularSizeArcmin: 110, constellation: "Taurus" },
   { id: "m13", name: "Hercules Cluster (M13)", type: "globular_cluster", raHours: 16.72, decDeg: 36.46, magnitude: 5.8, angularSizeArcmin: 20, constellation: "Hercules" },

@@ -1,0 +1,84 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "DEADBRIDGE_" [ref=e5] [cursor=pointer]:
+        - /url: /
+      - navigation "Primary" [ref=e6]:
+        - list [ref=e7]:
+          - listitem [ref=e8]:
+            - link "Services" [ref=e9] [cursor=pointer]:
+              - /url: /services
+          - listitem [ref=e10]:
+            - link "Audit" [ref=e11] [cursor=pointer]:
+              - /url: /audit
+          - listitem [ref=e12]:
+            - link "Work" [ref=e13] [cursor=pointer]:
+              - /url: /work
+          - listitem [ref=e14]:
+            - link "Insights" [ref=e15] [cursor=pointer]:
+              - /url: /insights
+          - listitem [ref=e16]:
+            - link "About" [ref=e17] [cursor=pointer]:
+              - /url: /about
+        - link "Start a Project" [ref=e18] [cursor=pointer]:
+          - /url: /start-a-project
+  - main [ref=e19]:
+    - generic [ref=e21]:
+      - heading "404" [level=1] [ref=e22]
+      - heading "This page could not be found." [level=2] [ref=e24]
+  - contentinfo [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - paragraph [ref=e30]:
+            - link "DEADBRIDGE_" [ref=e31] [cursor=pointer]:
+              - /url: /
+          - paragraph [ref=e32]: Systems built around the work.
+          - paragraph [ref=e33]: El Paso, TexasWorking nationwide
+        - navigation [ref=e34]:
+          - heading "Explore" [level=2] [ref=e36]
+          - list [ref=e37]:
+            - listitem [ref=e38]:
+              - link "Work" [ref=e39] [cursor=pointer]:
+                - /url: /work
+            - listitem [ref=e40]:
+              - link "Insights" [ref=e41] [cursor=pointer]:
+                - /url: /insights
+            - listitem [ref=e42]:
+              - link "About" [ref=e43] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e44]:
+              - link "Audit" [ref=e45] [cursor=pointer]:
+                - /url: /audit
+        - navigation [ref=e46]:
+          - heading "Services" [level=2] [ref=e48]
+          - list [ref=e49]:
+            - listitem [ref=e50]:
+              - link "Custom Software" [ref=e51] [cursor=pointer]:
+                - /url: /services/custom-software
+            - listitem [ref=e52]:
+              - link "Automation" [ref=e53] [cursor=pointer]:
+                - /url: /services/automation
+            - listitem [ref=e54]:
+              - link "System Integration" [ref=e55] [cursor=pointer]:
+                - /url: /services/system-integration
+            - listitem [ref=e56]:
+              - link "Web Design" [ref=e57] [cursor=pointer]:
+                - /url: /services/web-design
+        - generic [ref=e58]:
+          - heading "Connect" [level=2] [ref=e60]
+          - link "contact@deadbridge.com" [ref=e61] [cursor=pointer]:
+            - /url: mailto:contact@deadbridge.com
+      - generic [ref=e65]:
+        - paragraph [ref=e66]: © 2026 DEADBRIDGE_
+        - navigation "Legal" [ref=e67]:
+          - list [ref=e68]:
+            - listitem [ref=e69]:
+              - link "Privacy" [ref=e70] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=e71]:
+              - link "Terms" [ref=e72] [cursor=pointer]:
+                - /url: /terms
+  - button "Open Next.js Dev Tools" [ref=e78] [cursor=pointer]

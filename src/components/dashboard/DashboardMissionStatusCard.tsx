@@ -187,17 +187,17 @@ export function DashboardMissionStatusCard({
                   onClick={onStartPlannedMission}
                   disabled={!canCreateMission}
                 >
-                  Start Planned Mission
+                  Create Mission Plan
                 </Button>
               ) : canCreateMission ? (
                 <Link href="/missions/new">
                   <Button variant="cta" size="sm" className="text-xs">
-                    Start Planned Mission
+                    Create Mission
                   </Button>
                 </Link>
               ) : (
                 <Button variant="cta" size="sm" className="text-xs" disabled>
-                  Start Planned Mission
+                  Create Mission
                 </Button>
               )}
               {canCreateMission ? (

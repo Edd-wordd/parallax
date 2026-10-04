@@ -1,84 +1,73 @@
 "use client";
 
-import { useState } from "react";
 import { RecommendedTargetCard } from "./RecommendedTargetCard";
 import { MissionPlanPanel } from "./MissionPlanPanel";
-import { MissionDecisionDrawer } from "./MissionDecisionDrawer";
 import { Button } from "@/components/ui/button";
-import {
-  RECOMMENDED_TARGETS,
-  ENGINE_CONFIDENCE,
-  ENGINE_CONFIDENCE_SUBTEXT,
-} from "@/lib/mock/intelligenceLayer";
-import type { RecommendedTarget } from "@/lib/mock/intelligenceLayer";
-
-type DrawerTarget = RecommendedTarget & { isRejected: boolean };
+import type { DashboardRecommendation } from "@/lib/recommendations/types";
 
 interface TonightRecommendationsSectionProps {
+  sectionTitle: string;
+  recommendations: DashboardRecommendation[];
+  emptyMessage: string | null;
   selectedTargetId: string | null;
   onSelectTarget: (id: string | null) => void;
   activeMissionTargetId?: string | null;
-  plannedTargets?: RecommendedTarget[];
-  onStartMission?: (target: RecommendedTarget) => void;
-  onAddToPlan?: (target: RecommendedTarget) => void;
-  onBuildOptimalMission?: () => void;
+  plannedTargets?: DashboardRecommendation[];
+  onCreateMissionPlan?: (target: DashboardRecommendation) => void;
+  onAddToPlan?: (target: DashboardRecommendation) => void;
+  onPlanTopTargets?: () => void;
   onRemoveFromPlan?: (targetId: string) => void;
   onClearPlan?: () => void;
   onStartPlannedMission?: () => void;
+  onOpenEvidence?: (target: DashboardRecommendation) => void;
 }
 
 export function TonightRecommendationsSection({
+  sectionTitle,
+  recommendations,
+  emptyMessage,
   selectedTargetId,
   onSelectTarget,
   activeMissionTargetId = null,
   plannedTargets = [],
-  onStartMission,
+  onCreateMissionPlan,
   onAddToPlan,
-  onBuildOptimalMission,
+  onPlanTopTargets,
   onRemoveFromPlan,
   onClearPlan,
   onStartPlannedMission,
+  onOpenEvidence,
 }: TonightRecommendationsSectionProps) {
-  const [drawerTarget, setDrawerTarget] = useState<DrawerTarget | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const openDrawerForRecommended = (target: RecommendedTarget) => {
-    setDrawerTarget({ ...target, isRejected: false });
-    setDrawerOpen(true);
-  };
-
   const plannedIds = new Set(plannedTargets.map((t) => t.id));
 
   return (
     <div id="tonight-recommendations" className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="dash-section-title text-zinc-400">
-            Tonight&apos;s Recommendations
-          </h2>
-          <p className="text-[11px] text-zinc-500 mt-0.5 flex items-center gap-2">
-            <span className="text-indigo-400/80 font-medium">
-              Mission Engine Confidence: {ENGINE_CONFIDENCE}
-            </span>
-            <span className="text-zinc-600">·</span>
-            {ENGINE_CONFIDENCE_SUBTEXT}
+          <h2 className="dash-section-title text-zinc-400">{sectionTitle}</h2>
+          <p className="mt-0.5 text-[11px] text-zinc-500">
+            Ranked by altitude and Moon separation for your site and session.
+            Rig fit and exposure are not calculated yet.
           </p>
         </div>
-        {onBuildOptimalMission && (
+        {onPlanTopTargets && recommendations.length > 0 && (
           <Button
             variant="secondary"
             size="sm"
             className="shrink-0"
-            onClick={onBuildOptimalMission}
+            onClick={onPlanTopTargets}
           >
-            Plan My Night
+            Plan Top Targets
           </Button>
         )}
       </div>
 
       {plannedTargets.length > 0 && (
         <MissionPlanPanel
-          targets={plannedTargets}
+          targets={plannedTargets.map((t) => ({
+            id: t.id,
+            name: t.name,
+          }))}
           activeTargetId={activeMissionTargetId}
           status="planning"
           onRemoveTarget={onRemoveFromPlan}
@@ -87,40 +76,37 @@ export function TonightRecommendationsSection({
         />
       )}
 
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-          Recommended Targets
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 items-stretch">
-          {RECOMMENDED_TARGETS.map((target) => (
-            <div key={target.id} className="min-h-0 flex">
-              <RecommendedTargetCard
-                target={target}
-                selected={selectedTargetId === target.id}
-                isActive={activeMissionTargetId === target.id}
-                inPlan={plannedIds.has(target.id)}
-                onSelect={() =>
-                  onSelectTarget(
-                    selectedTargetId === target.id ? null : target.id,
-                  )
-                }
-                onStartMission={() => onStartMission?.(target)}
-                onAddToPlan={() => onAddToPlan?.(target)}
-                onOpenDecisionDrawer={() => openDrawerForRecommended(target)}
-              />
-            </div>
-          ))}
+      {emptyMessage ? (
+        <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6">
+          <p className="text-sm text-zinc-400">{emptyMessage}</p>
         </div>
-      </div>
-
-      <MissionDecisionDrawer
-        target={drawerTarget}
-        isOpen={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
-          setDrawerTarget(null);
-        }}
-      />
+      ) : (
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Recommended targets
+          </h3>
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {recommendations.map((target) => (
+              <div key={target.id} className="flex min-h-0">
+                <RecommendedTargetCard
+                  target={target}
+                  selected={selectedTargetId === target.id}
+                  isActive={activeMissionTargetId === target.id}
+                  inPlan={plannedIds.has(target.id)}
+                  onSelect={() =>
+                    onSelectTarget(
+                      selectedTargetId === target.id ? null : target.id,
+                    )
+                  }
+                  onCreateMissionPlan={() => onCreateMissionPlan?.(target)}
+                  onAddToPlan={() => onAddToPlan?.(target)}
+                  onOpenEvidence={() => onOpenEvidence?.(target)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

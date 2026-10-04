@@ -4,10 +4,9 @@ import React, { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { TonightSkyCard } from "@/components/TonightSkyCard";
-import {
-  getSkyStateForSiteDate,
-  getForecastForSiteDate,
-} from "@/lib/mock/dashboardData";
+import { useSiteSessionForecast } from "@/lib/forecast/useSiteSessionForecast";
+import { sessionIntervalFromDateTime } from "@/lib/recommendations/mapper";
+import { buildTonightSkyDisplay } from "@/lib/sky/tonightSkyDisplay";
 
 const LiveSkyView = dynamic(
   () => import("./LiveSkyView").then((m) => m.LiveSkyView),
@@ -17,35 +16,68 @@ const LiveSkyView = dynamic(
 type SkyView = "sky" | "live";
 
 interface SkyTabsCardProps {
-  /** Site ID for sky-state derivation. Refreshes on site change. */
   activeLocationId: string;
-  /** ISO date string. Refreshes on date change. */
   dateTime: string;
-  /** @deprecated Use activeLocationId; bortle now comes from site data */
-  locationBortle?: number;
+  lat?: number | null;
+  lon?: number | null;
+  bortle?: number | null;
+  minAltitudeDeg?: number;
+  moonToleranceDeg?: number;
   compact?: boolean;
 }
 
 export function SkyTabsCard({
-  activeLocationId,
   dateTime,
-  locationBortle: _locationBortle,
+  lat,
+  lon,
+  bortle,
+  minAltitudeDeg = 30,
+  moonToleranceDeg = 15,
   compact,
 }: SkyTabsCardProps) {
   const [view, setView] = useState<SkyView>("sky");
 
-  const skyState = useMemo(
-    () => getSkyStateForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime],
+  const session = useMemo(
+    () => sessionIntervalFromDateTime(dateTime),
+    [dateTime],
   );
-  const forecast = useMemo(
-    () => getForecastForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime],
+
+  const forecastHook = useSiteSessionForecast({
+    latDeg: lat,
+    lonDeg: lon,
+    sessionStart: session.start,
+    sessionEnd: session.end,
+    includeAstroWx: true,
+    enabled: lat != null && lon != null,
+  });
+
+  const display = useMemo(
+    () =>
+      buildTonightSkyDisplay({
+        latDeg: lat,
+        lonDeg: lon,
+        bortle,
+        dateTime,
+        minAltitudeDeg,
+        moonToleranceDeg,
+        forecast: forecastHook.forecast,
+        forecastLoading: forecastHook.status === "loading",
+      }),
+    [
+      lat,
+      lon,
+      bortle,
+      dateTime,
+      minAltitudeDeg,
+      moonToleranceDeg,
+      forecastHook.forecast,
+      forecastHook.status,
+    ],
   );
 
   return (
-    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-visible">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-800/60 px-3 pt-2.5 pb-2">
+    <div className="overflow-visible rounded-lg border border-zinc-800/60 bg-zinc-900/50">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-800/60 px-3 pb-2 pt-2.5">
         <div
           className="inline-flex rounded-lg border border-zinc-700/80 bg-zinc-800/40 p-0.5"
           role="group"
@@ -81,18 +113,13 @@ export function SkyTabsCard({
           </button>
         </div>
       </div>
-      <div className="p-3 min-h-[200px] md:min-h-[240px]">
+      <div className="min-h-[200px] p-3 md:min-h-[240px]">
         <div
           className={view === "sky" ? "block" : "hidden"}
           role="tabpanel"
           aria-hidden={view !== "sky"}
         >
-          <TonightSkyCard
-            skyState={skyState}
-            forecastConfidence={forecast.forecastConfidence}
-            compact={compact}
-            embedded
-          />
+          <TonightSkyCard display={display} compact={compact} embedded />
         </div>
         <div
           className={view === "live" ? "block" : "hidden"}
@@ -102,7 +129,7 @@ export function SkyTabsCard({
           <LiveSkyView
             compact={compact}
             embedded
-            locationBortle={skyState.bortle}
+            locationBortle={bortle ?? undefined}
           />
         </div>
       </div>

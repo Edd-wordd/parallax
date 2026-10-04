@@ -10,7 +10,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
     "test:visibility": "tsx --tsconfig tsconfig.json scripts/verify-visibility.ts",
-    "test:forecast": "tsx --tsconfig tsconfig.json scripts/verify-forecast.ts"
+    "test:forecast": "tsx --tsconfig tsconfig.json scripts/verify-forecast.ts",
+    "test:recommendations": "tsx --tsconfig tsconfig.json scripts/verify-recommendations.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

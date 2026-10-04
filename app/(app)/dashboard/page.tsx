@@ -1,63 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { useMissionStore } from "@/lib/missionStore";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { Location, MissionTarget } from "@/lib/types";
-import {
-  RECOMMENDED_TARGETS,
-  REJECTED_TARGETS,
-  TARGET_WINDOW_PARTS,
-} from "@/lib/mock/intelligenceLayer";
 import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
 import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
 import { DashboardSkyIntelligenceCard } from "@/components/dashboard/DashboardSkyIntelligenceCard";
 import {
   TonightRecommendationsSection,
-  RejectedTargetPanel,
+  NotSuitableSessionPanel,
+  MissionDecisionDrawer,
+  type DrawerTarget,
 } from "@/components/intelligence";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { isUuid } from "@/lib/missions/resolveMissionRefs";
+import { useDashboardRecommendations } from "@/lib/recommendations/useDashboardRecommendations";
+import {
+  recommendationToMissionTarget,
+  recommendationsContextKey,
+} from "@/lib/recommendations/mapper";
+import type {
+  DashboardRecommendation,
+  RejectedRecommendation,
+} from "@/lib/recommendations/types";
+import { useToast } from "@/components/ui/toast";
 
 function generateId(): string {
   return crypto.randomUUID();
 }
 
-/** Map recommendation type string to Mission targetType. */
-function toTargetType(type: string): MissionTarget["targetType"] {
-  if (type.toLowerCase().includes("nebula")) return "nebula";
-  if (type.toLowerCase().includes("cluster"))
-    return type.includes("Open") ? "open_cluster" : "globular_cluster";
-  if (type.toLowerCase().includes("galaxy")) return "galaxy";
-  return "nebula";
-}
-
-/** Convert RecommendedTarget to MissionTarget. */
-function recommendedToMissionTarget(
-  target: (typeof RECOMMENDED_TARGETS)[0],
-): MissionTarget {
-  const win = TARGET_WINDOW_PARTS[target.id] ?? {
-    start: "21:00",
-    end: "00:00",
-  };
-  return {
-    targetId: target.id,
-    targetName: target.name,
-    targetType: toTargetType(target.type),
-    plannedWindowStart: win.start,
-    plannedWindowEnd: win.end,
-    score: target.score,
-  };
-}
-
 export default function DashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const {
     activeMissionId,
     missions,
@@ -84,6 +65,9 @@ export default function DashboardPage() {
   } = useDashboardRecommendationStore();
 
   const [dbLocations, setDbLocations] = useState<Location[]>([]);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [drawerTarget, setDrawerTarget] = useState<DrawerTarget | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,7 +87,7 @@ export default function DashboardPage() {
           })),
         );
       } catch {
-        // Keep mock fallback for display name if DB unavailable
+        // Keep mock fallback
       }
     })();
     return () => {
@@ -122,6 +106,56 @@ export default function DashboardPage() {
       MOCK_LOCATIONS[0]
     );
   }, [activeLocationId, dbLocations]);
+
+  const constraints = useMemo(
+    () => ({
+      minAltitude,
+      moonTolerance,
+      targetTypes: [...targetTypes],
+      driveToDarker,
+      driveRadius,
+    }),
+    [minAltitude, moonTolerance, targetTypes, driveToDarker, driveRadius],
+  );
+
+  const recResult = useDashboardRecommendations({
+    latDeg: activeLoc?.lat,
+    lonDeg: activeLoc?.lon,
+    dateTime,
+    constraints,
+  });
+
+  const contextKey = recommendationsContextKey({
+    locationId: activeLocationId || activeLoc?.id || "",
+    dateTime,
+    minAltitude,
+    moonTolerance,
+    targetTypes: [...targetTypes],
+  });
+  const prevContextKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (prevContextKey.current === null) {
+      prevContextKey.current = contextKey;
+      return;
+    }
+    if (prevContextKey.current !== contextKey) {
+      prevContextKey.current = contextKey;
+      if (plannedTargets.length > 0) {
+        clearPlan();
+        toast("Plan cleared — site or time changed", "default");
+      }
+    }
+  }, [contextKey, plannedTargets.length, clearPlan, toast]);
+
+  const plannedTargetsResolved = useMemo(
+    () =>
+      plannedTargets
+        .map((id) => recResult.recommendations.find((t) => t.id === id))
+        .filter((t): t is DashboardRecommendation => !!t),
+    [plannedTargets, recResult.recommendations],
+  );
+
   const hasGear = Boolean(activeGearId);
   const hasLocation = Boolean(activeLocationId);
   const canCreateMission = hasGear && hasLocation;
@@ -144,7 +178,6 @@ export default function DashboardPage() {
     missionStatus === "CAPTURING" ||
     missionStatus === "LOGGING";
 
-  /** Mock UI state: set to true to test Live Site telemetry in Observing Conditions. */
   const MOCK_IS_LIVE_CONNECTED = false;
   const isLiveConnected = MOCK_IS_LIVE_CONNECTED;
 
@@ -166,31 +199,16 @@ export default function DashboardPage() {
     activeMission ??
     (missionStatus === "COMPLETED" ? lastSessionMission : null);
 
-  const plannedTargetsResolved = useMemo(
-    () =>
-      plannedTargets
-        .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
-        .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t),
-    [plannedTargets],
-  );
-
-  const handleStartMission = useCallback(
-    (target: (typeof RECOMMENDED_TARGETS)[0]) => {
-      const mt = recommendedToMissionTarget(target);
+  const buildMission = useCallback(
+    (targets: MissionTarget[], name: string) => {
       const mission = {
         id: generateId(),
-        name: `Tonight's Mission · ${target.name}`,
-        dateTime: new Date().toISOString(),
+        name,
+        dateTime: recResult.sessionStart.toISOString(),
         locationId: activeLocationId,
         gearId: activeGearId,
-        constraints: {
-          minAltitude,
-          moonTolerance,
-          targetTypes,
-          driveToDarker,
-          driveRadius,
-        },
-        targets: [mt],
+        constraints,
+        targets,
         status: "ready" as const,
         phase: "planning" as const,
         createdAt: new Date().toISOString(),
@@ -201,13 +219,10 @@ export default function DashboardPage() {
       router.push(`/missions/${mission.id}`);
     },
     [
+      recResult.sessionStart,
       activeLocationId,
       activeGearId,
-      minAltitude,
-      moonTolerance,
-      targetTypes,
-      driveToDarker,
-      driveRadius,
+      constraints,
       addMission,
       setActiveMission,
       clearPlan,
@@ -215,117 +230,86 @@ export default function DashboardPage() {
     ],
   );
 
+  const handleCreateMissionPlan = useCallback(
+    (target: DashboardRecommendation) => {
+      if (!canCreateMission) {
+        toast("Select a location and gear profile first", "error");
+        return;
+      }
+      buildMission(
+        [recommendationToMissionTarget(target, 1)],
+        `Mission · ${target.name}`,
+      );
+    },
+    [canCreateMission, buildMission, toast],
+  );
+
   const handleAddToPlan = useCallback(
-    (target: (typeof RECOMMENDED_TARGETS)[0]) => {
+    (target: DashboardRecommendation) => {
       addToPlan(target.id);
     },
     [addToPlan],
   );
 
-  /** Mock optimal sequence: Pleiades (early) → M42 (mid) → Rosette (late). */
-  const handleBuildOptimalMission = useCallback(() => {
-    const optimalIds = ["pleiades", "m42", "rosette"];
-    const targets = optimalIds
-      .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
-      .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t);
-    const missionTargets = targets.map(recommendedToMissionTarget);
-    const mission = {
-      id: generateId(),
-      name: "Tonight's Optimal Mission",
-      dateTime: new Date().toISOString(),
-      locationId: activeLocationId,
-      gearId: activeGearId,
-      constraints: {
-        minAltitude,
-        moonTolerance,
-        targetTypes,
-        driveToDarker,
-        driveRadius,
-      },
-      targets: missionTargets,
-      status: "ready" as const,
-      phase: "planning" as const,
-      createdAt: new Date().toISOString(),
-    };
-    addMission(mission);
-    setActiveMission(mission.id);
-    setPlannedTargets(optimalIds);
-    router.push(`/missions/${mission.id}`);
+  const handlePlanTopTargets = useCallback(() => {
+    if (!canCreateMission) {
+      toast("Select a location and gear profile first", "error");
+      return;
+    }
+    const top = recResult.recommendations.slice(0, 3);
+    if (top.length === 0) {
+      toast("No targets available to plan", "error");
+      return;
+    }
+    const ids = top.map((t) => t.id);
+    setPlannedTargets(ids);
+    const missionTargets = top.map((t, i) =>
+      recommendationToMissionTarget(t, i + 1),
+    );
+    buildMission(missionTargets, "Planned night");
   }, [
-    activeLocationId,
-    activeGearId,
-    minAltitude,
-    moonTolerance,
-    targetTypes,
-    driveToDarker,
-    driveRadius,
-    addMission,
-    setActiveMission,
+    canCreateMission,
+    recResult.recommendations,
     setPlannedTargets,
-    router,
+    buildMission,
+    toast,
   ]);
 
   const handleStartPlannedMission = useCallback(() => {
-    const targets = plannedTargets
-      .map((id) => RECOMMENDED_TARGETS.find((t) => t.id === id))
-      .filter((t): t is (typeof RECOMMENDED_TARGETS)[0] => !!t);
-    if (targets.length === 0) return;
-    const missionTargets = targets.map(recommendedToMissionTarget);
-    const mission = {
-      id: generateId(),
-      name: "Tonight's Mission",
-      dateTime: new Date().toISOString(),
-      locationId: activeLocationId,
-      gearId: activeGearId,
-      constraints: {
-        minAltitude,
-        moonTolerance,
-        targetTypes,
-        driveToDarker,
-        driveRadius,
-      },
-      targets: missionTargets,
-      status: "ready" as const,
-      phase: "planning" as const,
-      createdAt: new Date().toISOString(),
-    };
-    addMission(mission);
-    setActiveMission(mission.id);
-    router.push(`/missions/${mission.id}`);
-    clearPlan();
-  }, [
-    plannedTargets,
-    activeLocationId,
-    activeGearId,
-    minAltitude,
-    moonTolerance,
-    targetTypes,
-    driveToDarker,
-    driveRadius,
-    addMission,
-    setActiveMission,
-    clearPlan,
-    router,
-  ]);
+    if (!canCreateMission) {
+      toast("Select a location and gear profile first", "error");
+      return;
+    }
+    if (plannedTargetsResolved.length === 0) return;
+    const missionTargets = plannedTargetsResolved.map((t, i) =>
+      recommendationToMissionTarget(t, i + 1),
+    );
+    buildMission(missionTargets, "Planned night");
+  }, [canCreateMission, plannedTargetsResolved, buildMission, toast]);
 
-  /** Highest-ranked recommended target by score (used for mission-initialized hint). */
-  const topRecommendedTarget = useMemo(
-    () =>
-      RECOMMENDED_TARGETS.length > 0
-        ? RECOMMENDED_TARGETS.reduce((a, b) => (a.score >= b.score ? a : b))
-        : null,
-    [],
-  );
+  const topRecommendedTarget = recResult.recommendations[0] ?? null;
 
-  /** Clear active mission and return to no-mission state. */
   const handleClearMission = useCallback(() => {
     setActiveMission(null);
   }, [setActiveMission]);
 
-  // No Framer Motion — removed staggered card animations for performance
+  const openEvidence = useCallback((target: DashboardRecommendation) => {
+    setDrawerTarget({ ...target, isRejected: false });
+    setDrawerOpen(true);
+  }, []);
+
+  const openRejected = useCallback((target: RejectedRecommendation) => {
+    setDrawerTarget({ ...target, isRejected: true });
+    setDrawerOpen(true);
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    setDrawerTarget(null);
+  }, []);
+
   return (
     <div className="space-y-4">
-      {/* Top row: Mission Control, Observing Conditions, Last Session */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardMissionStatusCard
           mission={displayMission}
@@ -366,28 +350,41 @@ export default function DashboardPage() {
           lat={activeLoc?.lat}
           lon={activeLoc?.lon}
           isLiveConnected={isLiveConnected}
+          minAltitudeDeg={minAltitude}
+          moonToleranceDeg={moonTolerance}
         />
         <SessionHistoryCard compact />
       </div>
 
-      {/* NO MISSION: Sky tabs, Rejected Tonight, then Recommendations, Last Session, etc. */}
       {(missionStatus === "NONE" || missionStatus === "COMPLETED") && (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
             <SkyTabsCard
               activeLocationId={activeLocationId}
               dateTime={dateTime}
+              lat={activeLoc?.lat}
+              lon={activeLoc?.lon}
+              bortle={activeLoc?.bortle}
+              minAltitudeDeg={minAltitude}
+              moonToleranceDeg={moonTolerance}
             />
-            <RejectedTargetPanel targets={REJECTED_TARGETS} />
+            <NotSuitableSessionPanel
+              rejected={recResult.rejected}
+              onOpen={openRejected}
+              className="h-full"
+            />
           </div>
           <TonightRecommendationsSection
-            selectedTargetId={null}
-            onSelectTarget={() => {}}
+            sectionTitle={recResult.sectionTitle}
+            recommendations={recResult.recommendations}
+            emptyMessage={recResult.emptyMessage}
+            selectedTargetId={selectedTargetId}
+            onSelectTarget={setSelectedTargetId}
             activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
             plannedTargets={plannedTargetsResolved}
-            onStartMission={handleStartMission}
+            onCreateMissionPlan={handleCreateMissionPlan}
             onAddToPlan={handleAddToPlan}
-            onBuildOptimalMission={handleBuildOptimalMission}
+            onPlanTopTargets={handlePlanTopTargets}
             onRemoveFromPlan={removeFromPlan}
             onClearPlan={clearPlan}
             onStartPlannedMission={
@@ -395,9 +392,16 @@ export default function DashboardPage() {
                 ? handleStartPlannedMission
                 : undefined
             }
+            onOpenEvidence={openEvidence}
           />
         </>
       )}
+
+      <MissionDecisionDrawer
+        target={drawerTarget}
+        isOpen={drawerOpen}
+        onClose={closeDrawer}
+      />
     </div>
   );
 }

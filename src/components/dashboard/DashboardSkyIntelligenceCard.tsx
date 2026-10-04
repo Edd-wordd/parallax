@@ -21,6 +21,10 @@ interface DashboardSkyIntelligenceCardProps {
   activeLocationId?: string;
   /** When false, Live Site tab shows "unavailable" state. */
   isLiveConnected?: boolean;
+  /** Match recommendation / Tonight's Sky altitude floor */
+  minAltitudeDeg?: number;
+  /** Match recommendation / Tonight's Sky Moon separation floor */
+  moonToleranceDeg?: number;
 }
 
 /**
@@ -35,6 +39,8 @@ export function DashboardSkyIntelligenceCard({
   locationName: fallbackName,
   activeLocationId = "",
   isLiveConnected = false,
+  minAltitudeDeg = 30,
+  moonToleranceDeg = 15,
 }: DashboardSkyIntelligenceCardProps) {
   const [mode, setMode] = useState<ConditionMode>("forecast");
 
@@ -57,12 +63,19 @@ export function DashboardSkyIntelligenceCard({
       site: { latDeg: lat, lonDeg: lon },
       sessionStart: sessionInterval.start,
       sessionEnd: sessionInterval.end,
-      minAltitudeDeg: 30,
-      moonToleranceDeg: 15,
+      minAltitudeDeg,
+      moonToleranceDeg,
       targets: [],
     });
     return astro.moon?.interferenceLabel ?? null;
-  }, [lat, lon, sessionInterval.start, sessionInterval.end]);
+  }, [
+    lat,
+    lon,
+    sessionInterval.start,
+    sessionInterval.end,
+    minAltitudeDeg,
+    moonToleranceDeg,
+  ]);
 
   const forecastHook = useSiteSessionForecast({
     latDeg: lat,

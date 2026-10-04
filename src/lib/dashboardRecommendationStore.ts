@@ -1,7 +1,7 @@
 /**
- * Dashboard recommendation workflow state.
- * Mock UI state for Start Mission, Add to Plan, Build Optimal Mission.
- * Replace with real state/persistence when backend is wired.
+ * Dashboard recommendation plan (Add to Plan / Plan Top Targets).
+ * Target IDs must match curated catalog / generateDeepSkyPlan.
+ * Cleared when site, date, or constraints change.
  */
 import { create } from "zustand";
 

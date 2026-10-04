@@ -11,7 +11,7 @@ export const MountTypeSchema = z.enum(["alt-az", "equatorial"]);
 
 export const GearProfileSchema = z.object({
   id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   name: z.string().min(1),
   telescope_name: z.string().min(1),
   focal_length: z.number().positive(),

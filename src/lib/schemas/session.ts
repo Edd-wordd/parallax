@@ -8,7 +8,7 @@ export const SessionSoftwareSchema = z.enum(["nina", "asiair", "ekos"]);
 
 export const SessionSchema = z.object({
   id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   mission_id: z.string().uuid(),
   location_id: z.string().uuid(),
   started_at: z.string().datetime().nullable().optional(),
@@ -24,7 +24,7 @@ export const SessionSchema = z.object({
 export const SessionTargetSchema = z.object({
   id: z.string().uuid(),
   session_id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   catalog_id: CatalogIdSchema,
   target_name: z.string().min(1),
   frames_captured: z.number().int().min(0),

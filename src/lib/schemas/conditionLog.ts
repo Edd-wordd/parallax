@@ -17,7 +17,7 @@ export const TelemetryEventTypeSchema = z.enum([
 
 export const ConditionLogSchema = z.object({
   id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   mission_id: z.string().uuid().nullable().optional(),
   session_id: z.string().uuid().nullable().optional(),
   recorded_at: z.string().datetime(),

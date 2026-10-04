@@ -494,7 +494,11 @@ Example files (inferred types, no `any`):
 
 ## PHASE 4: Build phases
 
-**Order:** A → C → D → B+E → Phase 5 manual checks.
+**Order:** A → C → D → B+E → **Phase Auth** (done — `docs/supabase-auth-migration-plan.md`) → Phase 5 manual checks → **Phase D.1** (mission list hydrate from DB; follow-up).
+
+**Phase D note (superseded):** Phase D originally assumed Clerk `accessToken`. Runtime now uses native Supabase Auth + `auth.uid()` RLS. Do not reintroduce Clerk or local-token minting.
+
+**Phase D.1 (follow-up):** Add `listMissions` + hydrate/replace Zustand mission store on sign-in so returning users see DB missions across refresh/devices. Out of Phase Auth scope by design.
 
 **Global out of scope until after D:** Astronomy Engine, Open-Meteo, 7Timer, Claude API, Electron.
 

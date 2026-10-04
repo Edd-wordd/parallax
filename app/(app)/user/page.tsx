@@ -2,9 +2,15 @@
 
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function UserPage() {
+  const { user, signOut } = useAuth();
+  const email = user?.email ?? "—";
+  const initial = (email[0] ?? "?").toUpperCase();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -27,11 +33,10 @@ export default function UserPage() {
               )}
               aria-hidden
             >
-              A
+              {initial}
             </div>
             <div className="min-w-0">
-              <div className="font-medium text-zinc-100">Alex Imager</div>
-              <div className="text-sm text-zinc-400">alex@example.com</div>
+              <div className="font-medium text-zinc-100 truncate">{email}</div>
             </div>
           </CardContent>
         </Card>
@@ -40,16 +45,13 @@ export default function UserPage() {
             <h2 className="text-sm font-medium">Account</h2>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-zinc-100">Plan: Free</span>
-            </div>
-            <div>
-              <span className="text-sm text-zinc-400">Member since: </span>
-              <span className="text-sm text-zinc-100">March 2026</span>
-            </div>
             <p className="text-xs text-zinc-500">
-              Sign-in and account actions will appear here when auth is wired.
+              Signed in with Supabase Auth. Your locations, gear, and sessions
+              are scoped to this account.
             </p>
+            <Button variant="secondary" size="sm" onClick={() => void signOut()}>
+              Sign out
+            </Button>
           </CardContent>
         </Card>
       </div>

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const UnitsSchema = z.enum(["metric", "imperial"]);
 
 export const UserPreferencesSchema = z.object({
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   default_min_altitude: z.number(),
   default_moon_tolerance: z.number(),
   units: UnitsSchema,

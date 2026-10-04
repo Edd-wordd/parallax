@@ -1,29 +1,33 @@
 # Parallax Supabase
 
-## Schema (Phase C)
+## Schema
 
-- Migration: `migrations/20261004003627_parallax_core_schema.sql`
-- RLS: every table scoped with `(select public.clerk_user_id()) = user_id`
-- `clerk_user_id()` reads `auth.jwt()->>'sub'` (Clerk user id)
-- Do **not** use `auth.uid()` with Clerk
+- Core: `migrations/20261004003627_parallax_core_schema.sql`
+- Auth RLS: `migrations/20261004040000_supabase_auth_uid_rls.sql`
+- Ownership: `user_id uuid` default `auth.uid()`
+- RLS: `(select auth.uid()) = user_id` on every owned table
 
-Auth setup (app wiring is Phase D): follow
-[Clerk → Supabase](https://clerk.com/docs/integrations/databases/supabase)
-(native third-party provider; JWT template deprecated).
+Auth is **native Supabase Auth** (email/password). See `docs/supabase-auth-migration-plan.md`.
 
 ## Apply migrations locally
 
 ```bash
 supabase start
-supabase db reset   # applies migrations
+supabase db reset   # applies migrations (wipes data)
 ```
 
-## RLS verify (required)
+### Preserving local-token rows
+
+If you already have rows under `user_local_dev` and have **not** applied the Auth UUID migration yet:
+
+1. Create a Supabase Auth user (app sign-up or Studio).
+2. Note the UUID: `select id, email from auth.users;`
+3. Dry-run / apply `scripts/remap-local-user.sql` (see script header).
+4. Apply the Auth migration (`supabase migration up` or `db reset` if starting clean).
+
+## RLS verify
 
 1. Apply migrations.
-2. Run `fixtures/rls_two_user_verify.sql` as a privileged role (seeds A + B).
-3. As JWT `sub=user_fixture_a`, `role=authenticated`: own rows visible; B’s sessions count **0**.
-4. As `user_fixture_b`: mirror.
-5. As `user_wrong_claim` or missing `sub`: counts **0**. Treat empty as a hard assert — wrong claim mapping looks like “no data” with no error.
-
-See comments at the bottom of the fixture for `set_config('request.jwt.claims', …)` examples.
+2. Run `fixtures/rls_two_user_verify.sql` as postgres (seeds two `auth.users` + rows).
+3. Simulate JWT claims with `set_config('request.jwt.claims', …)` (examples at bottom of fixture).
+4. Assert A sees own sessions; B sees zero of A’s; wrong `sub` → **0** rows.

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const LocationSchema = z.object({
   id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   name: z.string().min(1),
   lat: z.number().finite(),
   lon: z.number().finite(),

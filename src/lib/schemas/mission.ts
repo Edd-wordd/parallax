@@ -30,7 +30,7 @@ export const TargetResultSchema = z.enum(["success", "partial", "failed"]);
 
 export const MissionSchema = z.object({
   id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   name: z.string().min(1),
   date_time: z.string().datetime(),
   location_id: z.string().uuid(),
@@ -51,7 +51,7 @@ export const MissionSchema = z.object({
 export const MissionTargetSchema = z.object({
   id: z.string().uuid(),
   mission_id: z.string().uuid(),
-  user_id: z.string().min(1),
+  user_id: z.string().uuid(),
   catalog_id: CatalogIdSchema,
   target_name: z.string().min(1),
   target_type: z.string().min(1),

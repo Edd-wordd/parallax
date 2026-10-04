@@ -8,20 +8,26 @@ import {
   useMemo,
   useState,
 } from "react";
-import { getSupabaseBrowserClient, setSupabaseAccessTokenGetter } from "@/lib/supabase/client";
+import { usePathname, useRouter } from "next/navigation";
+import type { Session, User } from "@supabase/supabase-js";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ensureDefaultLocationAndGear } from "@/lib/supabase/queries";
 import { useAppStore } from "@/lib/store";
 
 type AuthContextValue = {
   ready: boolean;
+  user: User | null;
   userId: string | null;
   error: string | null;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   ready: false,
+  user: null,
   userId: null,
   error: null,
+  signOut: async () => {},
 });
 
 export function useAuth(): AuthContextValue {
@@ -29,67 +35,104 @@ export function useAuth(): AuthContextValue {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const setActiveLocation = useAppStore((s) => s.setActiveLocation);
   const setActiveGear = useAppStore((s) => s.setActiveGear);
 
-  const loadLocalToken = useCallback(async () => {
-    const res = await fetch("/api/auth/local-token");
-    if (!res.ok) {
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new Error(body.error ?? "Failed to get local auth token");
-    }
-    const body = (await res.json()) as { token: string; userId: string };
-    return body;
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    let cachedToken: string | null = null;
-
-    async function init() {
+  const bootstrapData = useCallback(
+    async (session: Session | null) => {
+      if (!session?.user) {
+        setUser(null);
+        setReady(true);
+        return;
+      }
+      setUser(session.user);
       try {
-        const { token, userId: uid } = await loadLocalToken();
-        if (cancelled) return;
-        cachedToken = token;
-        setSupabaseAccessTokenGetter(async () => cachedToken);
-        setUserId(uid);
-
         const client = getSupabaseBrowserClient();
-        const { locationId, gearId } = await ensureDefaultLocationAndGear(client);
-        if (cancelled) return;
+        const { locationId, gearId } =
+          await ensureDefaultLocationAndGear(client);
         setActiveLocation(locationId);
         setActiveGear(gearId);
-        setReady(true);
+        setError(null);
       } catch (e) {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Auth failed");
-        setReady(false);
+        setError(e instanceof Error ? e.message : "Failed to load account data");
+      } finally {
+        setReady(true);
       }
-    }
-
-    void init();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadLocalToken, setActiveLocation, setActiveGear]);
-
-  const value = useMemo(
-    () => ({ ready, userId, error }),
-    [ready, userId, error],
+    },
+    [setActiveLocation, setActiveGear],
   );
 
-  if (error) {
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let cancelled = false;
+
+    void supabase.auth.getSession().then(({ data, error: sessionError }) => {
+      if (cancelled) return;
+      if (sessionError) {
+        setError(sessionError.message);
+        setReady(true);
+        return;
+      }
+      void bootstrapData(data.session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void bootstrapData(session);
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [bootstrapData]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!user && !pathname.startsWith("/auth")) {
+      const next = encodeURIComponent(pathname || "/dashboard");
+      router.replace(`/auth/sign-in?next=${next}`);
+    }
+  }, [ready, user, pathname, router]);
+
+  const signOut = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    router.replace("/auth/sign-in");
+    router.refresh();
+  }, [router]);
+
+  const value = useMemo(
+    () => ({
+      ready,
+      user,
+      userId: user?.id ?? null,
+      error,
+      signOut,
+    }),
+    [ready, user, error, signOut],
+  );
+
+  if (error && user) {
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center">
         <div className="max-w-md space-y-2">
-          <p className="text-sm font-medium text-red-300">Auth / data setup failed</p>
+          <p className="text-sm font-medium text-red-300">Data setup failed</p>
           <p className="text-xs text-zinc-400">{error}</p>
-          <p className="text-xs text-zinc-500">
-            Check Supabase is running and .env.local matches `supabase status`.
-          </p>
+          <button
+            type="button"
+            className="text-sm text-indigo-400 hover:text-indigo-300"
+            onClick={() => void signOut()}
+          >
+            Sign out
+          </button>
         </div>
       </div>
     );
@@ -99,6 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
         Connecting…
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
+        Redirecting to sign in…
       </div>
     );
   }

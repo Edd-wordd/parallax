@@ -92,11 +92,11 @@ export default function SkymapPage() {
       const px = w * x;
       const py = h * y;
       const isSelected = selectedTarget === id;
-      ctx.fillStyle = isSelected ? "#22d3ee" : "#22d3ee";
+      ctx.fillStyle = "#6366f1";
       ctx.beginPath();
       ctx.arc(px, py, isSelected ? 8 : 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(34, 211, 238, 0.5)";
+      ctx.strokeStyle = "rgba(99, 102, 241, 0.5)";
       ctx.lineWidth = isSelected ? 2 : 1;
       ctx.stroke();
     });
@@ -111,7 +111,7 @@ export default function SkymapPage() {
       transition={{ duration: 0.2 }}
       className="space-y-4"
     >
-      <h1 className="text-2xl font-bold">Sky Map</h1>
+      <h1 className="page-heading">Sky Map</h1>
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
           <span className="text-sm text-zinc-400">Time</span>

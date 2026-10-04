@@ -42,7 +42,7 @@ const targetPerformance = [
   { name: "Cluster", value: 25 },
   { name: "Planet", value: 12 },
 ];
-const COLORS = ["#22d3ee", "#2dd4bf", "#34d399", "#a78bfa"];
+const COLORS = ["#6366f1", "#818cf8", "#34d399", "#a78bfa"];
 
 export default function InsightsPage() {
   return (
@@ -50,9 +50,9 @@ export default function InsightsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      <h1 className="text-2xl font-bold">Analytics & Insights</h1>
+      <h1 className="page-heading">Analytics & Insights</h1>
 
       <LearnedFromSessionsCard
         insights={ADAPTATION_INSIGHTS}
@@ -62,7 +62,7 @@ export default function InsightsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-medium">Success rate trend</h2>
+            <h2 className="dash-section-title text-zinc-400">Success rate trend</h2>
           </CardHeader>
           <CardContent>
             <ChartResizeGuard height={200} minHeight={120}>
@@ -78,7 +78,7 @@ export default function InsightsPage() {
                       borderRadius: "6px",
                     }}
                   />
-                  <Line type="monotone" dataKey="rate" stroke="#22d3ee" strokeWidth={2} />
+                  <Line type="monotone" dataKey="rate" stroke="#6366f1" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartResizeGuard>
@@ -87,7 +87,7 @@ export default function InsightsPage() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-medium">Best locations</h2>
+            <h2 className="dash-section-title text-zinc-400">Best locations</h2>
           </CardHeader>
           <CardContent>
             <ChartResizeGuard height={200} minHeight={120}>
@@ -103,7 +103,7 @@ export default function InsightsPage() {
                       borderRadius: "6px",
                     }}
                   />
-                  <Bar dataKey="success" fill="#22d3ee" radius={[0, 4, 4, 0]} name="Success %" />
+                  <Bar dataKey="success" fill="#6366f1" radius={[0, 4, 4, 0]} name="Success %" />
                 </BarChart>
               </ResponsiveContainer>
             </ChartResizeGuard>
@@ -114,7 +114,7 @@ export default function InsightsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-medium">Target type performance</h2>
+            <h2 className="dash-section-title text-zinc-400">Target type performance</h2>
           </CardHeader>
           <CardContent>
             <ChartResizeGuard height={200} minHeight={120}>
@@ -149,7 +149,7 @@ export default function InsightsPage() {
 
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-medium">Recommended conditions</h2>
+            <h2 className="dash-section-title text-zinc-400">Recommended conditions</h2>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-zinc-300">

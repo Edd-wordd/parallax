@@ -10,12 +10,11 @@ export default function UserPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6 max-w-2xl"
+      className="space-y-4 max-w-2xl"
     >
-      <h1 className="text-2xl font-bold">User</h1>
+      <h1 className="page-heading">User</h1>
 
-      <div className="space-y-6">
-         
+      <div className="space-y-4">
         <Card>
           <CardHeader>
             <h2 className="text-sm font-medium">Profile</h2>

@@ -82,10 +82,10 @@ export default function SessionDetailPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-8"
+      className="space-y-4"
     >
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
+        <h1 className="page-heading">
           Session — {when ? formatDate(when) : id.slice(0, 8)}
         </h1>
         <Link href="/sessions">

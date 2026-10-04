@@ -16,10 +16,10 @@
   --theme-text-primary: rgba(255, 255, 255, 0.95);
   --theme-text-secondary: rgba(255, 255, 255, 0.7);
   --theme-text-muted: rgba(255, 255, 255, 0.5);
-  /* Accent & highlights */
-  --theme-accent: #22d3ee;
-  --theme-accent-soft: rgba(34, 211, 238, 0.25);
-  --theme-glow: rgba(34, 211, 238, 0.25);
+  /* Interactive accent = Tonight indigo; brand mark stays --accent terracotta */
+  --theme-accent: #6366f1;
+  --theme-accent-soft: rgba(99, 102, 241, 0.25);
+  --theme-glow: rgba(99, 102, 241, 0.25);
   /* Status/semantic */
   --theme-success: #34d399;
   --theme-warning: #f59e0b;
@@ -328,82 +328,63 @@ button:disabled {
   background-repeat: no-repeat;
 }
 
-/* Mission form cards - strong, crisp, dominant */
-.mission-space-page .mission-page-card {
-  background: rgba(6, 10, 18, 0.88);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(90, 130, 200, 0.14);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+/* Mission page chrome — Tonight zinc (no longer nested under mission-space-page) */
+.mission-page-card {
+  background: rgb(24 24 27 / 0.5);
+  border: 1px solid rgb(39 39 42 / 0.6);
+  border-radius: 0.5rem;
+  box-shadow: none;
   position: relative;
   z-index: 10;
 }
 
-/* Premium header area */
-.mission-space-page .mission-page-header {
+.mission-page-header {
   padding-bottom: 1.25rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(120, 160, 220, 0.08);
+  border-bottom: 1px solid rgb(39 39 42 / 0.6);
 }
 
-.mission-space-page .mission-page-progress {
+.mission-page-progress {
   height: 2px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 1px;
   overflow: hidden;
 }
 
-.mission-space-page .mission-page-progress-fill {
+.mission-page-progress-fill {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(96, 165, 250, 0.5) 0%,
-    rgba(59, 130, 246, 0.65) 100%
-  );
+  background: rgb(99 102 241 / 0.7);
   border-radius: 1px;
   transition: width 0.3s ease;
 }
 
-/* CTA buttons - purple primary per design system */
-.mission-space-page .mission-page-cta {
-  background: rgba(124, 58, 237, 0.85) !important;
-  border-color: rgba(139, 92, 246, 0.4) !important;
+/* CTA — Tonight indigo (matches Button variant=cta) */
+.mission-page-cta {
+  background: rgb(99 102 241 / 0.7) !important;
+  border-color: rgb(99 102 241 / 0.3) !important;
   color: white !important;
 }
-.mission-space-page .mission-page-cta:hover {
-  background: rgba(139, 92, 246, 0.95) !important;
+.mission-page-cta:hover {
+  background: rgb(99 102 241 / 0.85) !important;
 }
 
-/* Focus states - blue to match section */
-.mission-space-page input:focus-visible,
-.mission-space-page select:focus-visible {
-  outline: none;
-  border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
-}
-
-.mission-space-page input[type="checkbox"]:checked {
-  accent-color: rgb(96, 165, 250);
-}
-
-/* Shared mission console — panel, labels, meta (used by New Mission + Tonight) */
+/* Shared mission console — Tonight zinc panel */
 .mission-panel {
-  background: rgba(6, 10, 18, 0.88);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(90, 130, 200, 0.14);
-  border-radius: 1rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  background: rgb(24 24 27 / 0.5);
+  border: 1px solid rgb(39 39 42 / 0.6);
+  border-radius: 0.5rem;
+  box-shadow: none;
   position: relative;
   z-index: 10;
 }
 
 .mission-section-label {
+  font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.1em;
+  color: rgb(113 113 122);
 }
 
 .mission-meta-label {
@@ -425,11 +406,17 @@ button:disabled {
   .page-container {
     @apply max-w-6xl mx-auto space-y-4;
   }
+  .page-heading {
+    @apply font-display text-xl font-semibold tracking-wide text-zinc-100;
+  }
+  .dash-card {
+    @apply rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden;
+  }
   .section-card {
-    @apply rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.2)];
+    @apply rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-4;
   }
   .compact-card {
-    @apply rounded-xl border border-white/10 bg-white/[0.03] p-3;
+    @apply rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-3;
   }
   .subtle-divider {
     @apply border-t border-white/10;
@@ -684,6 +671,9 @@ button:disabled {
 [data-theme="field"] [class*="bg-zinc-500/20"],
 [data-theme="field"] [class*="bg-emerald-500/20"],
 [data-theme="field"] [class*="bg-violet-500/20"],
+[data-theme="field"] [class*="bg-indigo-500/20"],
+[data-theme="field"] [class*="bg-indigo-500/15"],
+[data-theme="field"] [class*="bg-indigo-500/10"],
 [data-theme="field"] [class*="bg-cyan-500/20"],
 [data-theme="field"] [class*="bg-amber-500/20"],
 [data-theme="field"] [class*="bg-rose-500/20"],
@@ -701,27 +691,35 @@ button:disabled {
 [data-theme="field"] [class*="text-emerald-500"],
 [data-theme="field"] [class*="text-violet-400"],
 [data-theme="field"] [class*="text-violet-500"],
+[data-theme="field"] [class*="text-indigo-400"],
+[data-theme="field"] [class*="text-indigo-300"],
+[data-theme="field"] [class*="text-indigo-500"],
 [data-theme="field"] [class*="text-cyan-400"],
 [data-theme="field"] [class*="text-cyan-300"],
 [data-theme="field"] [class*="text-cyan-500"],
 .field-mode [class*="text-emerald"],
 .field-mode [class*="text-violet"],
+.field-mode [class*="text-indigo"],
 .field-mode [class*="text-cyan"] {
   color: var(--theme-accent) !important;
 }
 
 [data-theme="field"] [class*="bg-emerald-500"],
 [data-theme="field"] [class*="bg-violet-500"],
+[data-theme="field"] [class*="bg-indigo-500"],
 [data-theme="field"] [class*="bg-cyan-500"],
 [data-theme="field"] [class*="border-cyan-500"],
 [data-theme="field"] [class*="border-emerald-500"],
 [data-theme="field"] [class*="border-violet-500"],
+[data-theme="field"] [class*="border-indigo-500"],
 .field-mode [class*="bg-emerald"],
 .field-mode [class*="bg-violet"],
+.field-mode [class*="bg-indigo"],
 .field-mode [class*="bg-cyan"],
 .field-mode [class*="border-cyan"],
 .field-mode [class*="border-emerald"],
-.field-mode [class*="border-violet"] {
+.field-mode [class*="border-violet"],
+.field-mode [class*="border-indigo"] {
   background-color: var(--theme-accent-soft) !important;
   border-color: var(--theme-border) !important;
 }

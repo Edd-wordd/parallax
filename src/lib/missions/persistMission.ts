@@ -8,21 +8,24 @@ import {
   upsertMissionWithTargets,
   type MissionTargetWrite,
 } from "@/lib/supabase/queries/missions";
+import { resolveMissionRefs } from "./resolveMissionRefs";
 
 function normalizeObjective(value: unknown): MissionObjective | undefined {
   const parsed = MissionObjectiveSchema.safeParse(value);
   return parsed.success ? parsed.data : undefined;
 }
 
+/** Persist mission; returns the DB-safe mission (UUIDs remapped if needed). */
 export async function persistMissionToDb(
   client: SupabaseClient,
   mission: Mission,
-): Promise<void> {
-  if (!mission.locationId || !mission.gearId) {
+): Promise<Mission> {
+  const resolved = await resolveMissionRefs(client, mission);
+  if (!resolved.locationId || !resolved.gearId) {
     throw new Error("Mission needs a location and gear profile before saving");
   }
 
-  const targets: MissionTargetWrite[] = mission.targets.map((t, index) => ({
+  const targets: MissionTargetWrite[] = resolved.targets.map((t, index) => ({
     catalog_id: t.targetId,
     target_name: t.targetName,
     target_type: t.targetType,
@@ -47,18 +50,20 @@ export async function persistMissionToDb(
   await upsertMissionWithTargets(
     client,
     {
-      id: mission.id,
-      name: mission.name,
-      date_time: new Date(mission.dateTime).toISOString(),
-      location_id: mission.locationId,
-      gear_id: mission.gearId,
-      mission_type: mission.missionType ?? undefined,
-      objective: normalizeObjective(mission.constraints.objective),
-      status: mission.status,
-      phase: mission.phase ?? "setup",
-      current_target_catalog_id: mission.currentTargetId ?? undefined,
-      notes: mission.notes,
+      id: resolved.id,
+      name: resolved.name,
+      date_time: new Date(resolved.dateTime).toISOString(),
+      location_id: resolved.locationId,
+      gear_id: resolved.gearId,
+      mission_type: resolved.missionType ?? undefined,
+      objective: normalizeObjective(resolved.constraints.objective),
+      status: resolved.status,
+      phase: resolved.phase ?? "setup",
+      current_target_catalog_id: resolved.currentTargetId ?? undefined,
+      notes: resolved.notes,
     },
     targets,
   );
+
+  return resolved;
 }

@@ -37,8 +37,8 @@ export function FieldModePopover({
         className={cn(
           "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
           "border-zinc-700 bg-zinc-900/80",
-          isFieldMode && "border-cyan-500/50 bg-cyan-500/10",
-          "focus-within:ring-2 focus-within:ring-cyan-500/50"
+          isFieldMode && "border-indigo-500/50 bg-indigo-500/10",
+          "focus-within:ring-2 focus-within:ring-indigo-500/50"
         )}
       >
         <div
@@ -51,7 +51,7 @@ export function FieldModePopover({
             onClick={() => isFieldMode && onToggle()}
             className={cn(
               "px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors",
-              !isFieldMode ? "bg-cyan-500/20 text-cyan-400" : "text-zinc-500 hover:text-zinc-400"
+              !isFieldMode ? "bg-indigo-500/20 text-indigo-400" : "text-zinc-500 hover:text-zinc-400"
             )}
             aria-pressed={!isFieldMode}
           >
@@ -62,7 +62,7 @@ export function FieldModePopover({
             onClick={() => !isFieldMode && onToggle()}
             className={cn(
               "px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors",
-              isFieldMode ? "bg-cyan-500/20 text-cyan-400" : "text-zinc-500 hover:text-zinc-400"
+              isFieldMode ? "bg-indigo-500/20 text-indigo-400" : "text-zinc-500 hover:text-zinc-400"
             )}
             aria-pressed={isFieldMode}
             title="Night vision / red-safe palette"
@@ -73,7 +73,7 @@ export function FieldModePopover({
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="rounded p-0.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-cyan-500/50"
+          className="rounded p-0.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-indigo-500/50"
           aria-expanded={open}
           aria-haspopup="true"
         >
@@ -95,7 +95,7 @@ export function FieldModePopover({
                 onClick={() => onOptionsChange({ redSafe: !options.redSafe })}
                 className={cn(
                   "h-2 w-8 rounded-full transition-colors",
-                  options.redSafe ? "bg-cyan-500" : "bg-zinc-600"
+                  options.redSafe ? "bg-indigo-500" : "bg-zinc-600"
                 )}
               />
             </label>
@@ -117,7 +117,7 @@ export function FieldModePopover({
                 onClick={() => onOptionsChange({ reduceMotion: !options.reduceMotion })}
                 className={cn(
                   "h-2 w-8 rounded-full transition-colors",
-                  options.reduceMotion ? "bg-cyan-500" : "bg-zinc-600"
+                  options.reduceMotion ? "bg-indigo-500" : "bg-zinc-600"
                 )}
               />
             </label>

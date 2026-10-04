@@ -8,6 +8,8 @@ interface MissionState {
   setMissions: (missions: Mission[]) => void;
   addMission: (mission: Mission) => void;
   updateMission: (id: string, updates: Partial<Mission>) => void;
+  /** Replace a mission in-place; supports remapping id (mock → UUID). */
+  replaceMission: (oldId: string, next: Mission) => void;
   deleteMission: (id: string) => void;
   duplicateMission: (id: string) => Mission | null;
   setActiveMission: (id: string | null) => void;
@@ -31,6 +33,12 @@ export const useMissionStore = create<MissionState>()(
           missions: s.missions.map((m) =>
             m.id === id ? { ...m, ...updates } : m
           ),
+        })),
+      replaceMission: (oldId, next) =>
+        set((s) => ({
+          missions: s.missions.map((m) => (m.id === oldId ? next : m)),
+          activeMissionId:
+            s.activeMissionId === oldId ? next.id : s.activeMissionId,
         })),
       deleteMission: (id) =>
         set((s) => ({

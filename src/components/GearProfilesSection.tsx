@@ -174,12 +174,12 @@ export function GearProfilesSection() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-1"
               >
-                <Card className={isActive ? "border-cyan-500/50" : ""}>
+                <Card className={isActive ? "border-indigo-500/50" : ""}>
                   <CardHeader className="py-3">
                     <div className="flex items-start justify-between">
                       <h3 className="font-medium text-sm">{g.name}</h3>
                       {isActive ? (
-                        <span className="text-xs text-cyan-400">Active</span>
+                        <span className="text-xs text-indigo-400">Active</span>
                       ) : (
                         <Button
                           size="sm"

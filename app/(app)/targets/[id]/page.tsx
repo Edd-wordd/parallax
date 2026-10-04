@@ -57,11 +57,11 @@ export default function TargetDetailPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6"
+      className="space-y-4"
     >
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{target.name}</h1>
+          <h1 className="page-heading">{target.name}</h1>
           <div className="mt-1 flex items-center gap-3 text-sm text-zinc-400">
             <span className="capitalize">{target.type.replace("_", " ")}</span>
             <span>Mag {target.magnitude}</span>
@@ -71,7 +71,11 @@ export default function TargetDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleAddToTonightPlan} disabled={isInPlan}>
+          <Button
+            variant="cta"
+            onClick={handleAddToTonightPlan}
+            disabled={isInPlan}
+          >
             {isInPlan ? "In Tonight Plan" : "Add to Tonight Plan"}
           </Button>
           <Link href={`/sessions/new?target=${id}`}>

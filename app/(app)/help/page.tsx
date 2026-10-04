@@ -9,9 +9,9 @@ export default function HelpPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6 max-w-3xl"
+      className="space-y-4 max-w-3xl"
     >
-      <h1 className="text-2xl font-bold">Help</h1>
+      <h1 className="page-heading">Help</h1>
 
       <Card>
         <CardHeader>

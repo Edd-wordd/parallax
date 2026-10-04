@@ -110,7 +110,7 @@ export interface MissionConstraint {
   targetTypes: string[];
   driveToDarker: boolean;
   driveRadius: number;
-  objective?: "wide_field_nebula" | "galaxy_hunt" | "clusters_visual" | "planetary";
+  objective?: "deep_integration" | "survey_night" | "quick_session";
 }
 
 export interface MissionTarget {

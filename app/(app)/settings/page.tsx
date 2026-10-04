@@ -33,9 +33,9 @@ export default function SettingsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6 max-w-2xl"
+      className="space-y-4 max-w-2xl"
     >
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="page-heading">Settings</h1>
 
       <div
         className="inline-flex rounded-lg border border-zinc-700/80 bg-zinc-800/40 p-0.5"
@@ -80,7 +80,7 @@ export default function SettingsPage() {
             <CardHeader>
               <h2 className="text-sm font-medium">Preferences</h2>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <div>
                 <label className="text-sm text-zinc-400">Units</label>
                 <Select

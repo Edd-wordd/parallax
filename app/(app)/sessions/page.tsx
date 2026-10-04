@@ -87,10 +87,10 @@ export default function SessionsPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-6"
+      className="space-y-4"
     >
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Sessions</h1>
+        <h1 className="page-heading">Sessions</h1>
       </div>
 
       {error && (
@@ -108,13 +108,13 @@ export default function SessionsPage() {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="rounded border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
+          className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
         />
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="rounded border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
+          className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
         />
         <Select
           options={[

@@ -20,8 +20,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -51,6 +49,8 @@ import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { persistMissionToDb } from "@/lib/missions/persistMission";
 import { upsertSessionFromLog } from "@/lib/supabase/queries/sessions";
+import { listLocations } from "@/lib/supabase/queries/locations";
+import { listGearProfiles } from "@/lib/supabase/queries/gear";
 import type { SessionLogPayload } from "@/components/missions/views/LoggingView";
 
 const PANEL_STYLE = "mission-panel";
@@ -72,8 +72,14 @@ function MissionDashboardContent() {
     recalculate,
     phaseClick,
   } = useMissionUI();
-  const { getMission, updateMission, deleteMission, setActiveMission, activeMissionId } =
-    useMissionStore();
+  const {
+    getMission,
+    updateMission,
+    replaceMission,
+    deleteMission,
+    setActiveMission,
+    activeMissionId,
+  } = useMissionStore();
   const clearPlan = useDashboardRecommendationStore((s) => s.clearPlan);
   const mission = getMission(id);
   const [simOpen, setSimOpen] = useState(false);
@@ -86,6 +92,8 @@ function MissionDashboardContent() {
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
   const [savingLog, setSavingLog] = useState(false);
+  const [locationLabel, setLocationLabel] = useState("Site");
+  const [gearLabel, setGearLabel] = useState("Rig");
 
   useEffect(() => {
     let frame: number;
@@ -96,6 +104,33 @@ function MissionDashboardContent() {
       if (frame) cancelAnimationFrame(frame);
     };
   }, [mounted]);
+
+  useEffect(() => {
+    if (!mission) return;
+    let cancelled = false;
+    async function loadLabels() {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [locations, gear] = await Promise.all([
+          listLocations(client),
+          listGearProfiles(client),
+        ]);
+        if (cancelled) return;
+        setLocationLabel(
+          locations.find((l) => l.id === mission!.locationId)?.name ?? "Site",
+        );
+        setGearLabel(
+          gear.find((g) => g.id === mission!.gearId)?.name ?? "Rig",
+        );
+      } catch {
+        /* labels are display-only */
+      }
+    }
+    void loadLabels();
+    return () => {
+      cancelled = true;
+    };
+  }, [mission?.locationId, mission?.gearId, mission]);
 
   /** Deep-link from dashboard "Log Results" → logging phase (no separate /log route). */
   useEffect(() => {
@@ -162,7 +197,7 @@ function MissionDashboardContent() {
 
   if (!mounted) {
     return (
-      <div className="mission-space-page relative -m-4 min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="animate-pulse text-zinc-500 text-sm">
           Loading mission…
         </div>
@@ -172,10 +207,10 @@ function MissionDashboardContent() {
 
   if (!mission) {
     return (
-      <div className="mission-space-page relative -m-4 min-h-screen flex flex-col items-center justify-center py-20">
+      <div className="flex flex-col items-center justify-center py-20">
         <p className="text-zinc-400">Mission not found</p>
         <Link href="/missions">
-          <Button variant="link" className="mt-2 text-violet-400">
+          <Button variant="link" className="mt-2 text-indigo-400">
             Back to missions
           </Button>
         </Link>
@@ -186,10 +221,6 @@ function MissionDashboardContent() {
     return null;
   }
 
-  const loc = MOCK_LOCATIONS.find((l) => l.id === mission.locationId);
-  const gear = MOCK_GEAR.find((g) => g.id === mission.gearId);
-  const locationLabel = loc?.name ?? "Site";
-  const gearLabel = gear?.name ?? "Rig";
   const isActive = activeMissionId === mission.id;
   const missionPhase = (mission.phase ??
     phaseFromStatus(mission.status)) as MissionPhase;
@@ -244,7 +275,7 @@ function MissionDashboardContent() {
       if (!latest) return;
       try {
         const client = getSupabaseBrowserClient();
-        await persistMissionToDb(client, {
+        const persisted = await persistMissionToDb(client, {
           ...latest,
           phase,
           status:
@@ -254,6 +285,18 @@ function MissionDashboardContent() {
                 ? "ready"
                 : latest.status,
         });
+        if (persisted.id !== id) {
+          replaceMission(id, persisted);
+          router.replace(`/missions/${persisted.id}`);
+        } else if (
+          persisted.locationId !== latest.locationId ||
+          persisted.gearId !== latest.gearId
+        ) {
+          updateMission(id, {
+            locationId: persisted.locationId,
+            gearId: persisted.gearId,
+          });
+        }
       } catch (e) {
         toast(
           e instanceof Error ? e.message : "Failed to save mission",
@@ -352,13 +395,13 @@ function MissionDashboardContent() {
           };
         }),
       };
-      await persistMissionToDb(client, completed);
+      const persisted = await persistMissionToDb(client, completed);
       await upsertSessionFromLog(
         client,
         {
-          mission_id: completed.id,
-          location_id: completed.locationId,
-          started_at: new Date(completed.dateTime).toISOString(),
+          mission_id: persisted.id,
+          location_id: persisted.locationId,
+          started_at: new Date(persisted.dateTime).toISOString(),
           ended_at: new Date().toISOString(),
           outcome_score: payload.outcomeScore,
           what_i_learned: payload.whatILearned || undefined,
@@ -374,7 +417,8 @@ function MissionDashboardContent() {
             notes: t.notes || undefined,
           })),
       );
-      updateMission(id, {
+      replaceMission(id, {
+        ...persisted,
         status: "completed",
         phase: "completed",
         logLocked: true,
@@ -527,7 +571,7 @@ function MissionDashboardContent() {
   return (
     <div
       className={cn(
-        "mission-space-page relative -m-4 min-h-screen",
+        "relative min-h-full",
         fieldModeOptions.reduceMotion && "motion-reduce",
       )}
     >
@@ -539,7 +583,7 @@ function MissionDashboardContent() {
         />
       )}
 
-      <div className="relative z-10 w-full p-4">
+      <div className="relative z-10 w-full">
         <motion.div
           initial={false}
           animate={{ opacity: 1 }}
@@ -559,11 +603,11 @@ function MissionDashboardContent() {
                         updateMission(id, { name: e.target.value })
                       }
                       onBlur={() => setIsEditingTitle(false)}
-                      className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95 bg-transparent border-b border-transparent focus:border-violet-500 focus:outline-none"
+                      className="page-heading bg-transparent border-b border-transparent focus:border-indigo-500 focus:outline-none"
                     />
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h1 className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95">
+                      <h1 className="page-heading">
                         {mission.name}
                       </h1>
                       {!isReadOnlySession && (

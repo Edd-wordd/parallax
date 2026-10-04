@@ -6,8 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
 import { generateMockPlan, type GenerateMockPlanOptions } from "@/lib/mock/missions";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -16,6 +14,11 @@ import { LocationPicker } from "@/components/LocationPicker";
 import { GearPicker } from "@/components/GearPicker";
 import { MOCK_CONDITIONS_SOURCE } from "@/lib/mock/skyIntelligence";
 import { useToast } from "@/components/ui/toast";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { listLocations } from "@/lib/supabase/queries/locations";
+import { listGearProfiles } from "@/lib/supabase/queries/gear";
+import { isUuid } from "@/lib/missions/resolveMissionRefs";
+import type { Location, GearProfile } from "@/lib/types";
 import {
   ChevronLeft,
   ChevronRight,
@@ -69,8 +72,12 @@ export default function MissionWizardPage() {
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState("Tonight's Mission");
-  const [locationId, setLocationId] = useState(storeLocationId ?? "loc1");
-  const [gearId, setGearId] = useState(storeGearId ?? "gear1");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [gearProfiles, setGearProfiles] = useState<GearProfile[]>([]);
+  const [locationId, setLocationId] = useState(
+    isUuid(storeLocationId) ? storeLocationId : "",
+  );
+  const [gearId, setGearId] = useState(isUuid(storeGearId) ? storeGearId : "");
   const [dateTime, setDateTime] = useState(() => {
     const d = new Date();
     d.setHours(21, 0, 0, 0);
@@ -82,7 +89,7 @@ export default function MissionWizardPage() {
     targetTypes: [...targetTypes],
     driveToDarker: driveToDarker,
     driveRadius: driveRadius,
-    objective: "galaxy_hunt",
+    objective: "deep_integration",
   });
   const [targets, setTargets] = useState<MissionTarget[]>([]);
   const [targetOrder, setTargetOrder] = useState<string[]>([]);
@@ -103,8 +110,8 @@ export default function MissionWizardPage() {
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const location = MOCK_LOCATIONS.find((l) => l.id === locationId);
-  const gear = MOCK_GEAR.find((g) => g.id === gearId);
+  const location = locations.find((l) => l.id === locationId);
+  const gear = gearProfiles.find((g) => g.id === gearId);
   const displayDate = new Date(dateTime).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -112,11 +119,69 @@ export default function MissionWizardPage() {
   });
 
   useEffect(() => {
-    setActiveLocation(locationId);
+    let cancelled = false;
+    async function load() {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [locs, gearRows] = await Promise.all([
+          listLocations(client),
+          listGearProfiles(client),
+        ]);
+        if (cancelled) return;
+        const mappedLocs: Location[] = locs.map((r) => ({
+          id: r.id,
+          name: r.name,
+          lat: r.lat,
+          lon: r.lon,
+          bortle: r.bortle,
+          notes: r.notes ?? undefined,
+        }));
+        const mappedGear: GearProfile[] = gearRows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          telescope_name: r.telescope_name,
+          focal_length: r.focal_length,
+          aperture: r.aperture,
+          camera_name: r.camera_name,
+          sensor_preset: r.sensor_preset,
+          pixel_size: r.pixel_size ?? undefined,
+          mount_type: r.mount_type,
+          guiding: r.guiding,
+          active: r.is_active,
+        }));
+        setLocations(mappedLocs);
+        setGearProfiles(mappedGear);
+        setLocationId((prev) =>
+          isUuid(prev) && mappedLocs.some((l) => l.id === prev)
+            ? prev
+            : mappedLocs[0]?.id ?? "",
+        );
+        setGearId((prev) =>
+          isUuid(prev) && mappedGear.some((g) => g.id === prev)
+            ? prev
+            : mappedGear.find((g) => g.active)?.id ?? mappedGear[0]?.id ?? "",
+        );
+      } catch (e) {
+        if (!cancelled) {
+          toast(
+            e instanceof Error ? e.message : "Failed to load locations / gear",
+            "error",
+          );
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    if (isUuid(locationId)) setActiveLocation(locationId);
   }, [locationId, setActiveLocation]);
 
   useEffect(() => {
-    setActiveGear(gearId);
+    if (isUuid(gearId)) setActiveGear(gearId);
   }, [gearId, setActiveGear]);
 
   useEffect(() => {
@@ -223,6 +288,10 @@ export default function MissionWizardPage() {
     );
 
   const handleSave = () => {
+    if (!isUuid(locationId) || !isUuid(gearId)) {
+      toast("Select a location and gear profile before saving", "error");
+      return;
+    }
     const finalTargets = orderedTargets;
     const mission: Mission = {
       id: generateId(),
@@ -243,19 +312,17 @@ export default function MissionWizardPage() {
   };
 
   return (
-    <div className="mission-space-page relative -m-4 min-h-screen">
+    <div className="relative min-h-full">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative z-10 mx-auto w-full max-w-5xl px-1 py-6 sm:px-2"
+        className="relative z-10 mx-auto w-full max-w-5xl space-y-4"
       >
         {/* Header: Create Mission | Cancel */}
-        <header className="mission-page-header">
+        <header className="mission-page-header !mb-0 !pb-4">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h1 className="font-display text-2xl font-semibold uppercase tracking-tight text-white/95">
-                Create Mission
-              </h1>
+              <h1 className="page-heading">Create Mission</h1>
               <Button
                 variant="ghost"
                 size="sm"
@@ -309,7 +376,7 @@ export default function MissionWizardPage() {
                           Location
                         </label>
                         <LocationPicker
-                          locations={MOCK_LOCATIONS}
+                          locations={locations}
                           value={locationId}
                           onValueChange={setLocationId}
                         />
@@ -319,7 +386,7 @@ export default function MissionWizardPage() {
                           Gear
                         </label>
                         <GearPicker
-                          gear={MOCK_GEAR}
+                          gear={gearProfiles}
                           value={gearId}
                           onValueChange={setGearId}
                         />

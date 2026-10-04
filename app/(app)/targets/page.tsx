@@ -49,9 +49,9 @@ export default function TargetsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      <h1 className="text-2xl font-bold">Target Explorer</h1>
+      <h1 className="page-heading">Target Explorer</h1>
       <TargetFilters
         search={search}
         onSearchChange={setSearch}

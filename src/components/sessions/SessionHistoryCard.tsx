@@ -14,9 +14,7 @@ export function SessionHistoryCard({ compact }: SessionHistoryCardProps) {
   const lastSession = MOCK_SESSIONS[0];
   const meta = lastSession && MOCK_SESSION_CONDITIONS[lastSession.id];
   const primaryTarget = lastSession?.targets?.[0]?.targetName;
-  const logHref = lastSession?.missionId
-    ? `/missions/${lastSession.missionId}/log`
-    : `/sessions/${lastSession?.id ?? ""}`;
+  const viewHref = `/sessions/${lastSession?.id ?? ""}`;
 
   if (!lastSession) {
     return (
@@ -74,7 +72,7 @@ export function SessionHistoryCard({ compact }: SessionHistoryCardProps) {
             {lastSession.outcomeRating}
           </span>
         </div>
-        <Link href={logHref} className="mt-2 block">
+        <Link href={viewHref} className="mt-2 block">
           <Button variant="secondary" size="sm" className="w-full text-xs h-8">
             View
           </Button>

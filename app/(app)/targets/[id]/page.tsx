@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { getTargetById } from "@/lib/mock/recommendations";
@@ -12,11 +12,18 @@ import { AltitudeChart } from "@/components/AltitudeChart";
 import { PlaceholderPanel } from "@/components/PlaceholderPanel";
 import { FramingPreview } from "@/components/FramingPreview";
 import { formatAngularSize } from "@/lib/utils";
+import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
+import { useToast } from "@/components/ui/toast";
 
 export default function TargetDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const id = params.id as string;
   const target = getTargetById(id);
+  const addToPlan = useDashboardRecommendationStore((s) => s.addToPlan);
+  const plannedTargets = useDashboardRecommendationStore((s) => s.plannedTargets);
+  const isInPlan = plannedTargets.includes(id);
 
   if (!target) {
     return (
@@ -38,6 +45,13 @@ export default function TargetDetailPage() {
   const transitTime = "23:42";
   const riseSet = "19:12 / 04:18";
 
+  const handleAddToTonightPlan = () => {
+    if (isInPlan) return;
+    addToPlan(id);
+    toast("Added to Tonight Plan", "success");
+    router.push("/dashboard");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -57,7 +71,9 @@ export default function TargetDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button>Add to Tonight Plan</Button>
+          <Button onClick={handleAddToTonightPlan} disabled={isInPlan}>
+            {isInPlan ? "In Tonight Plan" : "Add to Tonight Plan"}
+          </Button>
           <Link href={`/sessions/new?target=${id}`}>
             <Button variant="outline">Log this target</Button>
           </Link>

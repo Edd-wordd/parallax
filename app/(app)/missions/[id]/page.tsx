@@ -14,8 +14,8 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState, useMemo, useEffect, useRef } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
@@ -54,6 +54,7 @@ const PANEL_STYLE = "mission-panel";
 function MissionDashboardContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const id = params.id as string;
   const isFieldMode = useAppStore((s) => s.isFieldMode);
@@ -90,6 +91,15 @@ function MissionDashboardContent() {
       if (frame) cancelAnimationFrame(frame);
     };
   }, [mounted]);
+
+  /** Deep-link from dashboard "Log Results" → logging phase (no separate /log route). */
+  useEffect(() => {
+    if (searchParams.get("phase") !== "logging") return;
+    const m = getMission(id);
+    if (!m || m.logLocked) return;
+    if (m.phase === "logging") return;
+    updateMission(id, { phase: "logging" });
+  }, [searchParams, id, getMission, updateMission]);
 
   const availableTargetsForAdd = useMemo(
     () => getAvailableTargetsForAdd(mission?.targets ?? []),
@@ -864,7 +874,15 @@ function MissionDashboardContent() {
 export default function MissionDetailPage() {
   return (
     <MissionUIProvider>
-      <MissionDashboardContent />
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center py-20 text-zinc-500 text-sm">
+            Loading mission…
+          </div>
+        }
+      >
+        <MissionDashboardContent />
+      </Suspense>
     </MissionUIProvider>
   );
 }

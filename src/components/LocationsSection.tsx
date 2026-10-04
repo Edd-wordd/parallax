@@ -4,9 +4,11 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, MapPin } from "lucide-react";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
+import type { Location } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 
 type LocationFormState = {
   name: string;
@@ -25,6 +27,10 @@ const initialLocationForm: LocationFormState = {
 };
 
 export function LocationsSection() {
+  const { toast } = useToast();
+  const [locations, setLocations] = useState<Location[]>(() => [
+    ...MOCK_LOCATIONS,
+  ]);
   const [modalOpen, setModalOpen] = useState(false);
   const [darkerSitesOpen, setDarkerSitesOpen] = useState(false);
   const [form, setForm] = useState<LocationFormState>(initialLocationForm);
@@ -37,6 +43,30 @@ export function LocationsSection() {
   const handleClose = () => {
     setModalOpen(false);
     setForm(initialLocationForm);
+  };
+
+  const handleAddLocation = () => {
+    const name = form.name.trim();
+    if (
+      !name ||
+      Number.isNaN(form.latitude) ||
+      Number.isNaN(form.longitude) ||
+      Number.isNaN(form.bortle)
+    ) {
+      toast("Name, coordinates, and Bortle are required", "error");
+      return;
+    }
+    const next: Location = {
+      id: `loc${Date.now().toString(36)}`,
+      name,
+      lat: form.latitude,
+      lon: form.longitude,
+      bortle: form.bortle,
+      notes: form.notes.trim() || undefined,
+    };
+    setLocations((prev) => [...prev, next]);
+    toast("Location added", "success");
+    handleClose();
   };
 
   const handleUseCurrentLocation = async () => {
@@ -77,7 +107,7 @@ export function LocationsSection() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {MOCK_LOCATIONS.map((loc) => (
+            {locations.map((loc) => (
               <motion.div
                 key={loc.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -125,7 +155,7 @@ export function LocationsSection() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleClose();
+                handleAddLocation();
               }}
             >
               <div className="p-4 space-y-4">

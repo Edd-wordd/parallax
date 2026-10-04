@@ -284,7 +284,9 @@ export function DashboardMissionStatusCard({
               )}
               {(missionStatus === "CAPTURING" ||
                 missionStatus === "LOGGING") && (
-                <Link href={`/missions/${activeMission!.id}/log`}>
+                <Link
+                  href={`/missions/${activeMission!.id}?phase=logging`}
+                >
                   <Button variant="secondary" size="sm" className="text-xs">
                     Log Results
                   </Button>

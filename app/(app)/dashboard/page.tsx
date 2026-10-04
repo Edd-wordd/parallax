@@ -162,6 +162,7 @@ export default function DashboardPage() {
       addMission(mission);
       setActiveMission(mission.id);
       clearPlan();
+      router.push(`/missions/${mission.id}`);
     },
     [
       activeLocationId,
@@ -174,6 +175,7 @@ export default function DashboardPage() {
       addMission,
       setActiveMission,
       clearPlan,
+      router,
     ],
   );
 
@@ -212,6 +214,7 @@ export default function DashboardPage() {
     addMission(mission);
     setActiveMission(mission.id);
     setPlannedTargets(optimalIds);
+    router.push(`/missions/${mission.id}`);
   }, [
     activeLocationId,
     activeGearId,
@@ -223,6 +226,7 @@ export default function DashboardPage() {
     addMission,
     setActiveMission,
     setPlannedTargets,
+    router,
   ]);
 
   const handleStartPlannedMission = useCallback(() => {

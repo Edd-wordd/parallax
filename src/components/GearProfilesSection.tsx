@@ -4,12 +4,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { MOCK_GEAR } from "@/lib/mock/gear";
+import type { GearProfile } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/ui/toast";
 
 type GearFormState = {
   rig_name: string;
@@ -35,8 +37,24 @@ const initialFormState: GearFormState = {
   guiding: false,
 };
 
+function toSensorPreset(
+  value: string,
+): GearProfile["sensor_preset"] {
+  if (
+    value === "apsc" ||
+    value === "full_frame" ||
+    value === "m43" ||
+    value === "1inch"
+  ) {
+    return value;
+  }
+  return "apsc";
+}
+
 export function GearProfilesSection() {
+  const { toast } = useToast();
   const { activeGearId, setActiveGear } = useAppStore();
+  const [profiles, setProfiles] = useState<GearProfile[]>(() => [...MOCK_GEAR]);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<GearFormState>(initialFormState);
 
@@ -47,6 +65,37 @@ export function GearProfilesSection() {
   const handleClose = () => {
     setModalOpen(false);
     setForm(initialFormState);
+  };
+
+  const handleAddProfile = () => {
+    const name = form.rig_name.trim();
+    if (
+      !name ||
+      !form.telescope_name.trim() ||
+      !form.camera.trim() ||
+      Number.isNaN(form.focal_length) ||
+      Number.isNaN(form.aperture) ||
+      !form.mount_type
+    ) {
+      toast("Rig, optics, camera, and mount are required", "error");
+      return;
+    }
+    const next: GearProfile = {
+      id: `gear${Date.now().toString(36)}`,
+      name,
+      telescope_name: form.telescope_name.trim(),
+      focal_length: form.focal_length,
+      aperture: form.aperture,
+      camera_name: form.camera.trim(),
+      sensor_preset: toSensorPreset(form.sensor_preset.trim()),
+      pixel_size: Number.isNaN(form.pixel_size) ? undefined : form.pixel_size,
+      mount_type: form.mount_type as GearProfile["mount_type"],
+      guiding: form.guiding,
+      active: false,
+    };
+    setProfiles((prev) => [...prev, next]);
+    toast("Gear profile added", "success");
+    handleClose();
   };
 
   return (
@@ -62,18 +111,20 @@ export function GearProfilesSection() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {MOCK_GEAR.map((g) => (
+            {profiles.map((g) => {
+              const isActive = activeGearId === g.id;
+              return (
               <motion.div
                 key={g.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-1"
               >
-                <Card className={g.active ? "border-cyan-500/50" : ""}>
+                <Card className={isActive ? "border-cyan-500/50" : ""}>
                   <CardHeader className="py-3">
                     <div className="flex items-start justify-between">
                       <h3 className="font-medium text-sm">{g.name}</h3>
-                      {g.active ? (
+                      {isActive ? (
                         <span className="text-xs text-cyan-400">Active</span>
                       ) : (
                         <Button
@@ -101,7 +152,8 @@ export function GearProfilesSection() {
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
+            );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -132,7 +184,7 @@ export function GearProfilesSection() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleClose();
+                handleAddProfile();
               }}
             >
               <div className="p-4 space-y-4">

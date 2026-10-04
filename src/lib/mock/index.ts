@@ -3,7 +3,6 @@ export { MOCK_LOCATIONS } from "./locations";
 export { MOCK_GEAR } from "./gear";
 export { MOCK_NIGHT } from "./night";
 export { MOCK_TARGET_WINDOWS, getTargetWindowsWithHours } from "./targetWindows";
-export { generateMockSessions } from "./sessions";
 export { generateTonightRecommendations, getTargetById } from "./recommendations";
 export {
   EXPOSURE_PLANS_BY_TARGET,

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, MapPin } from "lucide-react";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import type { Location } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createLocation, listLocations } from "@/lib/supabase/queries/locations";
 
 type LocationFormState = {
   name: string;
@@ -28,9 +29,7 @@ const initialLocationForm: LocationFormState = {
 
 export function LocationsSection() {
   const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>(() => [
-    ...MOCK_LOCATIONS,
-  ]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [darkerSitesOpen, setDarkerSitesOpen] = useState(false);
   const [form, setForm] = useState<LocationFormState>(initialLocationForm);
@@ -45,7 +44,34 @@ export function LocationsSection() {
     setForm(initialLocationForm);
   };
 
-  const handleAddLocation = () => {
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const rows = await listLocations(getSupabaseBrowserClient());
+        if (!cancelled) {
+          setLocations(
+            rows.map((r) => ({
+              id: r.id,
+              name: r.name,
+              lat: r.lat,
+              lon: r.lon,
+              bortle: r.bortle,
+              notes: r.notes ?? undefined,
+            })),
+          );
+        }
+      } catch {
+        /* AuthProvider handles connection errors */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAddLocation = async () => {
     const name = form.name.trim();
     if (
       !name ||
@@ -56,17 +82,30 @@ export function LocationsSection() {
       toast("Name, coordinates, and Bortle are required", "error");
       return;
     }
-    const next: Location = {
-      id: `loc${Date.now().toString(36)}`,
-      name,
-      lat: form.latitude,
-      lon: form.longitude,
-      bortle: form.bortle,
-      notes: form.notes.trim() || undefined,
-    };
-    setLocations((prev) => [...prev, next]);
-    toast("Location added", "success");
-    handleClose();
+    try {
+      const row = await createLocation(getSupabaseBrowserClient(), {
+        name,
+        lat: form.latitude,
+        lon: form.longitude,
+        bortle: form.bortle,
+        notes: form.notes.trim() || undefined,
+      });
+      setLocations((prev) => [
+        ...prev,
+        {
+          id: row.id,
+          name: row.name,
+          lat: row.lat,
+          lon: row.lon,
+          bortle: row.bortle,
+          notes: row.notes ?? undefined,
+        },
+      ]);
+      toast("Location added", "success");
+      handleClose();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to add location", "error");
+    }
   };
 
   const handleUseCurrentLocation = async () => {

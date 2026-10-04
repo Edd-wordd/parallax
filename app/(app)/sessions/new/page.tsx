@@ -1,31 +1,17 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { motion } from "framer-motion";
-import { SessionForm } from "@/components/SessionForm";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-function LogSessionContent() {
-  const params = useSearchParams();
-  const prefilledTargetId = params.get("target") ?? undefined;
-
+/** Standalone session log cut for Phase D — sessions come from mission Save Log. */
+export default function NewSessionRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/sessions");
+  }, [router]);
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-6"
-    >
-      <h1 className="text-2xl font-bold">Log session</h1>
-      <SessionForm prefilledTargetId={prefilledTargetId} />
-    </motion.div>
-  );
-}
-
-export default function LogSessionPage() {
-  return (
-    <Suspense fallback={<div className="animate-pulse">Loading...</div>}>
-      <LogSessionContent />
-    </Suspense>
+    <p className="text-sm text-zinc-500 py-10 text-center">
+      Sessions are created by saving a mission log. Redirecting…
+    </p>
   );
 }

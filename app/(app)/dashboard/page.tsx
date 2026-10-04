@@ -23,7 +23,7 @@ import {
 import { useRouter } from "next/navigation";
 
 function generateId(): string {
-  return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  return crypto.randomUUID();
 }
 
 /** Map recommendation type string to Mission targetType. */
@@ -86,8 +86,8 @@ export default function DashboardPage() {
       MOCK_LOCATIONS[0],
     [activeLocationId],
   );
-  const hasGear = true;
-  const hasLocation = true;
+  const hasGear = Boolean(activeGearId);
+  const hasLocation = Boolean(activeLocationId);
   const canCreateMission = hasGear && hasLocation;
   const createMissionHelperText =
     !hasGear && !hasLocation

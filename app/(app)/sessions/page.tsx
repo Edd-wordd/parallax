@@ -1,62 +1,87 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MOCK_SESSIONS } from "@/lib/mock/sessionHistory";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { Select } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
-import { SessionConditionSummary } from "@/components/sky-intelligence";
-import { MOCK_SESSION_CONDITIONS } from "@/lib/mock/skyIntelligence";
-import type { OutcomeRating } from "@/types/session";
-
-const LOC_OPTIONS = [
-  { value: "", label: "All locations" },
-  ...MOCK_LOCATIONS.map((l) => ({ value: l.id, label: l.name })),
-];
-
-const OUTCOME_OPTIONS = [
-  { value: "", label: "All" },
-  { value: "success", label: "Success (A/B)" },
-  { value: "partial", label: "Partial (C)" },
-  { value: "failed", label: "Failed (D/F)" },
-];
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  listSessions,
+  type SessionWithTargets,
+} from "@/lib/supabase/queries/sessions";
+import { listLocations } from "@/lib/supabase/queries/locations";
+import type { LocationRow } from "@/lib/schemas";
+import { outcomeScoreLabel } from "@/lib/outcomeLabel";
 
 export default function SessionsPage() {
+  const [sessions, setSessions] = useState<SessionWithTargets[]>([]);
+  const [locations, setLocations] = useState<LocationRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [locationFilter, setLocationFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [outcomeFilter, setOutcomeFilter] = useState("");
+  const [scoreFilter, setScoreFilter] = useState("");
 
-  const filtered = useMemo(() => {
-    let list = [...MOCK_SESSIONS];
-    if (locationFilter) {
-      list = list.filter((s) => s.locationId === locationFilter);
-    }
-    if (dateFrom) {
-      list = list.filter((s) => new Date(s.date) >= new Date(dateFrom));
-    }
-    if (dateTo) {
-      list = list.filter((s) => new Date(s.date) <= new Date(dateTo));
-    }
-    if (outcomeFilter) {
-      const successRatings: OutcomeRating[] = ["A", "B"];
-      const partialRatings: OutcomeRating[] = ["C"];
-      const failedRatings: OutcomeRating[] = ["D", "F"];
-      if (outcomeFilter === "success") {
-        list = list.filter((s) => successRatings.includes(s.outcomeRating));
-      } else if (outcomeFilter === "partial") {
-        list = list.filter((s) => partialRatings.includes(s.outcomeRating));
-      } else if (outcomeFilter === "failed") {
-        list = list.filter((s) => failedRatings.includes(s.outcomeRating));
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [sessionRows, locationRows] = await Promise.all([
+          listSessions(client),
+          listLocations(client),
+        ]);
+        if (cancelled) return;
+        setSessions(sessionRows);
+        setLocations(locationRows);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load sessions");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-    return list.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [locationFilter, dateFrom, dateTo, outcomeFilter]);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const locOptions = useMemo(
+    () => [
+      { value: "", label: "All locations" },
+      ...locations.map((l) => ({ value: l.id, label: l.name })),
+    ],
+    [locations],
+  );
+
+  const filtered = useMemo(() => {
+    let list = [...sessions];
+    if (locationFilter) {
+      list = list.filter((s) => s.location_id === locationFilter);
+    }
+    if (dateFrom) {
+      list = list.filter(
+        (s) => new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) >= new Date(dateFrom),
+      );
+    }
+    if (dateTo) {
+      list = list.filter(
+        (s) => new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) <= new Date(dateTo),
+      );
+    }
+    if (scoreFilter === "high") {
+      list = list.filter((s) => s.outcome_score >= 7);
+    } else if (scoreFilter === "mid") {
+      list = list.filter((s) => s.outcome_score >= 4 && s.outcome_score <= 6);
+    } else if (scoreFilter === "low") {
+      list = list.filter((s) => s.outcome_score <= 3);
+    }
+    return list;
+  }, [sessions, locationFilter, dateFrom, dateTo, scoreFilter]);
 
   return (
     <motion.div
@@ -66,14 +91,15 @@ export default function SessionsPage() {
     >
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Sessions</h1>
-        <Link href="/sessions/new">
-          <Button>Log session</Button>
-        </Link>
       </div>
+
+      {error && (
+        <p className="text-sm text-red-300">{error}</p>
+      )}
 
       <div className="flex flex-wrap gap-4">
         <Select
-          options={LOC_OPTIONS}
+          options={locOptions}
           value={locationFilter}
           onValueChange={setLocationFilter}
           className="w-48"
@@ -83,68 +109,66 @@ export default function SessionsPage() {
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           className="rounded border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
-          placeholder="From"
         />
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           className="rounded border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm"
-          placeholder="To"
         />
         <Select
-          options={OUTCOME_OPTIONS}
-          value={outcomeFilter}
-          onValueChange={setOutcomeFilter}
+          options={[
+            { value: "", label: "All scores" },
+            { value: "high", label: "7–10" },
+            { value: "mid", label: "4–6" },
+            { value: "low", label: "1–3" },
+          ]}
+          value={scoreFilter}
+          onValueChange={setScoreFilter}
           className="w-36"
         />
       </div>
 
-      <div className="space-y-4">
-        {filtered.map((s) => {
-          const loc = MOCK_LOCATIONS.find((l) => l.id === s.locationId);
-          const conditions = MOCK_SESSION_CONDITIONS[s.id];
-          const primaryTarget = s.targets[0]?.targetName ?? "—";
-          return (
-            <Link
-              key={s.id}
-              href={`/sessions/${s.id}`}
-              className="block rounded-xl border border-zinc-700/80 bg-zinc-900/50 p-4 hover:border-zinc-600 transition-colors"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="font-medium text-zinc-100">{formatDate(s.date)}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">
-                    {loc?.name ?? s.locationId} · {primaryTarget}
+      {loading ? (
+        <p className="text-sm text-zinc-500">Loading sessions…</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-zinc-500">
+          No sessions yet. Complete a mission and save the log to create one.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((s) => {
+            const loc = locations.find((l) => l.id === s.location_id);
+            const primaryTarget = s.targets[0]?.target_name ?? "—";
+            const when = s.ended_at ?? s.started_at ?? s.created_at ?? "";
+            return (
+              <Link
+                key={s.id}
+                href={`/sessions/${s.id}`}
+                className="block rounded-xl border border-zinc-700/80 bg-zinc-900/50 p-4 hover:border-zinc-600 transition-colors"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-zinc-100">
+                      {when ? formatDate(when) : "Session"}
+                    </div>
+                    <div className="text-xs text-zinc-500 mt-0.5">
+                      {loc?.name ?? "Location"} · {primaryTarget}
+                    </div>
                   </div>
+                  <span className="text-sm font-medium text-indigo-300">
+                    {s.outcome_score}/10 · {outcomeScoreLabel(s.outcome_score)}
+                  </span>
                 </div>
-                <span
-                  className={
-                    s.outcomeRating === "A"
-                      ? "text-emerald-400 text-sm font-medium"
-                      : s.outcomeRating === "B"
-                        ? "text-cyan-400 text-sm font-medium"
-                        : s.outcomeRating === "C"
-                          ? "text-amber-400 text-sm font-medium"
-                          : "text-zinc-500 text-sm"
-                  }
-                >
-                  {s.outcomeRating}
-                </span>
-              </div>
-              {conditions && (
-                <div className="mt-3">
-                  <SessionConditionSummary metadata={conditions} compact />
+                <div className="mt-2 flex gap-4 text-xs text-zinc-500">
+                  <span>{s.targets.length} targets</span>
+                  <span>{s.total_integration_minutes} min integration</span>
                 </div>
-              )}
-              <div className="mt-2 flex gap-4 text-xs text-zinc-500">
-                <span>{s.targetsCount} targets</span>
-                <span>{s.totalIntegrationMinutes} min integration</span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }

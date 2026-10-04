@@ -48,6 +48,10 @@ import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget, Mission } from "@/lib/types";
 import type { ActivePhase } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { persistMissionToDb } from "@/lib/missions/persistMission";
+import { upsertSessionFromLog } from "@/lib/supabase/queries/sessions";
+import type { SessionLogPayload } from "@/components/missions/views/LoggingView";
 
 const PANEL_STYLE = "mission-panel";
 
@@ -81,6 +85,7 @@ function MissionDashboardContent() {
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
+  const [savingLog, setSavingLog] = useState(false);
 
   useEffect(() => {
     let frame: number;
@@ -183,6 +188,8 @@ function MissionDashboardContent() {
 
   const loc = MOCK_LOCATIONS.find((l) => l.id === mission.locationId);
   const gear = MOCK_GEAR.find((g) => g.id === mission.gearId);
+  const locationLabel = loc?.name ?? "Site";
+  const gearLabel = gear?.name ?? "Rig";
   const isActive = activeMissionId === mission.id;
   const missionPhase = (mission.phase ??
     phaseFromStatus(mission.status)) as MissionPhase;
@@ -228,19 +235,42 @@ function MissionDashboardContent() {
     nextTargetLabel = "M42 opens in 47 min";
   }
 
-  const handlePhaseClick = (phase: ActivePhase) => {
+  const handlePhaseClick = async (phase: ActivePhase) => {
     updateMission(id, { phase });
     phaseClick(phase, firstTargetId);
+    // Persist from Setup onward (planning cancels write nothing).
+    if (phase === "setup" || phase === "capturing" || phase === "logging") {
+      const latest = getMission(id);
+      if (!latest) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        await persistMissionToDb(client, {
+          ...latest,
+          phase,
+          status:
+            phase === "capturing" || phase === "logging"
+              ? "in_progress"
+              : latest.status === "draft"
+                ? "ready"
+                : latest.status,
+        });
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Failed to save mission",
+          "error",
+        );
+      }
+    }
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     updateMission(id, {
       status: "in_progress",
       phase: "capturing",
       currentTargetId: firstTargetId,
     });
     setActiveMission(id);
-    handlePhaseClick("capturing");
+    await handlePhaseClick("capturing");
     toast("Mission started");
   };
   const handleSetActive = () => {
@@ -297,16 +327,68 @@ function MissionDashboardContent() {
     toast("Mission aborted — log results to save partial data");
   };
 
-  const handleSaveLog = () => {
-    updateMission(id, {
-      status: "completed",
-      phase: "completed",
-      logLocked: true,
-    });
-    setActiveMission(null);
-    clearPlan();
-    toast("Session log saved");
-    router.push("/dashboard");
+  const handleSaveLog = async (payload: SessionLogPayload) => {
+    const latest = getMission(id);
+    if (!latest) return;
+    setSavingLog(true);
+    try {
+      const client = getSupabaseBrowserClient();
+      const completed: Mission = {
+        ...latest,
+        status: "completed",
+        phase: "completed",
+        logLocked: true,
+        targets: latest.targets.map((t) => {
+          const logged = payload.targets.find((x) => x.catalogId === t.targetId);
+          if (!logged) return t;
+          return {
+            ...t,
+            result: logged.result ?? t.result,
+            frames: logged.framesCaptured,
+            subLength: logged.exposureSeconds,
+            isoGain:
+              logged.isoGain != null ? String(logged.isoGain) : t.isoGain,
+            notes: logged.notes || t.notes,
+          };
+        }),
+      };
+      await persistMissionToDb(client, completed);
+      await upsertSessionFromLog(
+        client,
+        {
+          mission_id: completed.id,
+          location_id: completed.locationId,
+          started_at: new Date(completed.dateTime).toISOString(),
+          ended_at: new Date().toISOString(),
+          outcome_score: payload.outcomeScore,
+          what_i_learned: payload.whatILearned || undefined,
+        },
+        payload.targets
+          .filter((t) => t.exposureSeconds > 0)
+          .map((t) => ({
+            catalog_id: t.catalogId,
+            target_name: t.targetName,
+            frames_captured: t.framesCaptured,
+            exposure_seconds: t.exposureSeconds,
+            iso: t.isoGain ?? undefined,
+            notes: t.notes || undefined,
+          })),
+      );
+      updateMission(id, {
+        status: "completed",
+        phase: "completed",
+        logLocked: true,
+        targets: completed.targets,
+      });
+      setActiveMission(null);
+      clearPlan();
+      toast("Session log saved", "success");
+      router.push("/sessions");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to save session", "error");
+    } finally {
+      setSavingLog(false);
+    }
   };
 
   const handleAddNoteFromView = (text: string) => {
@@ -585,17 +667,11 @@ function MissionDashboardContent() {
                     </>
                   )}
 
-                  {/* LOGGING STATE */}
+                  {/* LOGGING STATE — Save Log lives in LoggingView (needs form payload) */}
                   {isLoggingStatus && (
-                    <Button
-                      variant="cta"
-                      size="sm"
-                      onClick={handleSaveLog}
-                      className="mission-page-cta"
-                    >
-                      <ClipboardList className="h-4 w-4 mr-1" />
-                      Save Log
-                    </Button>
+                    <span className="text-xs text-zinc-500">
+                      Complete the log form below to save
+                    </span>
                   )}
 
                   {/* No header actions in logging/terminal on mission page */}
@@ -615,7 +691,7 @@ function MissionDashboardContent() {
                 </div>
               </div>
               <p className="mt-1 flex items-center gap-2 text-xs text-white/45 tracking-wide">
-                {loc?.name} · {gear?.name} · {formatDate(mission.dateTime)}
+                {locationLabel} · {gearLabel} · {formatDate(mission.dateTime)}
                 <span className="text-zinc-500">· {sessionElapsedLabel}</span>
                 <span className="text-emerald-400/90">
                   {uiState.connectivity.status === "online"
@@ -708,6 +784,7 @@ function MissionDashboardContent() {
               conditions={uiState.conditions}
               conditionsLog={conditionsLog}
               onSaveLog={handleSaveLog}
+              saving={savingLog}
             />
           ) : isTerminal ? null : (
             <>

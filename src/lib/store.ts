@@ -29,8 +29,9 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      activeLocationId: "loc1",
-      activeGearId: "gear1",
+      /** Set to real UUIDs by AuthProvider after bootstrap */
+      activeLocationId: "",
+      activeGearId: "",
       dateTime: new Date().toISOString(),
       minAltitude: 30,
       moonTolerance: 15,

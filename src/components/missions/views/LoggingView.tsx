@@ -18,6 +18,22 @@ type ConditionsStamp = {
   moonGlare: boolean;
 };
 
+type TargetResultStatus = "success" | "partial" | "failed";
+
+export type SessionLogPayload = {
+  outcomeScore: number;
+  whatILearned: string;
+  targets: {
+    catalogId: string;
+    targetName: string;
+    result: TargetResultStatus | null;
+    framesCaptured: number;
+    exposureSeconds: number;
+    isoGain: number | null;
+    notes: string;
+  }[];
+};
+
 interface LoggingViewProps {
   mission: Mission;
   noteLog: { text: string; at: string }[];
@@ -29,10 +45,9 @@ interface LoggingViewProps {
     moonGlare: boolean;
   };
   conditionsLog: ConditionsStamp[];
-  onSaveLog: () => void;
+  onSaveLog: (payload: SessionLogPayload) => void;
+  saving?: boolean;
 }
-
-type TargetResultStatus = "success" | "partial" | "failed";
 
 type TargetLogState = {
   status: TargetResultStatus | null;
@@ -50,8 +65,10 @@ export function LoggingView({
   conditions,
   conditionsLog,
   onSaveLog,
+  saving = false,
 }: LoggingViewProps) {
   const [overallNotes, setOverallNotes] = useState("");
+  const [outcomeScore, setOutcomeScore] = useState(7);
 
   // Mocked values for the logging form.
   const MOCK_FRAME_COUNTER = 24;
@@ -507,15 +524,47 @@ export function LoggingView({
         </section>
       </div>
 
-      <div className="pt-3 flex justify-end">
+      <div className="pt-3 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          Night score (1–10)
+          <select
+            value={outcomeScore}
+            onChange={(e) => setOutcomeScore(Number(e.target.value))}
+            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-zinc-100"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button
           type="button"
           variant="cta"
           size="sm"
-          onClick={onSaveLog}
+          disabled={saving}
+          onClick={() =>
+            onSaveLog({
+              outcomeScore,
+              whatILearned: overallNotes.trim(),
+              targets: (mission.targets ?? []).map((t) => {
+                const state = perTargetState[t.targetId];
+                return {
+                  catalogId: t.targetId,
+                  targetName: t.targetName,
+                  result: state?.status ?? null,
+                  framesCaptured: state?.framesCaptured ?? 0,
+                  exposureSeconds: state?.subLengthSeconds ?? 120,
+                  isoGain: state?.isoGain ?? null,
+                  notes: state?.notes ?? "",
+                };
+              }),
+            })
+          }
           className="mission-page-cta"
         >
-          Save Log
+          {saving ? "Saving…" : "Save Log"}
         </Button>
       </div>
     </div>

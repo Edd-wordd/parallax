@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import type { GearProfile } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,6 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createGearProfile,
+  listGearProfiles,
+} from "@/lib/supabase/queries/gear";
 
 type GearFormState = {
   rig_name: string;
@@ -54,7 +58,7 @@ function toSensorPreset(
 export function GearProfilesSection() {
   const { toast } = useToast();
   const { activeGearId, setActiveGear } = useAppStore();
-  const [profiles, setProfiles] = useState<GearProfile[]>(() => [...MOCK_GEAR]);
+  const [profiles, setProfiles] = useState<GearProfile[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<GearFormState>(initialFormState);
 
@@ -67,7 +71,39 @@ export function GearProfilesSection() {
     setForm(initialFormState);
   };
 
-  const handleAddProfile = () => {
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const rows = await listGearProfiles(getSupabaseBrowserClient());
+        if (!cancelled) {
+          setProfiles(
+            rows.map((r) => ({
+              id: r.id,
+              name: r.name,
+              telescope_name: r.telescope_name,
+              focal_length: r.focal_length,
+              aperture: r.aperture,
+              camera_name: r.camera_name,
+              sensor_preset: r.sensor_preset,
+              pixel_size: r.pixel_size ?? undefined,
+              mount_type: r.mount_type,
+              guiding: r.guiding,
+              active: r.is_active,
+            })),
+          );
+        }
+      } catch {
+        /* AuthProvider handles connection errors */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAddProfile = async () => {
     const name = form.rig_name.trim();
     if (
       !name ||
@@ -80,22 +116,40 @@ export function GearProfilesSection() {
       toast("Rig, optics, camera, and mount are required", "error");
       return;
     }
-    const next: GearProfile = {
-      id: `gear${Date.now().toString(36)}`,
-      name,
-      telescope_name: form.telescope_name.trim(),
-      focal_length: form.focal_length,
-      aperture: form.aperture,
-      camera_name: form.camera.trim(),
-      sensor_preset: toSensorPreset(form.sensor_preset.trim()),
-      pixel_size: Number.isNaN(form.pixel_size) ? undefined : form.pixel_size,
-      mount_type: form.mount_type as GearProfile["mount_type"],
-      guiding: form.guiding,
-      active: false,
-    };
-    setProfiles((prev) => [...prev, next]);
-    toast("Gear profile added", "success");
-    handleClose();
+    try {
+      const row = await createGearProfile(getSupabaseBrowserClient(), {
+        name,
+        telescope_name: form.telescope_name.trim(),
+        focal_length: form.focal_length,
+        aperture: form.aperture,
+        camera_name: form.camera.trim(),
+        sensor_preset: toSensorPreset(form.sensor_preset.trim()),
+        pixel_size: Number.isNaN(form.pixel_size) ? undefined : form.pixel_size,
+        mount_type: form.mount_type as GearProfile["mount_type"],
+        guiding: form.guiding,
+        is_active: false,
+      });
+      setProfiles((prev) => [
+        ...prev,
+        {
+          id: row.id,
+          name: row.name,
+          telescope_name: row.telescope_name,
+          focal_length: row.focal_length,
+          aperture: row.aperture,
+          camera_name: row.camera_name,
+          sensor_preset: row.sensor_preset,
+          pixel_size: row.pixel_size ?? undefined,
+          mount_type: row.mount_type,
+          guiding: row.guiding,
+          active: row.is_active,
+        },
+      ]);
+      toast("Gear profile added", "success");
+      handleClose();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to add gear", "error");
+    }
   };
 
   return (

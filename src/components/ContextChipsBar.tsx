@@ -3,25 +3,58 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Telescope, Moon, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import { formatDate } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { listLocations } from "@/lib/supabase/queries/locations";
+import { listGearProfiles } from "@/lib/supabase/queries/gear";
 
 export function ContextChipsBar() {
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const { activeLocationId, activeGearId, dateTime, setActiveLocation, setActiveGear, setDateTime } = useAppStore();
+  const {
+    activeLocationId,
+    activeGearId,
+    dateTime,
+    setActiveLocation,
+    setActiveGear,
+    setDateTime,
+  } = useAppStore();
 
-  const activeLoc = MOCK_LOCATIONS.find((l) => l.id === activeLocationId);
-  const activeGear = MOCK_GEAR.find((g) => g.id === activeGearId);
-
+  const [siteOptions, setSiteOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [gearOptions, setGearOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [dateLabel, setDateLabel] = useState("—");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [locations, gear] = await Promise.all([
+          listLocations(client),
+          listGearProfiles(client),
+        ]);
+        if (cancelled) return;
+        setSiteOptions(locations.map((l) => ({ value: l.id, label: l.name })));
+        setGearOptions(gear.map((g) => ({ value: g.id, label: g.name })));
+      } catch {
+        // AuthProvider surfaces connection errors; chips stay empty until ready.
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLocationId, activeGearId]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -31,14 +64,13 @@ export function ContextChipsBar() {
       d.getFullYear() === now.getFullYear() &&
       d.getMonth() === now.getMonth() &&
       d.getDate() === now.getDate();
-    setDateLabel(isSameDay ? `Tonight (${formatDate(dateTime)})` : formatDate(dateTime));
+    setDateLabel(
+      isSameDay ? `Tonight (${formatDate(dateTime)})` : formatDate(dateTime),
+    );
   }, [dateTime, mounted]);
 
   const chipBase = "inline-flex items-center gap-2 text-xs w-[200px] shrink-0";
   const iconClass = "size-[14px] shrink-0 text-zinc-300";
-
-  const siteOptions = MOCK_LOCATIONS.map((l) => ({ value: l.id, label: l.name }));
-  const gearOptions = MOCK_GEAR.map((g) => ({ value: g.id, label: g.name }));
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -91,7 +123,9 @@ export function ContextChipsBar() {
       <div
         className={cn(chipBase, "cursor-pointer relative")}
         onClick={() => dateInputRef.current?.showPicker?.()}
-        onKeyDown={(e) => e.key === "Enter" && dateInputRef.current?.showPicker?.()}
+        onKeyDown={(e) =>
+          e.key === "Enter" && dateInputRef.current?.showPicker?.()
+        }
         role="button"
         tabIndex={0}
         aria-label="Select date"
@@ -100,17 +134,17 @@ export function ContextChipsBar() {
         <span className="min-w-0 flex-1 flex items-center gap-1">
           <span className="text-zinc-300 font-semibold shrink-0">Date</span>
           <span className="text-zinc-500 shrink-0">·</span>
-          <span className="text-zinc-400 truncate">{dateLabel}</span>
+          <span className="truncate text-zinc-400">{dateLabel}</span>
+          <ChevronDown className="size-3 shrink-0 text-zinc-500" />
         </span>
-        <ChevronDown className="size-3.5 shrink-0 text-zinc-500 pointer-events-none" />
         <input
           ref={dateInputRef}
           type="date"
           value={dateValue}
           onChange={handleDateChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer [color-scheme:dark]"
-          aria-hidden
+          className="absolute inset-0 opacity-0 pointer-events-none"
           tabIndex={-1}
+          aria-hidden
         />
       </div>
     </div>

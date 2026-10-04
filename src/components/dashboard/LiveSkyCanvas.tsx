@@ -4,10 +4,6 @@ import React, { useCallback, useMemo, useRef, useEffect } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, Line } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
-interface OrbitControlsRef {
-  target: THREE.Vector3;
-  update: () => void;
-}
 import * as THREE from "three";
 import type { SkyTargetMarker } from "@/lib/sky/useSkyModel";
 import { SKY_SPHERE_RADIUS } from "@/lib/sky/skyConstants";
@@ -37,7 +33,7 @@ function RecenterController({
   controlsRef,
 }: {
   orbitKey: number;
-  controlsRef: React.RefObject<OrbitControlsRef | null>;
+  controlsRef: React.RefObject<React.ComponentRef<typeof OrbitControls> | null>;
 }) {
   const { camera } = useThree();
 
@@ -85,9 +81,7 @@ const Starfield = React.memo(function Starfield({
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
       </bufferGeometry>
       <pointsMaterial
@@ -306,7 +300,7 @@ const DomeEdgeOutline = React.memo(function DomeEdgeOutline() {
 });
 
 function Scene(props: LiveSkyCanvasProps) {
-  const controlsRef = useRef<OrbitControlsRef>(null);
+  const controlsRef = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   const {
     starPositions,
     starSizes,

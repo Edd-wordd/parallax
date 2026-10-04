@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:visibility": "tsx --tsconfig tsconfig.json scripts/verify-visibility.ts"
+    "typecheck": "tsc --noEmit --incremental false",
+    "test:visibility": "tsx --tsconfig tsconfig.json scripts/verify-visibility.ts",
+    "test:forecast": "tsx --tsconfig tsconfig.json scripts/verify-forecast.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

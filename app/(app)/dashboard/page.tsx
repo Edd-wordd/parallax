@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { useMissionStore } from "@/lib/missionStore";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { getMissionStatus } from "@/lib/missionStatus";
-import type { MissionTarget } from "@/lib/types";
+import type { Location, MissionTarget } from "@/lib/types";
 import {
   RECOMMENDED_TARGETS,
   REJECTED_TARGETS,
@@ -21,6 +21,9 @@ import {
   RejectedTargetPanel,
 } from "@/components/intelligence";
 import { useRouter } from "next/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { listLocations } from "@/lib/supabase/queries/locations";
+import { isUuid } from "@/lib/missions/resolveMissionRefs";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -80,12 +83,45 @@ export default function DashboardPage() {
     setPlannedTargets,
   } = useDashboardRecommendationStore();
 
-  const activeLoc = useMemo(
-    () =>
+  const [dbLocations, setDbLocations] = useState<Location[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const client = getSupabaseBrowserClient();
+        const rows = await listLocations(client);
+        if (cancelled) return;
+        setDbLocations(
+          rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            lat: r.lat,
+            lon: r.lon,
+            bortle: r.bortle,
+            notes: r.notes ?? undefined,
+          })),
+        );
+      } catch {
+        // Keep mock fallback for display name if DB unavailable
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeLoc = useMemo(() => {
+    if (isUuid(activeLocationId)) {
+      const fromDb = dbLocations.find((l) => l.id === activeLocationId);
+      if (fromDb) return fromDb;
+    }
+    return (
       MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ??
-      MOCK_LOCATIONS[0],
-    [activeLocationId],
-  );
+      dbLocations[0] ??
+      MOCK_LOCATIONS[0]
+    );
+  }, [activeLocationId, dbLocations]);
   const hasGear = Boolean(activeGearId);
   const hasLocation = Boolean(activeLocationId);
   const canCreateMission = hasGear && hasLocation;
@@ -327,6 +363,8 @@ export default function DashboardPage() {
           activeLocationId={activeLocationId}
           dateTime={dateTime}
           locationName={activeLoc?.name}
+          lat={activeLoc?.lat}
+          lon={activeLoc?.lon}
           isLiveConnected={isLiveConnected}
         />
         <SessionHistoryCard compact />

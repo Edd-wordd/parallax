@@ -392,7 +392,7 @@ export function CapturingView({
           </span>
           <Button
             type="button"
-            size="xs"
+            size="sm"
             variant="secondary"
             onClick={onStampConditions}
             className="h-6 px-2 text-[10px] border-white/10 bg-white/5"

@@ -247,7 +247,7 @@ export function SetupView({
                           />
                           <span className="flex-1 text-zinc-200">
                             {step.label}
-                            {step.critical && (
+                            {"critical" in step && step.critical && (
                               <span className="ml-2 rounded-full border border-rose-500/60 bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-rose-300">
                                 Critical
                               </span>

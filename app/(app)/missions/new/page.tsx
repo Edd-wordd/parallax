@@ -13,6 +13,7 @@ import {
   formatMoonRiseSet,
 } from "@/lib/sky/visibility";
 import { CURATED_DEEP_SKY_TARGETS } from "@/lib/sky/curatedTargets";
+import { useSiteSessionForecast } from "@/lib/forecast/useSiteSessionForecast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -152,6 +153,45 @@ export default function MissionWizardPage() {
     constraints.minAltitude,
     constraints.moonTolerance,
   ]);
+
+  const forecastState = useSiteSessionForecast({
+    latDeg: location?.lat,
+    lonDeg: location?.lon,
+    sessionStart: sessionInterval.start,
+    sessionEnd: sessionInterval.end,
+    includeAstroWx: true,
+    moonInterference: sessionAstronomy?.moon?.interferenceLabel ?? null,
+    enabled: !!location,
+  });
+  const forecast = forecastState.forecast;
+  const forecastLoading = forecastState.status === "loading";
+
+  const weatherDisplay = (value: number | null | undefined, unit: string) => {
+    if (!location) return "Select a site";
+    if (forecastLoading) return "Loading…";
+    if (forecastState.status === "error") return "Unavailable";
+    if (forecast?.status.weather === "out_of_range") return "Out of range";
+    if (forecast?.status.weather === "error") return "Unavailable";
+    if (value == null) return "Unavailable";
+    return `${value}${unit}`;
+  };
+
+  const seeingTransparencyDisplay = (
+    value: number | null | undefined,
+  ): string => {
+    if (!location) return "Select a site";
+    if (forecastLoading) return "Loading…";
+    if (forecastState.status === "error") return "Unavailable";
+    if (forecast?.status.astroWx === "out_of_range") return "Out of range";
+    if (
+      forecast?.status.astroWx === "error" ||
+      forecast?.status.astroWx === "unavailable"
+    ) {
+      return "Unavailable";
+    }
+    if (value == null) return "Unavailable";
+    return `${value}/5`;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -543,45 +583,45 @@ export default function MissionWizardPage() {
                     <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                       <p className="mt-0 text-xs text-white/50">
                         Astronomy from site coordinates and session times.
-                        Weather fields below are demo until a forecast API is
-                        wired.
+                        Weather from Open-Meteo; seeing/transparency from
+                        7Timer when available.
                       </p>
                       <dl className="mt-3 space-y-2 text-xs">
                         <div>
-                          <dt className="text-white/50">
-                            Forecast confidence{" "}
-                            <span className="text-amber-400/80">(Demo)</span>
-                          </dt>
+                          <dt className="text-white/50">Forecast coverage</dt>
                           <dd className="text-white/90">
-                            {MOCK_CONDITIONS_SOURCE.forecastConfidence}%
+                            {weatherDisplay(
+                              forecast?.weather?.coveragePct,
+                              "%",
+                            )}
                           </dd>
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">
-                              Cloud{" "}
-                              <span className="text-amber-400/80">(Demo)</span>:
-                            </dt>{" "}
+                            <dt className="text-white/50 inline">Cloud:</dt>{" "}
                             <dd className="inline text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.cloudCover}%
+                              {weatherDisplay(
+                                forecast?.weather?.cloudCoverPct,
+                                "%",
+                              )}
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">
-                              Humidity{" "}
-                              <span className="text-amber-400/80">(Demo)</span>:
-                            </dt>{" "}
+                            <dt className="text-white/50 inline">Humidity:</dt>{" "}
                             <dd className="inline text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.humidity}%
+                              {weatherDisplay(
+                                forecast?.weather?.humidityPct,
+                                "%",
+                              )}
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">
-                              Wind{" "}
-                              <span className="text-amber-400/80">(Demo)</span>:
-                            </dt>{" "}
+                            <dt className="text-white/50 inline">Wind:</dt>{" "}
                             <dd className="inline text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.windMph} mph
+                              {weatherDisplay(
+                                forecast?.weather?.windMph,
+                                " mph",
+                              )}
                             </dd>
                           </span>
                         </div>
@@ -624,27 +664,46 @@ export default function MissionWizardPage() {
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">
-                              Seeing{" "}
-                              <span className="text-amber-400/80">(Demo)</span>:
-                            </dt>{" "}
+                            <dt className="text-white/50 inline">Seeing:</dt>{" "}
                             <dd className="inline text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.seeing}/5{" "}
-                              {MOCK_CONDITIONS_SOURCE.seeingLabel}
+                              {seeingTransparencyDisplay(
+                                forecast?.astroWx?.seeingUi1to5,
+                              )}
                             </dd>
                           </span>
                           <span>
                             <dt className="text-white/50 inline">
-                              Transparency{" "}
-                              <span className="text-amber-400/80">(Demo)</span>:
+                              Transparency:
                             </dt>{" "}
                             <dd className="inline text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.transparency}/5{" "}
-                              {MOCK_CONDITIONS_SOURCE.transparencyLabel}
+                              {seeingTransparencyDisplay(
+                                forecast?.astroWx?.transparencyUi1to5,
+                              )}
                             </dd>
                           </span>
                         </div>
                       </dl>
+                      <p className="mt-3 text-[10px] text-white/40">
+                        Weather data by{" "}
+                        <a
+                          href="https://open-meteo.com/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-white/60"
+                        >
+                          Open-Meteo.com
+                        </a>
+                        {" · "}
+                        Astronomy forecast:{" "}
+                        <a
+                          href="https://www.7timer.info/doc.php"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-white/60"
+                        >
+                          7Timer!
+                        </a>
+                      </p>
                     </div>
 
                     <div className="mt-4 rounded-lg border border-white/10 border-l-2 border-l-indigo-500/50 bg-white/5 pl-4 pr-4 py-4">

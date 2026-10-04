@@ -164,12 +164,12 @@ export function NightTimeline() {
       {/* Target rows */}
       <div className="space-y-0.5">
         {MOCK_TARGET_WINDOWS.map((w) => {
-          const segments = getTargetSegments(w.start, w.end);
+          const segments = getTargetSegments(w.visibleStart, w.visibleEnd);
           return (
-            <Link key={w.targetId} href={`/targets/${w.targetId}`}>
+            <Link key={w.id} href={`/targets/${w.id}`}>
               <div className="group flex items-center gap-2 py-0.5 rounded hover:bg-zinc-800/30 transition-colors">
                 <span className="w-10 shrink-0 text-[10px] dash-pill text-zinc-400 truncate">
-                  {w.targetName}
+                  {w.name}
                 </span>
                 <div className="relative flex-1 h-2.5 rounded overflow-hidden bg-zinc-800/50">
                   {segments.map((seg, i) => (

@@ -48,7 +48,6 @@ export const useAppStore = create<AppState>()(
       setTargetTypes: (types) => set({ targetTypes: types }),
       setDriveToDarker: (v) => set({ driveToDarker: v }),
       setDriveRadius: (v) => set({ driveRadius: v }),
-      fieldModeOptions: { redSafe: false, dimLevel: 0, reduceMotion: false },
       setFieldMode: (v) => set({ isFieldMode: v }),
       toggleFieldMode: () => set((s) => ({ isFieldMode: !s.isFieldMode })),
       setFieldModeOptions: (o) =>

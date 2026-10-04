@@ -17,6 +17,8 @@ const STATUS_LABELS: Record<DashboardMissionStatus, string> = {
   CAPTURING: "Capturing",
   LOGGING: "Logging",
   COMPLETED: "Completed",
+  ABORTED: "Aborted",
+  CANCELLED: "Cancelled",
 };
 
 interface DashboardMissionStatusCardProps {

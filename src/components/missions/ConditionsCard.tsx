@@ -157,9 +157,9 @@ export function ConditionsCard({
           <Slider
             min={0}
             max={100}
-            value={[conditions.clouds]}
+            value={conditions.clouds}
             onValueChange={
-              readOnly ? undefined : ([v]) => onChange({ clouds: v ?? 0 })
+              readOnly ? undefined : (v) => onChange({ clouds: v })
             }
             disabled={readOnly}
           />

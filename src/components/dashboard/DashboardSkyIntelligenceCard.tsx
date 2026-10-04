@@ -4,56 +4,122 @@ import { useMemo, useState } from "react";
 import { MissionConfidenceCard } from "@/components/sky-intelligence/MissionConfidenceCard";
 import { SkyMetricPill } from "@/components/sky-intelligence/SkyMetricPill";
 import {
-  getSkyIntelligenceForSiteDate,
   getLiveSkyIntelligenceForSiteDate,
   formatCoordinates,
 } from "@/lib/mock/dashboardData";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import type { ConditionMode } from "@/lib/mock/skyIntelligence";
+import { useSiteSessionForecast } from "@/lib/forecast/useSiteSessionForecast";
+import { computeSessionAstronomy } from "@/lib/sky/visibility";
 import { cn } from "@/lib/utils";
 
 interface DashboardSkyIntelligenceCardProps {
-  activeLocationId: string;
+  /** WGS84 latitude of active site (Supabase location preferred) */
+  lat?: number | null;
+  lon?: number | null;
   dateTime: string;
-  /** Fallback if site lookup fails */
   locationName?: string;
-  /** When false, Live Site tab shows "unavailable" state. Mock UI state for dev. */
+  activeLocationId?: string;
+  /** When false, Live Site tab shows "unavailable" state. */
   isLiveConnected?: boolean;
 }
 
 /**
  * Observing Conditions: quantified environmental data.
- * - Forecast: predicted conditions (confidence, cloud, humidity, seeing, wind, moon).
- * - Live Site: field telemetry when connected (camera temp, guide RMS, dew heater, mount, focus).
- * - Distinct from Tonight's Sky (astronomical sky-state).
+ * Forecast weather from Open-Meteo / 7Timer; Moon from Astronomy Engine.
+ * Live Site remains telemetry placeholder.
  */
 export function DashboardSkyIntelligenceCard({
-  activeLocationId,
+  lat,
+  lon,
   dateTime,
   locationName: fallbackName,
+  activeLocationId = "",
   isLiveConnected = false,
 }: DashboardSkyIntelligenceCardProps) {
   const [mode, setMode] = useState<ConditionMode>("forecast");
 
-  const forecastState = useMemo(
-    () => getSkyIntelligenceForSiteDate(activeLocationId, dateTime),
-    [activeLocationId, dateTime],
-  );
+  const sessionInterval = useMemo(() => {
+    const start = new Date(dateTime);
+    if (Number.isNaN(start.getTime())) {
+      const now = new Date();
+      return { start: now, end: new Date(now.getTime() + 6 * 3_600_000) };
+    }
+    // Dashboard has no session end — use 6h window from store dateTime
+    return {
+      start,
+      end: new Date(start.getTime() + 6 * 3_600_000),
+    };
+  }, [dateTime]);
+
+  const moonInterference = useMemo(() => {
+    if (lat == null || lon == null) return null;
+    const astro = computeSessionAstronomy({
+      site: { latDeg: lat, lonDeg: lon },
+      sessionStart: sessionInterval.start,
+      sessionEnd: sessionInterval.end,
+      minAltitudeDeg: 30,
+      moonToleranceDeg: 15,
+      targets: [],
+    });
+    return astro.moon?.interferenceLabel ?? null;
+  }, [lat, lon, sessionInterval.start, sessionInterval.end]);
+
+  const forecastHook = useSiteSessionForecast({
+    latDeg: lat,
+    lonDeg: lon,
+    sessionStart: sessionInterval.start,
+    sessionEnd: sessionInterval.end,
+    includeAstroWx: true,
+    moonInterference,
+    enabled: lat != null && lon != null,
+  });
+
   const liveState = useMemo(
     () => getLiveSkyIntelligenceForSiteDate(activeLocationId, dateTime),
     [activeLocationId, dateTime],
   );
-  const state = mode === "forecast" ? forecastState : liveState;
 
-  const loc = useMemo(
-    () => MOCK_LOCATIONS.find((l) => l.id === activeLocationId),
-    [activeLocationId],
-  );
-  const displayLocation = state.locationName ?? fallbackName ?? "—";
-  const coords = useMemo(
-    () => (loc ? formatCoordinates(loc.lat, loc.lon) : null),
-    [loc],
-  );
+  const displayLocation = fallbackName ?? "—";
+  const coords =
+    lat != null && lon != null ? formatCoordinates(lat, lon) : null;
+
+  const weather = forecastHook.forecast?.weather;
+  const astroWx = forecastHook.forecast?.astroWx;
+  const loading = forecastHook.status === "loading";
+
+  const pill = (
+    value: string | null,
+    unavailableReason?: string,
+  ): string => {
+    if (lat == null || lon == null) return "Select a site";
+    if (loading) return "…";
+    if (forecastHook.status === "error") return "Unavailable";
+    if (value == null) return unavailableReason ?? "Unavailable";
+    return value;
+  };
+
+  const coverage =
+    weather?.coveragePct != null ? weather.coveragePct : null;
+  const statusLine = (() => {
+    if (lat == null || lon == null) return "Select a location to load forecast.";
+    if (loading) return "Loading forecast…";
+    if (forecastHook.status === "error") {
+      return forecastHook.error ?? "Forecast unavailable.";
+    }
+    const w = forecastHook.forecast?.status.weather;
+    const a = forecastHook.forecast?.status.astroWx;
+    if (w === "out_of_range") {
+      return "Weather forecast out of range for this date.";
+    }
+    if (w === "ok" && a === "ok") {
+      return "Forecast supports planning for this session window.";
+    }
+    if (w === "ok" && a !== "ok") {
+      return "Weather loaded; seeing/transparency unavailable.";
+    }
+    if (w !== "ok") return "Weather forecast unavailable.";
+    return "Forecast ready.";
+  })();
 
   return (
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
@@ -110,33 +176,74 @@ export function DashboardSkyIntelligenceCard({
           <>
             <div className="flex flex-wrap items-center gap-2">
               <MissionConfidenceCard
-                confidence={forecastState.forecastConfidence}
-                label="Forecast Confidence"
+                confidence={coverage ?? 0}
+                label="Forecast Coverage"
                 size="sm"
               />
               <SkyMetricPill
                 label="Cloud Cover"
-                value={`${forecastState.forecast.cloudCover}%`}
+                value={pill(
+                  weather?.cloudCoverPct != null
+                    ? `${weather.cloudCoverPct}%`
+                    : null,
+                  forecastHook.forecast?.status.weather === "out_of_range"
+                    ? "Out of range"
+                    : undefined,
+                )}
               />
               <SkyMetricPill
                 label="Humidity"
-                value={`${forecastState.forecast.humidity}%`}
+                value={pill(
+                  weather?.humidityPct != null
+                    ? `${weather.humidityPct}%`
+                    : null,
+                )}
               />
               <SkyMetricPill
                 label="Seeing"
-                value={`${forecastState.forecast.seeing}/5`}
+                value={pill(
+                  astroWx?.seeingUi1to5 != null
+                    ? `${astroWx.seeingUi1to5}/5`
+                    : null,
+                  forecastHook.forecast?.status.astroWx === "out_of_range"
+                    ? "Out of range"
+                    : undefined,
+                )}
               />
               <SkyMetricPill
                 label="Wind"
-                value={`${forecastState.forecast.windMph} mph`}
+                value={pill(
+                  weather?.windMph != null ? `${weather.windMph} mph` : null,
+                )}
               />
               <SkyMetricPill
                 label="Moon Impact"
-                value={forecastState.forecast.moonInterference}
+                value={moonInterference ?? "—"}
               />
             </div>
             <p className="text-xs text-zinc-500 leading-snug line-clamp-2">
-              {forecastState.status}
+              {statusLine}
+            </p>
+            <p className="text-[10px] text-zinc-600">
+              Weather:{" "}
+              <a
+                href="https://open-meteo.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-zinc-400"
+              >
+                Open-Meteo
+              </a>
+              {" · "}
+              Seeing:{" "}
+              <a
+                href="https://www.7timer.info/doc.php"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-zinc-400"
+              >
+                7Timer!
+              </a>
             </p>
           </>
         )}
@@ -147,10 +254,7 @@ export function DashboardSkyIntelligenceCard({
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   <MissionConfidenceCard
-                    confidence={
-                      liveState.liveConfidence ??
-                      forecastState.forecastConfidence
-                    }
+                    confidence={liveState.liveConfidence ?? coverage ?? 0}
                     label="Live Confidence"
                     size="sm"
                   />

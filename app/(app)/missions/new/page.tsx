@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
 import { generateMockPlan, type GenerateMockPlanOptions } from "@/lib/mock/missions";
+import { generateDeepSkyPlan } from "@/lib/sky/generateDeepSkyPlan";
+import {
+  computeSessionAstronomy,
+  formatLocalWindow,
+  formatMoonRiseSet,
+} from "@/lib/sky/visibility";
+import { CURATED_DEEP_SKY_TARGETS } from "@/lib/sky/curatedTargets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -118,6 +125,34 @@ export default function MissionWizardPage() {
     year: "numeric",
   });
 
+  /** Resolve session start/end; if end ≤ start, roll end forward 24h (wizard default). */
+  const sessionInterval = useMemo(() => {
+    const start = new Date(dateTime);
+    let end = new Date(sessionEndTime);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end.getTime() <= start.getTime()) {
+      end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    }
+    return { start, end };
+  }, [dateTime, sessionEndTime]);
+
+  const sessionAstronomy = useMemo(() => {
+    if (!location) return null;
+    return computeSessionAstronomy({
+      site: { latDeg: location.lat, lonDeg: location.lon },
+      sessionStart: sessionInterval.start,
+      sessionEnd: sessionInterval.end,
+      minAltitudeDeg: constraints.minAltitude,
+      moonToleranceDeg: constraints.moonTolerance,
+      targets: CURATED_DEEP_SKY_TARGETS,
+    });
+  }, [
+    location,
+    sessionInterval.start,
+    sessionInterval.end,
+    constraints.minAltitude,
+    constraints.moonTolerance,
+  ]);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -189,18 +224,64 @@ export default function MissionWizardPage() {
   }, [dateTime, setStoreDateTime]);
 
   const handleGeneratePlan = () => {
-    const options: GenerateMockPlanOptions = {
-      missionType,
-      planetaryTargets:
-        missionType === "planetary" ? Array.from(selectedPlanetaryTargets) : undefined,
-    };
-    const plan = generateMockPlan(locationId, gearId, dateTime, constraints, options);
+    if (missionType === "planetary") {
+      const options: GenerateMockPlanOptions = {
+        missionType: "planetary",
+        planetaryTargets: Array.from(selectedPlanetaryTargets),
+      };
+      const plan = generateMockPlan(
+        locationId,
+        gearId,
+        dateTime,
+        constraints,
+        options,
+      );
+      setTargets(plan);
+      setTargetOrder(plan.map((t) => t.targetId));
+      setSelectedIds(new Set(plan.map((t) => t.targetId)));
+      setGenerated(true);
+      setStep(3);
+      toast("Plan generated (demo — planetary)", "success");
+      return;
+    }
+
+    if (!location) {
+      toast("Select a location before generating a plan", "error");
+      return;
+    }
+    if (
+      Number.isNaN(sessionInterval.start.getTime()) ||
+      Number.isNaN(sessionInterval.end.getTime()) ||
+      sessionInterval.end.getTime() <= sessionInterval.start.getTime()
+    ) {
+      toast("Set a valid session start and end time", "error");
+      return;
+    }
+
+    const { targets: plan, astronomy } = generateDeepSkyPlan({
+      latDeg: location.lat,
+      lonDeg: location.lon,
+      sessionStart: sessionInterval.start,
+      sessionEnd: sessionInterval.end,
+      constraints,
+    });
+
     setTargets(plan);
     setTargetOrder(plan.map((t) => t.targetId));
     setSelectedIds(new Set(plan.map((t) => t.targetId)));
     setGenerated(true);
     setStep(3);
-    toast("Plan generated (mock)", "success");
+
+    if (!astronomy.effectiveDark) {
+      toast("No astronomical darkness during this session", "error");
+    } else if (plan.length === 0) {
+      toast(
+        "No deep-sky targets meet altitude and Moon constraints",
+        "error",
+      );
+    } else {
+      toast(`Plan generated — ${plan.length} target${plan.length === 1 ? "" : "s"}`, "success");
+    }
   };
 
   const toggleTarget = (targetId: string) => {
@@ -271,21 +352,25 @@ export default function MissionWizardPage() {
       : score >= 4
         ? "bg-amber-500/25 text-amber-300 border-amber-500/40"
         : "bg-red-500/25 text-red-300 border-red-500/40";
+  /** Only return real sub-scores — never invent framing / weather from aggregate. */
   const scoreValue = (
     t: MissionTarget,
     key: "altitudeScore" | "moonSeparationScore" | "rigFramingScore",
-  ) => {
+  ): number | null => {
     const v = t[key];
-    if (v != null) return v;
-    return Math.min(10, Math.max(1, Math.round((t.score || 70) / 10)));
+    return v != null ? v : null;
   };
-  const overallScore = (t: MissionTarget) =>
-    Math.round(
-      (scoreValue(t, "altitudeScore") +
-        scoreValue(t, "moonSeparationScore") +
-        scoreValue(t, "rigFramingScore")) /
-        3,
-    );
+  const overallScore = (t: MissionTarget) => {
+    const parts = [
+      scoreValue(t, "altitudeScore"),
+      scoreValue(t, "moonSeparationScore"),
+    ].filter((n): n is number => n != null);
+    if (parts.length > 0) {
+      return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
+    }
+    // Planetary demo plans only expose aggregate score
+    return Math.min(10, Math.max(1, Math.round((t.score || 0) / 10)));
+  };
 
   const handleSave = () => {
     if (!isUuid(locationId) || !isUuid(gearId)) {
@@ -457,31 +542,44 @@ export default function MissionWizardPage() {
                     </p>
                     <div className="rounded-lg border border-white/10 bg-white/5 p-4">
                       <p className="mt-0 text-xs text-white/50">
-                        Before you leave, Parallax uses forecast and location
-                        data only. Live verification available on-site.
+                        Astronomy from site coordinates and session times.
+                        Weather fields below are demo until a forecast API is
+                        wired.
                       </p>
                       <dl className="mt-3 space-y-2 text-xs">
                         <div>
-                          <dt className="text-white/50">Forecast confidence</dt>
+                          <dt className="text-white/50">
+                            Forecast confidence{" "}
+                            <span className="text-amber-400/80">(Demo)</span>
+                          </dt>
                           <dd className="text-white/90">
                             {MOCK_CONDITIONS_SOURCE.forecastConfidence}%
                           </dd>
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">Cloud:</dt>{" "}
+                            <dt className="text-white/50 inline">
+                              Cloud{" "}
+                              <span className="text-amber-400/80">(Demo)</span>:
+                            </dt>{" "}
                             <dd className="inline text-white/90">
                               {MOCK_CONDITIONS_SOURCE.cloudCover}%
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">Humidity:</dt>{" "}
+                            <dt className="text-white/50 inline">
+                              Humidity{" "}
+                              <span className="text-amber-400/80">(Demo)</span>:
+                            </dt>{" "}
                             <dd className="inline text-white/90">
                               {MOCK_CONDITIONS_SOURCE.humidity}%
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">Wind:</dt>{" "}
+                            <dt className="text-white/50 inline">
+                              Wind{" "}
+                              <span className="text-amber-400/80">(Demo)</span>:
+                            </dt>{" "}
                             <dd className="inline text-white/90">
                               {MOCK_CONDITIONS_SOURCE.windMph} mph
                             </dd>
@@ -492,37 +590,54 @@ export default function MissionWizardPage() {
                             <Moon className="h-3.5 w-3.5 shrink-0 text-white/40" />
                             <span className="text-white/50">Moon:</span>
                             <span className="text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.moonPhase} ·{" "}
-                              {MOCK_CONDITIONS_SOURCE.moonInterference} ·{" "}
-                              {MOCK_CONDITIONS_SOURCE.moonRiseSet}
+                              {!location
+                                ? "Select a site"
+                                : sessionAstronomy?.moon
+                                  ? `${sessionAstronomy.moon.phaseLabel} · ${sessionAstronomy.moon.interferenceLabel} · ${formatMoonRiseSet(sessionAstronomy.moon)}`
+                                  : "—"}
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                            <span className="text-white/50">Visibility:</span>
+                            <span className="text-white/50">Dark window:</span>
                             <span className="text-white/90">
-                              {MOCK_CONDITIONS_SOURCE.targetVisibilityWindow}
+                              {!location
+                                ? "Select a site"
+                                : !sessionAstronomy?.valid
+                                  ? "Invalid session times"
+                                  : sessionAstronomy.effectiveDark
+                                    ? formatLocalWindow(
+                                        sessionAstronomy.effectiveDark,
+                                      )
+                                    : "No astronomical darkness in this session"}
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             <Gauge className="h-3.5 w-3.5 shrink-0 text-white/40" />
                             <span className="text-white/50">Sky / Bortle:</span>
                             <span className="text-white/90">
+                              <span className="text-amber-400/80">(Demo)</span>{" "}
                               {MOCK_CONDITIONS_SOURCE.skyBrightness} mag/arcsec²
-                              · Bortle {MOCK_CONDITIONS_SOURCE.bortle}
+                              · Bortle {location?.bortle ?? "—"}
                             </span>
                           </span>
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">Seeing:</dt>{" "}
+                            <dt className="text-white/50 inline">
+                              Seeing{" "}
+                              <span className="text-amber-400/80">(Demo)</span>:
+                            </dt>{" "}
                             <dd className="inline text-white/90">
                               {MOCK_CONDITIONS_SOURCE.seeing}/5{" "}
                               {MOCK_CONDITIONS_SOURCE.seeingLabel}
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">Transparency:</dt>{" "}
+                            <dt className="text-white/50 inline">
+                              Transparency{" "}
+                              <span className="text-amber-400/80">(Demo)</span>:
+                            </dt>{" "}
                             <dd className="inline text-white/90">
                               {MOCK_CONDITIONS_SOURCE.transparency}/5{" "}
                               {MOCK_CONDITIONS_SOURCE.transparencyLabel}
@@ -534,7 +649,10 @@ export default function MissionWizardPage() {
 
                     <div className="mt-4 rounded-lg border border-white/10 border-l-2 border-l-indigo-500/50 bg-white/5 pl-4 pr-4 py-4">
                       <p className="text-sm font-medium text-white/85">
-                        Recommendations
+                        Recommendations{" "}
+                        <span className="text-xs font-normal text-amber-400/80">
+                          (Demo)
+                        </span>
                       </p>
                       <div className="mt-2 space-y-2">
                         {MOCK_CONDITIONS_SOURCE.recommendations.map((r, i) => (
@@ -892,43 +1010,59 @@ export default function MissionWizardPage() {
                                   {isExpanded && (
                                     <div className="border-t border-white/10 px-3 pb-3 pt-2 space-y-3">
                                       <div className="flex flex-wrap gap-2">
-                                        <span
-                                          className={cn(
-                                            "rounded border px-2 py-0.5 text-xs font-medium",
-                                            scoreBadgeColor(
-                                              scoreValue(t, "altitudeScore"),
-                                            ),
-                                          )}
-                                        >
-                                          Altitude{" "}
-                                          {scoreValue(t, "altitudeScore")}/10
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "rounded border px-2 py-0.5 text-xs font-medium",
-                                            scoreBadgeColor(
-                                              scoreValue(
-                                                t,
-                                                "moonSeparationScore",
+                                        {scoreValue(t, "altitudeScore") !=
+                                          null && (
+                                          <span
+                                            className={cn(
+                                              "rounded border px-2 py-0.5 text-xs font-medium",
+                                              scoreBadgeColor(
+                                                scoreValue(t, "altitudeScore")!,
                                               ),
-                                            ),
-                                          )}
-                                        >
-                                          Moon sep.{" "}
-                                          {scoreValue(t, "moonSeparationScore")}
-                                          /10
-                                        </span>
-                                        <span
-                                          className={cn(
-                                            "rounded border px-2 py-0.5 text-xs font-medium",
-                                            scoreBadgeColor(
-                                              scoreValue(t, "rigFramingScore"),
-                                            ),
-                                          )}
-                                        >
-                                          Rig framing{" "}
-                                          {scoreValue(t, "rigFramingScore")}/10
-                                        </span>
+                                            )}
+                                          >
+                                            Altitude{" "}
+                                            {scoreValue(t, "altitudeScore")}/10
+                                          </span>
+                                        )}
+                                        {scoreValue(t, "moonSeparationScore") !=
+                                          null && (
+                                          <span
+                                            className={cn(
+                                              "rounded border px-2 py-0.5 text-xs font-medium",
+                                              scoreBadgeColor(
+                                                scoreValue(
+                                                  t,
+                                                  "moonSeparationScore",
+                                                )!,
+                                              ),
+                                            )}
+                                          >
+                                            Moon sep.{" "}
+                                            {scoreValue(
+                                              t,
+                                              "moonSeparationScore",
+                                            )}
+                                            /10
+                                          </span>
+                                        )}
+                                        {scoreValue(t, "rigFramingScore") !=
+                                          null && (
+                                          <span
+                                            className={cn(
+                                              "rounded border px-2 py-0.5 text-xs font-medium",
+                                              scoreBadgeColor(
+                                                scoreValue(
+                                                  t,
+                                                  "rigFramingScore",
+                                                )!,
+                                              ),
+                                            )}
+                                          >
+                                            Rig framing{" "}
+                                            {scoreValue(t, "rigFramingScore")}
+                                            /10
+                                          </span>
+                                        )}
                                       </div>
                                       <p className="text-xs text-zinc-400">
                                         {t.whyIncluded ??

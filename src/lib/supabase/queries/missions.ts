@@ -7,6 +7,8 @@ import {
   type MissionRow,
   type MissionTargetRow,
 } from "@/lib/schemas";
+import type { Mission } from "@/lib/types";
+import { mapMissionFromDb } from "@/lib/missions/mapMissionFromDb";
 import { assertNoError } from "../errors";
 
 export type MissionTargetWrite = {
@@ -118,6 +120,7 @@ export async function updateMissionPhase(
     notes: string | null;
     cancelled_reason: string | null;
     current_target_catalog_id: string | null;
+    deleted_at: string | null;
   }>,
 ): Promise<void> {
   const { error } = await client
@@ -125,6 +128,85 @@ export async function updateMissionPhase(
     .update(patch)
     .eq("id", missionId);
   assertNoError(error, "updateMissionPhase");
+}
+
+/** Soft-delete + mark cancelled (post-Setup cancel). */
+export async function cancelMissionInDb(
+  client: SupabaseClient,
+  missionId: string,
+  reason: string,
+): Promise<void> {
+  await updateMissionPhase(client, missionId, {
+    status: "cancelled",
+    phase: "completed",
+    cancelled_reason: reason,
+    deleted_at: new Date().toISOString(),
+  });
+}
+
+type MissionJoinRow = Record<string, unknown> & {
+  mission_targets?: Record<string, unknown>[] | null;
+};
+
+function coerceNums(
+  row: Record<string, unknown>,
+  keys: string[],
+): Record<string, unknown> {
+  const out = { ...row };
+  for (const key of keys) {
+    if (out[key] != null && typeof out[key] !== "number") {
+      out[key] = Number(out[key]);
+    }
+  }
+  return out;
+}
+
+function parseMissionJoin(row: MissionJoinRow): Mission {
+  const { mission_targets, ...rest } = row;
+  const mission = MissionSchema.parse(normalizeTimestamps(rest));
+  const targets = (mission_targets ?? []).map((t) =>
+    MissionTargetSchema.parse(
+      coerceNums(normalizeTimestamps(t), [
+        "score",
+        "sequence_index",
+        "sub_length",
+        "frames",
+        "altitude_score",
+        "moon_separation_score",
+        "rig_framing_score",
+      ]),
+    ),
+  );
+  return mapMissionFromDb(mission, targets);
+}
+
+/** List non-deleted missions for the signed-in user (RLS), newest first. */
+export async function listMissions(
+  client: SupabaseClient,
+): Promise<Mission[]> {
+  const { data, error } = await client
+    .from("missions")
+    .select("*, mission_targets(*)")
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false });
+  assertNoError(error, "listMissions");
+  return (data ?? []).map((row) => parseMissionJoin(row as MissionJoinRow));
+}
+
+/** Load one mission + targets, or null if missing / soft-deleted / not owned. */
+export async function getMissionWithTargets(
+  client: SupabaseClient,
+  id: string,
+): Promise<Mission | null> {
+  const { data, error } = await client
+    .from("missions")
+    .select("*, mission_targets(*)")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  assertNoError(error, "getMissionWithTargets");
+  if (!data) return null;
+  return parseMissionJoin(data as MissionJoinRow);
 }
 
 function normalizeTimestamps(row: Record<string, unknown>) {

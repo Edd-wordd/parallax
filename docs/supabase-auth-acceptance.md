@@ -17,9 +17,15 @@ Run after migrations + app wiring. Local: `enable_confirmations = false`.
 - [x] SQL fixture RLS: user A sessions=1, A sees B sessions=0, wrong sub=0
 - [x] Manual verification complete across accounts (2026-10-03)
 
-**Missions list** still Zustand until Phase D.1 (accepted deferral, not a failure).
+## Phase D.1 — Mission list SoT
 
-## Phase D.1 (follow-up, not blocking Auth)
-
-- [ ] `listMissions` + hydrate Zustand on sign-in
-- [ ] Returning user sees DB missions after refresh / new device
+- [x] `listMissions` + `getMissionWithTargets` + mapper
+- [x] Zustand in-memory only; `clearMissions` on sign-out / user change
+- [x] AuthProvider hydrates missions on sign-in
+- [x] Detail loads from DB when store miss
+- [x] Post-Setup cancel soft-deletes in DB
+- [x] Manual: A saves (Setup+), refreshes, sees mission with targets/phase
+- [x] Manual: A sees mission in fresh browser after sign-in
+- [x] Manual: B sees none of A’s missions; A→B switch shows no A mission
+- [x] Manual: Save Log still one session; planning cancel creates no DB row
+- [x] Manual verification complete (2026-10-03)

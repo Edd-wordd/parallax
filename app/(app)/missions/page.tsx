@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
+import { useAuth } from "@/components/AuthProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
@@ -12,6 +13,7 @@ import { Plus, Copy } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { listGearProfiles } from "@/lib/supabase/queries/gear";
+import { listMissions } from "@/lib/supabase/queries/missions";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
@@ -19,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In Progress",
   completed: "Completed",
   cancelled: "Cancelled",
+  aborted: "Aborted",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,17 +30,23 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: "bg-indigo-500/10 text-indigo-400/90 border border-indigo-500/15",
   completed: "bg-zinc-800/40 text-zinc-500",
   cancelled: "bg-amber-500/10 text-amber-400/90",
+  aborted: "bg-rose-500/10 text-rose-400/90",
 };
 
 export default function MissionsPage() {
   const router = useRouter();
-  const { missions, duplicateMission } = useMissionStore();
-  const [locationNames, setLocationNames] = useState<Record<string, { name: string; bortle: number }>>({});
+  const { missionsLoaded } = useAuth();
+  const { missions, duplicateMission, setMissions } = useMissionStore();
+  const [locationNames, setLocationNames] = useState<
+    Record<string, { name: string; bortle: number }>
+  >({});
   const [gearNames, setGearNames] = useState<Record<string, string>>({});
+  const [listError, setListError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    async function loadMeta() {
       try {
         const client = getSupabaseBrowserClient();
         const [locs, gear] = await Promise.all([
@@ -46,18 +55,58 @@ export default function MissionsPage() {
         ]);
         if (cancelled) return;
         setLocationNames(
-          Object.fromEntries(locs.map((l) => [l.id, { name: l.name, bortle: l.bortle }])),
+          Object.fromEntries(
+            locs.map((l) => [l.id, { name: l.name, bortle: l.bortle }]),
+          ),
         );
         setGearNames(Object.fromEntries(gear.map((g) => [g.id, g.name])));
       } catch {
         /* display-only */
       }
     }
-    void load();
+    void loadMeta();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  /** Refresh list from DB when page mounts (after auth hydrate). */
+  useEffect(() => {
+    if (!missionsLoaded) return;
+    let cancelled = false;
+    async function refresh() {
+      setRefreshing(true);
+      setListError(null);
+      try {
+        const rows = await listMissions(getSupabaseBrowserClient());
+        if (cancelled) return;
+        // Keep any local planning-only missions not yet in DB.
+        const dbIds = new Set(rows.map((m) => m.id));
+        const planningOnly = useMissionStore
+          .getState()
+          .missions.filter(
+            (m) =>
+              !dbIds.has(m.id) &&
+              (m.phase === "planning" || (!m.phase && m.status === "ready") || m.status === "draft"),
+          );
+        setMissions([...planningOnly, ...rows]);
+      } catch (e) {
+        if (!cancelled) {
+          setListError(
+            e instanceof Error ? e.message : "Failed to load missions",
+          );
+        }
+      } finally {
+        if (!cancelled) setRefreshing(false);
+      }
+    }
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [missionsLoaded, setMissions]);
+
+  const showLoading = !missionsLoaded || refreshing;
 
   return (
     <motion.div
@@ -76,7 +125,13 @@ export default function MissionsPage() {
         </Link>
       </div>
 
-      {missions.length === 0 ? (
+      {listError && (
+        <p className="text-sm text-red-300">{listError}</p>
+      )}
+
+      {showLoading ? (
+        <p className="text-sm text-zinc-500 py-8 text-center">Loading missions…</p>
+      ) : missions.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-zinc-400 mb-3 text-sm">No missions yet.</p>
           <Link href="/missions/new">
@@ -99,13 +154,15 @@ export default function MissionsPage() {
                   <Link href={`/missions/${m.id}`}>
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="text-sm font-medium truncate text-zinc-100">{m.name}</h3>
+                        <h3 className="text-sm font-medium truncate text-zinc-100">
+                          {m.name}
+                        </h3>
                         <span
                           className={`shrink-0 rounded px-1.5 py-0.5 font-display text-[10px] uppercase tracking-[0.08em] ${
                             STATUS_COLORS[m.status] ?? STATUS_COLORS.draft
                           }`}
                         >
-                          {STATUS_LABELS[m.status]}
+                          {STATUS_LABELS[m.status] ?? m.status}
                         </span>
                       </div>
                       <div className="space-y-0.5 text-xs text-zinc-500">

@@ -51,6 +51,10 @@ import { persistMissionToDb } from "@/lib/missions/persistMission";
 import { upsertSessionFromLog } from "@/lib/supabase/queries/sessions";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { listGearProfiles } from "@/lib/supabase/queries/gear";
+import {
+  cancelMissionInDb,
+  getMissionWithTargets,
+} from "@/lib/supabase/queries/missions";
 import type { SessionLogPayload } from "@/components/missions/views/LoggingView";
 
 const PANEL_STYLE = "mission-panel";
@@ -77,6 +81,7 @@ function MissionDashboardContent() {
     updateMission,
     replaceMission,
     deleteMission,
+    addMission,
     setActiveMission,
     activeMissionId,
   } = useMissionStore();
@@ -94,6 +99,8 @@ function MissionDashboardContent() {
   const [savingLog, setSavingLog] = useState(false);
   const [locationLabel, setLocationLabel] = useState("Site");
   const [gearLabel, setGearLabel] = useState("Rig");
+  const [fetchingMission, setFetchingMission] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     let frame: number;
@@ -104,6 +111,43 @@ function MissionDashboardContent() {
       if (frame) cancelAnimationFrame(frame);
     };
   }, [mounted]);
+
+  /** Phase D.1: load from DB when store has no entry (refresh / new device). */
+  useEffect(() => {
+    if (!mounted || mission) {
+      setFetchingMission(false);
+      return;
+    }
+    let cancelled = false;
+    async function loadFromDb() {
+      setFetchingMission(true);
+      setFetchError(null);
+      try {
+        const row = await getMissionWithTargets(
+          getSupabaseBrowserClient(),
+          id,
+        );
+        if (cancelled) return;
+        if (row) {
+          const existing = useMissionStore.getState().getMission(id);
+          if (existing) replaceMission(id, row);
+          else addMission(row);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setFetchError(
+            e instanceof Error ? e.message : "Failed to load mission",
+          );
+        }
+      } finally {
+        if (!cancelled) setFetchingMission(false);
+      }
+    }
+    void loadFromDb();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, mission, id, addMission, replaceMission]);
 
   useEffect(() => {
     if (!mission) return;
@@ -195,7 +239,7 @@ function MissionDashboardContent() {
     }[]
   >([]);
 
-  if (!mounted) {
+  if (!mounted || fetchingMission) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="animate-pulse text-zinc-500 text-sm">
@@ -208,7 +252,9 @@ function MissionDashboardContent() {
   if (!mission) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-zinc-400">Mission not found</p>
+        <p className="text-zinc-400">
+          {fetchError ?? "Mission not found"}
+        </p>
         <Link href="/missions">
           <Button variant="link" className="mt-2 text-indigo-400">
             Back to missions
@@ -326,7 +372,7 @@ function MissionDashboardContent() {
     setSelectedTarget(null);
     toast("Plan cleared");
   };
-  const handleCancelMission = () => {
+  const handleCancelMission = async () => {
     const reason = cancelReason.trim() || "No reason given";
     setCancelOpen(false);
     setCancelReason("");
@@ -339,16 +385,16 @@ function MissionDashboardContent() {
       router.push("/dashboard");
       return;
     }
-    const entry = {
-      text: `[Cancelled] ${reason}`,
-      at: new Date().toISOString(),
-    };
-    updateMission(id, {
-      status: "cancelled",
-      phase: "completed",
-      cancelledReason: reason,
-      noteLog: [...noteLog, entry],
-    });
+    try {
+      await cancelMissionInDb(getSupabaseBrowserClient(), id, reason);
+    } catch (e) {
+      toast(
+        e instanceof Error ? e.message : "Failed to cancel mission in database",
+        "error",
+      );
+      return;
+    }
+    deleteMission(id);
     if (activeMissionId === id) setActiveMission(null);
     toast("Mission cancelled");
     clearPlan();

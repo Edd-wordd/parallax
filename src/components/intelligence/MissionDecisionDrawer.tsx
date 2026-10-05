@@ -5,11 +5,48 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { buildEngineReasons } from "@/lib/recommendations/engineReasons";
+import { rigFitLabel } from "@/lib/gear/framing";
 import type {
   DashboardRecommendation,
   RejectedRecommendation,
 } from "@/lib/recommendations/types";
+
+/** Schematic FOV vs target — not a photographic composition. */
+function FovSchematic({
+  fovW,
+  fovH,
+  targetMajor,
+}: {
+  fovW: number;
+  fovH: number;
+  targetMajor: number;
+}) {
+  const maxFov = Math.max(fovW, fovH, 1);
+  const frameW = 120;
+  const frameH = Math.max(40, (fovH / fovW) * frameW);
+  const scale = Math.min(frameW / maxFov, frameH / maxFov);
+  const tSize = Math.min(targetMajor * scale, Math.max(frameW, frameH) * 1.2);
+  return (
+    <div className="mt-2">
+      <div
+        className="relative mx-auto border border-zinc-600 bg-zinc-950/80"
+        style={{ width: frameW, height: frameH }}
+        role="img"
+        aria-label="Schematic field of view versus target size"
+      >
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-indigo-400/70 bg-indigo-500/15"
+          style={{ width: tSize, height: tSize }}
+        />
+      </div>
+      <p className="mt-1.5 text-center text-[10px] text-zinc-600">
+        Schematic only — shape and camera rotation unknown
+      </p>
+    </div>
+  );
+}
 
 type DrawerTarget =
   | (DashboardRecommendation & { isRejected: false })
@@ -139,10 +176,58 @@ function RecommendedEvidence({ target }: { target: DashboardRecommendation }) {
 
       <section className="border-t border-zinc-800/80 pt-4">
         <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          Rig framing
+        </p>
+        <p className="text-sm leading-relaxed text-zinc-300">
+          <span className="font-medium text-zinc-100">
+            {rigFitLabel(target.rigFit)}
+          </span>
+          {" — "}
+          {target.rigFitDetail}
+        </p>
+        {target.fovWidthArcmin != null &&
+          target.fovHeightArcmin != null &&
+          target.targetSizeMajorArcmin != null && (
+            <>
+              <p className="mt-1.5 text-xs text-zinc-500 tabular-nums">
+                FOV {target.fovWidthArcmin.toFixed(1)}′ ×{" "}
+                {target.fovHeightArcmin.toFixed(1)}′ · target major{" "}
+                {target.targetSizeMajorArcmin.toFixed(1)}′
+                {target.targetSizeKind
+                  ? ` (${target.targetSizeKind.replace(/_/g, " ")})`
+                  : ""}
+              </p>
+              {target.targetSizeSource && (
+                <p className="mt-1 text-[10px] text-zinc-600">
+                  Size source: {target.targetSizeSource}
+                </p>
+              )}
+              <FovSchematic
+                fovW={target.fovWidthArcmin}
+                fovH={target.fovHeightArcmin}
+                targetMajor={target.targetSizeMajorArcmin}
+              />
+            </>
+          )}
+        {target.rigFit === "unknown" &&
+          target.rigFitDetail.includes("sensor") && (
+            <p className="mt-2 text-xs">
+              <Link
+                href="/settings?tab=gear"
+                className="text-indigo-400 hover:underline"
+              >
+                Edit active rig
+              </Link>{" "}
+              to set sensor width and height.
+            </p>
+          )}
+      </section>
+
+      <section className="border-t border-zinc-800/80 pt-4">
+        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Not calculated yet
         </p>
         <ul className="space-y-1 text-sm text-zinc-400">
-          <li>Rig fit — field of view vs target size</li>
           <li>Exposure time and camera settings</li>
           <li>Weather — see Observing Conditions (separate from this score)</li>
         </ul>

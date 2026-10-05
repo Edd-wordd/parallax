@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_TARGETS } from "@/lib/mock/targets";
+import { listDeepSkyCatalog } from "@/lib/catalog";
 import { MOCK_NIGHT } from "@/lib/mock/night";
 import { useSkyModel, type SkyTargetMarker } from "@/lib/sky/useSkyModel";
 
@@ -88,11 +88,11 @@ export const LiveSkyView = React.memo(function LiveSkyView({
 
   const targetsForSky = useMemo(
     () =>
-      MOCK_TARGETS.slice(0, 8).map((t) => ({
+      listDeepSkyCatalog().slice(0, 8).map((t) => ({
         id: t.id,
         name: t.name,
-        ra: t.ra,
-        dec: t.dec,
+        ra: t.raHours,
+        dec: t.decDeg,
         color: TARGET_COLORS[t.type] ?? "#22d3ee",
       })),
     []

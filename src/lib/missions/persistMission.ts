@@ -31,6 +31,9 @@ export async function persistMissionToDb(
     target_type: t.targetType,
     planned_window_start: t.plannedWindowStart,
     planned_window_end: t.plannedWindowEnd,
+    scheduled_start_at: t.scheduledStartAt ?? null,
+    scheduled_end_at: t.scheduledEndAt ?? null,
+    planned_imaging_minutes: t.plannedImagingMinutes ?? null,
     score: t.score,
     sequence_index: t.sequenceIndex ?? index + 1,
     role_label: t.roleLabel ?? null,
@@ -61,6 +64,7 @@ export async function persistMissionToDb(
       phase: resolved.phase ?? "setup",
       current_target_catalog_id: resolved.currentTargetId ?? undefined,
       notes: resolved.notes,
+      transition_minutes: resolved.transitionMinutes ?? null,
     },
     targets,
   );

@@ -8,9 +8,16 @@ interface DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  /** Wrapper width class; default max-w-md */
+  className?: string;
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  children,
+  className,
+}: DialogProps) {
   if (!open) return null;
   return (
     <div
@@ -22,7 +29,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md"
+        className={cn("w-full max-w-md", className)}
       >
         {children}
       </div>

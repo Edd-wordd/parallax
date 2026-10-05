@@ -17,6 +17,9 @@ export type MissionTargetWrite = {
   target_type: string;
   planned_window_start?: string | null;
   planned_window_end?: string | null;
+  scheduled_start_at?: string | null;
+  scheduled_end_at?: string | null;
+  planned_imaging_minutes?: number | null;
   score: number;
   sequence_index?: number | null;
   role_label?: string | null;
@@ -81,6 +84,9 @@ export async function upsertMissionWithTargets(
           target_type: t.target_type,
           planned_window_start: t.planned_window_start ?? null,
           planned_window_end: t.planned_window_end ?? null,
+          scheduled_start_at: t.scheduled_start_at ?? null,
+          scheduled_end_at: t.scheduled_end_at ?? null,
+          planned_imaging_minutes: t.planned_imaging_minutes ?? null,
           score: t.score,
           sequence_index: t.sequence_index ?? null,
           role_label: t.role_label ?? null,
@@ -100,7 +106,18 @@ export async function upsertMissionWithTargets(
       .select("*");
     assertNoError(error, "replaceMissionTargets.insert");
     targetRows = (data ?? []).map((row) =>
-      MissionTargetSchema.parse(normalizeTimestamps(row)),
+      MissionTargetSchema.parse(
+        coerceNums(normalizeTimestamps(row), [
+          "score",
+          "sequence_index",
+          "sub_length",
+          "frames",
+          "altitude_score",
+          "moon_separation_score",
+          "rig_framing_score",
+          "planned_imaging_minutes",
+        ]),
+      ),
     );
   }
 
@@ -163,7 +180,9 @@ function coerceNums(
 
 function parseMissionJoin(row: MissionJoinRow): Mission {
   const { mission_targets, ...rest } = row;
-  const mission = MissionSchema.parse(normalizeTimestamps(rest));
+  const mission = MissionSchema.parse(
+    coerceNums(normalizeTimestamps(rest), ["transition_minutes"]),
+  );
   const targets = (mission_targets ?? []).map((t) =>
     MissionTargetSchema.parse(
       coerceNums(normalizeTimestamps(t), [
@@ -174,6 +193,7 @@ function parseMissionJoin(row: MissionJoinRow): Mission {
         "altitude_score",
         "moon_separation_score",
         "rig_framing_score",
+        "planned_imaging_minutes",
       ]),
     ),
   );
@@ -216,6 +236,10 @@ function normalizeTimestamps(row: Record<string, unknown>) {
     created_at: toIso(row.created_at),
     updated_at: toIso(row.updated_at),
     deleted_at: row.deleted_at == null ? null : toIso(row.deleted_at),
+    scheduled_start_at:
+      row.scheduled_start_at == null ? null : toIso(row.scheduled_start_at),
+    scheduled_end_at:
+      row.scheduled_end_at == null ? null : toIso(row.scheduled_end_at),
   };
 }
 

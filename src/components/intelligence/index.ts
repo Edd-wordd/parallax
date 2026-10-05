@@ -10,6 +10,7 @@ export {
 export { TonightRecommendationsSection } from "./TonightRecommendationsSection";
 export { NotSuitableSessionPanel } from "./NotSuitableSessionPanel";
 export { MissionPlanPanel } from "./MissionPlanPanel";
+export { NightScheduleReview } from "./NightScheduleReview";
 export { ExposurePlannerCard } from "./ExposurePlannerCard";
 export { ExposurePresetRow } from "./ExposurePresetRow";
 export { ExposureTradeoffSelector } from "./ExposureTradeoffSelector";

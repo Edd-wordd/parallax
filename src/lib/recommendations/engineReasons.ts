@@ -35,8 +35,14 @@ export function buildEngineReasons(target: DashboardRecommendation): string[] {
   }
 
   reasons.push(
-    `Score ${target.score} from altitude (${target.altitudeScore}/10) and Moon separation (${target.moonSeparationScore}/10) only — rig fit and exposure are not included.`,
+    `Score ${target.score} from altitude (${target.altitudeScore}/10) and Moon separation (${target.moonSeparationScore}/10) only — framing is not in the score.`,
   );
+
+  if (target.rigFit !== "unknown") {
+    reasons.push(`Rig framing: ${target.rigFitDetail}.`);
+  } else {
+    reasons.push(`Rig framing: ${target.rigFitDetail}.`);
+  }
 
   return reasons;
 }

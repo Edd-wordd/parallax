@@ -15,11 +15,12 @@ interface TonightRecommendationsSectionProps {
   plannedTargets?: DashboardRecommendation[];
   onCreateMissionPlan?: (target: DashboardRecommendation) => void;
   onAddToPlan?: (target: DashboardRecommendation) => void;
-  onPlanTopTargets?: () => void;
+  onProposeSchedule?: () => void;
   onRemoveFromPlan?: (targetId: string) => void;
   onClearPlan?: () => void;
-  onStartPlannedMission?: () => void;
+  onReviewSchedule?: () => void;
   onOpenEvidence?: (target: DashboardRecommendation) => void;
+  plannedDurations?: Record<string, number>;
 }
 
 export function TonightRecommendationsSection({
@@ -32,11 +33,12 @@ export function TonightRecommendationsSection({
   plannedTargets = [],
   onCreateMissionPlan,
   onAddToPlan,
-  onPlanTopTargets,
+  onProposeSchedule,
   onRemoveFromPlan,
   onClearPlan,
-  onStartPlannedMission,
+  onReviewSchedule,
   onOpenEvidence,
+  plannedDurations = {},
 }: TonightRecommendationsSectionProps) {
   const plannedIds = new Set(plannedTargets.map((t) => t.id));
 
@@ -46,18 +48,18 @@ export function TonightRecommendationsSection({
         <div>
           <h2 className="dash-section-title text-zinc-400">{sectionTitle}</h2>
           <p className="mt-0.5 text-[11px] text-zinc-500">
-            Ranked by altitude and Moon separation for your site and session.
-            Rig fit and exposure are not calculated yet.
+            Ranked by altitude and Moon separation. Rig fit is FOV evidence only
+            (not in the score).
           </p>
         </div>
-        {onPlanTopTargets && recommendations.length > 0 && (
+        {onProposeSchedule && recommendations.length > 0 && (
           <Button
             variant="secondary"
             size="sm"
             className="shrink-0"
-            onClick={onPlanTopTargets}
+            onClick={onProposeSchedule}
           >
-            Plan Top Targets
+            Propose schedule
           </Button>
         )}
       </div>
@@ -67,12 +69,13 @@ export function TonightRecommendationsSection({
           targets={plannedTargets.map((t) => ({
             id: t.id,
             name: t.name,
+            desiredMinutes: plannedDurations[t.id],
           }))}
           activeTargetId={activeMissionTargetId}
           status="planning"
           onRemoveTarget={onRemoveFromPlan}
           onClearPlan={onClearPlan}
-          onStartPlannedMission={onStartPlannedMission}
+          onReviewSchedule={onReviewSchedule}
         />
       )}
 

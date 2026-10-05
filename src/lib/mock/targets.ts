@@ -15,7 +15,7 @@ export const MOCK_TARGETS: Target[] = [
   { id: "m20", name: "Trifid Nebula (M20)", type: "nebula", ra: 18.04, dec: -23.03, magnitude: 6.3, angular_size: 28, constellation: "Sagittarius" },
   { id: "m8", name: "Lagoon Nebula (M8)", type: "nebula", ra: 18.06, dec: -24.38, magnitude: 6.0, angular_size: 90, constellation: "Sagittarius" },
   { id: "m16", name: "Eagle Nebula (M16)", type: "nebula", ra: 18.31, dec: -13.79, magnitude: 6.4, angular_size: 7, constellation: "Serpens" },
-  { id: "ngc1976", name: "Running Man Nebula", type: "nebula", ra: 5.59, dec: -4.84, magnitude: 5.0, angular_size: 40, constellation: "Orion" },
+  { id: "ngc1977", name: "Running Man Nebula (NGC 1977)", type: "nebula", ra: 5.588, dec: -4.817, magnitude: 5.0, angular_size: 40, constellation: "Orion" },
   { id: "m44", name: "Beehive Cluster (M44)", type: "open_cluster", ra: 8.67, dec: 19.98, magnitude: 3.7, angular_size: 95, constellation: "Cancer", beginner: true },
   { id: "m35", name: "M35 Open Cluster", type: "open_cluster", ra: 6.15, dec: 24.33, magnitude: 5.3, angular_size: 28, constellation: "Gemini" },
   { id: "m11", name: "Wild Duck Cluster (M11)", type: "open_cluster", ra: 18.85, dec: -6.27, magnitude: 6.3, angular_size: 14, constellation: "Scutum" },

@@ -9,6 +9,13 @@ export const SensorPresetSchema = z.enum([
 
 export const MountTypeSchema = z.enum(["alt-az", "equatorial"]);
 
+const sensorMm = z
+  .number()
+  .positive()
+  .max(50)
+  .nullable()
+  .optional();
+
 export const GearProfileSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -18,6 +25,9 @@ export const GearProfileSchema = z.object({
   aperture: z.number().positive(),
   camera_name: z.string().min(1),
   sensor_preset: SensorPresetSchema,
+  sensor_width_mm: sensorMm,
+  sensor_height_mm: sensorMm,
+  optics_factor: z.number().positive().nullable().optional(),
   pixel_size: z.number().positive().nullable().optional(),
   mount_type: MountTypeSchema,
   guiding: z.boolean(),
@@ -34,11 +44,19 @@ export const GearProfileInsertSchema = z.object({
   aperture: z.number().positive(),
   camera_name: z.string().min(1),
   sensor_preset: SensorPresetSchema,
+  sensor_width_mm: z.number().positive().max(50).optional(),
+  sensor_height_mm: z.number().positive().max(50).optional(),
+  optics_factor: z.number().positive().optional().nullable(),
   pixel_size: z.number().positive().optional(),
   mount_type: MountTypeSchema,
   guiding: z.boolean().default(false),
   is_active: z.boolean().default(false),
 });
 
+export const GearProfileUpdateSchema = GearProfileInsertSchema.partial().extend({
+  name: z.string().min(1).optional(),
+});
+
 export type GearProfileRow = z.infer<typeof GearProfileSchema>;
 export type GearProfileInsert = z.infer<typeof GearProfileInsertSchema>;
+export type GearProfileUpdate = z.infer<typeof GearProfileUpdateSchema>;

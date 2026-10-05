@@ -4,7 +4,7 @@
 
 import type { Mission, MissionTarget } from "@/lib/types";
 import {
-  curatedTargetsByTypes,
+  recommendEligibleTargets,
   type CuratedTarget,
 } from "@/lib/sky/curatedTargets";
 import {
@@ -33,7 +33,7 @@ export function generateDeepSkyPlan(
 ): GenerateDeepSkyPlanResult {
   const catalog =
     input.targets ??
-    curatedTargetsByTypes(input.constraints.targetTypes ?? []);
+    recommendEligibleTargets(input.constraints.targetTypes ?? []);
 
   const astronomy = computeSessionAstronomy({
     site: { latDeg: input.latDeg, lonDeg: input.lonDeg },

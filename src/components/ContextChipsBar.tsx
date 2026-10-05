@@ -8,7 +8,10 @@ import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
-import { listGearProfiles } from "@/lib/supabase/queries/gear";
+import {
+  listGearProfiles,
+  setActiveGearProfile,
+} from "@/lib/supabase/queries/gear";
 
 export function ContextChipsBar() {
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -113,7 +116,14 @@ export function ContextChipsBar() {
           <Select
             options={gearOptions}
             value={activeGearId}
-            onValueChange={setActiveGear}
+            onValueChange={(id) => {
+              setActiveGear(id);
+              void setActiveGearProfile(getSupabaseBrowserClient(), id).catch(
+                () => {
+                  /* local active still updates; DB sync best-effort */
+                },
+              );
+            }}
             className="!w-auto min-w-0 flex-1 !border-0 !bg-transparent !p-0 !pr-6 !text-zinc-400 !cursor-pointer focus:!ring-0 h-auto text-xs font-normal"
             aria-label="Select rig"
           />

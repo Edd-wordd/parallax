@@ -6,7 +6,10 @@ import {
   buildDashboardRecommendations,
   type BuildRecommendationsInput,
 } from "@/lib/recommendations/mapper";
-import type { DashboardRecommendationsResult } from "@/lib/recommendations/types";
+import type {
+  DashboardRecommendationsResult,
+  FramingGearForRecs,
+} from "@/lib/recommendations/types";
 
 export function useDashboardRecommendations(input: {
   latDeg: number | null | undefined;
@@ -14,8 +17,17 @@ export function useDashboardRecommendations(input: {
   dateTime: string;
   constraints: Mission["constraints"];
   maxRecommendations?: number;
+  gear?: FramingGearForRecs;
 }): DashboardRecommendationsResult {
   const typesKey = [...(input.constraints.targetTypes ?? [])].sort().join(",");
+  const gearKey = input.gear
+    ? [
+        input.gear.focalLengthMm,
+        input.gear.sensorWidthMm ?? "",
+        input.gear.sensorHeightMm ?? "",
+        input.gear.opticsFactor ?? "",
+      ].join(":")
+    : "none";
 
   return useMemo(() => {
     const buildInput: BuildRecommendationsInput = {
@@ -24,6 +36,7 @@ export function useDashboardRecommendations(input: {
       dateTime: input.dateTime,
       constraints: input.constraints,
       maxRecommendations: input.maxRecommendations,
+      gear: input.gear ?? null,
     };
     return buildDashboardRecommendations(buildInput);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- explicit key parts
@@ -35,5 +48,6 @@ export function useDashboardRecommendations(input: {
     input.constraints.moonTolerance,
     typesKey,
     input.maxRecommendations,
+    gearKey,
   ]);
 }

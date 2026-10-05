@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAppStore } from "@/lib/store";
 import { GearProfilesSection } from "@/components/GearProfilesSection";
 import { LocationsSection } from "@/components/LocationsSection";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type SettingsTab = "gear" | "locations" | "preferences" | "general";
@@ -20,6 +20,18 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "General" },
 ];
 
+function tabFromParam(value: string | null): SettingsTab {
+  if (
+    value === "gear" ||
+    value === "locations" ||
+    value === "preferences" ||
+    value === "general"
+  ) {
+    return value;
+  }
+  return "gear";
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("gear");
   const { minAltitude, moonTolerance, setMinAltitude, setMoonTolerance } = useAppStore();
@@ -27,6 +39,11 @@ export default function SettingsPage() {
   const [telemetry, setTelemetry] = useState(true);
   const [offline, setOffline] = useState(false);
   const [aiMode, setAiMode] = useState("cloud");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setActiveTab(tabFromParam(params.get("tab")));
+  }, []);
 
   return (
     <motion.div
@@ -168,6 +185,48 @@ export default function SettingsPage() {
               </label>
               <p className="mt-2 text-xs text-zinc-500">
                 When enabled and DSN is set, errors are sent to Sentry. No DSN required for app to run.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="text-sm font-medium">Credits &amp; data sources</h2>
+            </CardHeader>
+            <CardContent className="space-y-2 text-xs text-zinc-500 leading-relaxed">
+              <p>
+                Deep-sky catalog facts are derived in part from{" "}
+                <a
+                  href="https://github.com/mattiaverga/OpenNGC"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  OpenNGC
+                </a>{" "}
+                by Mattia Verga, licensed under{" "}
+                <a
+                  href="https://creativecommons.org/licenses/by-sa/4.0/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  CC BY-SA 4.0
+                </a>
+                . See <code className="text-zinc-400">data/catalog/NOTICE</code>.
+              </p>
+              <p>
+                Default object images are DSS2 survey cutouts from{" "}
+                <a
+                  href="https://alasky.cds.unistra.fr/hips-image-services/hips2fits"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  CDS Aladin HiPS
+                </a>
+                , matched by catalog coordinates. Astronomy positions use
+                Astronomy Engine; weather uses Open-Meteo / 7Timer.
               </p>
             </CardContent>
           </Card>

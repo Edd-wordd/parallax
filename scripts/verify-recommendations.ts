@@ -81,7 +81,12 @@ check("overnight Denver yields recommendations with sane peaks", () => {
     assert.ok(rec.windowEnd.getTime() > rec.windowStart.getTime());
     assert.ok(rec.windowStart.getTime() >= r.sessionStart.getTime() - 1000);
     assert.ok(rec.windowEnd.getTime() <= r.sessionEnd.getTime() + 1000);
-    assert.equal(rec.rigFit, "not_calculated");
+    assert.ok(
+      ["fits", "tight_crop", "small_in_frame", "mosaic_needed", "unknown"].includes(
+        rec.rigFit,
+      ),
+      `${rec.id}: unexpected rigFit ${rec.rigFit}`,
+    );
     assert.ok(
       rec.peakAltitudeDeg <= rec.maxPossibleAltitudeDeg + 1.5,
       `${rec.id}: peak ${rec.peakAltitudeDeg} > geometric max ${rec.maxPossibleAltitudeDeg}`,
@@ -171,6 +176,43 @@ check("engine reasons are calculated templates, not AI claims", () => {
     assert.ok(!/AI[- ]generated/i.test(line));
   }
   assert.ok(reasons.some((l) => /Usable imaging window/i.test(l)));
+});
+
+check("gear changes framing not ranking order or scores", () => {
+  const dateTime = new Date(2026, 2, 15, 21, 0, 0).toISOString();
+  const noGear = buildDashboardRecommendations({
+    latDeg: 39.74,
+    lonDeg: -104.99,
+    dateTime,
+    constraints,
+  });
+  const withGear = buildDashboardRecommendations({
+    latDeg: 39.74,
+    lonDeg: -104.99,
+    dateTime,
+    constraints,
+    gear: {
+      focalLengthMm: 420,
+      sensorWidthMm: 11.31,
+      sensorHeightMm: 11.31,
+    },
+  });
+  assert.equal(noGear.status, "ready");
+  assert.equal(withGear.status, "ready");
+  assert.deepEqual(
+    noGear.recommendations.map((r) => r.id),
+    withGear.recommendations.map((r) => r.id),
+  );
+  assert.deepEqual(
+    noGear.recommendations.map((r) => r.score),
+    withGear.recommendations.map((r) => r.score),
+  );
+  assert.ok(noGear.recommendations.every((r) => r.rigFit === "unknown"));
+  assert.ok(withGear.recommendations.some((r) => r.rigFit !== "unknown"));
+  assert.deepEqual(
+    noGear.recommendations.map((r) => r.windowLabel),
+    withGear.recommendations.map((r) => r.windowLabel),
+  );
 });
 
 check("site change changes recommendation set or windows", () => {

@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getMockMissionGuidance } from "@/lib/mockMissionData";
 import type { MissionTarget } from "@/lib/types";
+import {
+  hasTimedSchedule,
+  targetScheduleLabel,
+} from "@/lib/schedule/display";
 
 interface SelectedTargetCardProps {
   target: MissionTarget | null;
@@ -47,8 +51,18 @@ export function SelectedTargetCard({
 
       <div className="space-y-3 text-sm">
         <div>
-          <span className="text-xs text-zinc-500">Tonight&apos;s window</span>
-          <p className="text-zinc-300 tabular-nums">{target.plannedWindowStart} – {target.plannedWindowEnd}</p>
+          <span className="text-xs text-zinc-500">
+            {hasTimedSchedule(target) ? "Scheduled" : <>Tonight&apos;s window</>}
+          </span>
+          <p className="text-zinc-300 tabular-nums">
+            {targetScheduleLabel(target)}
+          </p>
+          {hasTimedSchedule(target) &&
+            target.plannedImagingMinutes != null && (
+              <p className="text-[11px] text-zinc-500 tabular-nums">
+                {target.plannedImagingMinutes} min on-target
+              </p>
+            )}
         </div>
 
         <div>

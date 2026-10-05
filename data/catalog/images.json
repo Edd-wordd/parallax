@@ -1,0 +1,5 @@
+{
+  "version": "1",
+  "note": "Optional editorial overrides keyed by catalog_id. Default display uses DSS2 cutouts at catalog RA/Dec (CDS hips2fits). Free-text NASA search is not used as identity proof.",
+  "images": {}
+}

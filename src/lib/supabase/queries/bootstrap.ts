@@ -36,6 +36,8 @@ export async function ensureDefaultLocationAndGear(client: SupabaseClient): Prom
       aperture: 72,
       camera_name: "ZWO ASI533MC",
       sensor_preset: "1inch",
+      sensor_width_mm: 11.31,
+      sensor_height_mm: 11.31,
       pixel_size: 3.76,
       mount_type: "equatorial",
       guiding: true,

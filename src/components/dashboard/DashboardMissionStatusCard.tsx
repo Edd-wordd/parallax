@@ -187,7 +187,7 @@ export function DashboardMissionStatusCard({
                   onClick={onStartPlannedMission}
                   disabled={!canCreateMission}
                 >
-                  Create Mission Plan
+                  Review night schedule
                 </Button>
               ) : canCreateMission ? (
                 <Link href="/missions/new">

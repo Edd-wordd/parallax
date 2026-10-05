@@ -10,18 +10,22 @@ interface TargetFiltersProps {
   onSearchChange: (v: string) => void;
   types: Record<string, boolean>;
   onTypeChange: (key: string, checked: boolean) => void;
-  magMin?: number;
-  magMax?: number;
-  onMagChange?: (min: number, max: number) => void;
   visibleTonight: boolean;
   onVisibleTonightChange: (v: boolean) => void;
-  beginner: boolean;
-  onBeginnerChange: (v: boolean) => void;
+  /** Label: Visible tonight | Visible this session */
+  visibleFilterLabel: string;
+  brightAndLarge: boolean;
+  onBrightAndLargeChange: (v: boolean) => void;
   gridView: boolean;
   onGridViewChange: (v: boolean) => void;
 }
 
-const TARGET_TYPES = ["galaxy", "nebula", "open_cluster", "globular_cluster", "planet"];
+const TARGET_TYPES = [
+  "galaxy",
+  "nebula",
+  "open_cluster",
+  "globular_cluster",
+];
 
 export function TargetFilters({
   search,
@@ -30,8 +34,9 @@ export function TargetFilters({
   onTypeChange,
   visibleTonight,
   onVisibleTonightChange,
-  beginner,
-  onBeginnerChange,
+  visibleFilterLabel,
+  brightAndLarge,
+  onBrightAndLargeChange,
   gridView,
   onGridViewChange,
 }: TargetFiltersProps) {
@@ -43,7 +48,7 @@ export function TargetFilters({
         onChange={(e) => onSearchChange(e.target.value)}
         className="w-64"
       />
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         {TARGET_TYPES.map((t) => (
           <label key={t} className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -55,12 +60,21 @@ export function TargetFilters({
         ))}
       </div>
       <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={visibleTonight} onCheckedChange={onVisibleTonightChange} />
-        Visible tonight
+        <Checkbox
+          checked={visibleTonight}
+          onCheckedChange={onVisibleTonightChange}
+        />
+        {visibleFilterLabel}
       </label>
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={beginner} onCheckedChange={onBeginnerChange} />
-        Beginner
+      <label
+        className="flex items-center gap-2 text-sm"
+        title="Magnitude ≤ 8 and major size ≥ 15′"
+      >
+        <Checkbox
+          checked={brightAndLarge}
+          onCheckedChange={onBrightAndLargeChange}
+        />
+        Bright &amp; large
       </label>
       <div className="ml-auto flex gap-1">
         <Button

@@ -30,6 +30,9 @@ function mapTarget(row: MissionTargetRow): MissionTarget {
     rigFramingScore: row.rig_framing_score ?? undefined,
     whyIncluded: row.why_included ?? undefined,
     isoGain: row.planned_iso_gain ?? undefined,
+    scheduledStartAt: row.scheduled_start_at ?? null,
+    scheduledEndAt: row.scheduled_end_at ?? null,
+    plannedImagingMinutes: row.planned_imaging_minutes ?? null,
   };
 }
 
@@ -58,6 +61,7 @@ export function mapMissionFromDb(
     targets: ordered.map(mapTarget),
     status: row.status,
     phase: row.phase,
+    transitionMinutes: row.transition_minutes ?? null,
     currentTargetId: row.current_target_catalog_id ?? null,
     notes: row.notes ?? undefined,
     noteLog: [],

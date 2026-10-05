@@ -6,7 +6,7 @@ import { useMissionStore } from "@/lib/missionStore";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { getMissionStatus } from "@/lib/missionStatus";
-import type { Location, MissionTarget } from "@/lib/types";
+import type { GearProfile, Location, MissionTarget } from "@/lib/types";
 import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
 import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
@@ -15,22 +15,37 @@ import {
   TonightRecommendationsSection,
   NotSuitableSessionPanel,
   MissionDecisionDrawer,
+  NightScheduleReview,
   type DrawerTarget,
 } from "@/components/intelligence";
+import type { ScheduleReviewRow } from "@/components/intelligence/NightScheduleReview";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
+import { listGearProfiles } from "@/lib/supabase/queries/gear";
 import { isUuid } from "@/lib/missions/resolveMissionRefs";
 import { useDashboardRecommendations } from "@/lib/recommendations/useDashboardRecommendations";
 import {
-  recommendationToMissionTarget,
+  buildRecommendationForCatalogId,
   recommendationsContextKey,
 } from "@/lib/recommendations/mapper";
 import type {
   DashboardRecommendation,
   RejectedRecommendation,
 } from "@/lib/recommendations/types";
+import { MOCK_GEAR } from "@/lib/mock/gear";
 import { useToast } from "@/components/ui/toast";
+import {
+  defaultDurationFitsWindow,
+  missionTargetsFromSchedule,
+  recommendationToScheduleInput,
+} from "@/lib/schedule/applySchedule";
+import { proposeFeasibleSchedule } from "@/lib/schedule/buildNightSchedule";
+import {
+  DEFAULT_IMAGING_MINUTES,
+  DEFAULT_TRANSITION_MINUTES,
+  type NightScheduleResult,
+} from "@/lib/schedule/types";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -57,33 +72,63 @@ export default function DashboardPage() {
     dateTime,
   } = useAppStore();
   const {
-    plannedTargets,
+    plannedEntries,
     addToPlan,
     removeFromPlan,
     clearPlan,
     setPlannedTargets,
+    setDesiredMinutes,
+    reorderPlan,
   } = useDashboardRecommendationStore();
+  const plannedTargets = plannedEntries.map((e) => e.catalogId);
 
   const [dbLocations, setDbLocations] = useState<Location[]>([]);
+  const [dbGear, setDbGear] = useState<GearProfile[]>([]);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [drawerTarget, setDrawerTarget] = useState<DrawerTarget | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleRows, setScheduleRows] = useState<ScheduleReviewRow[]>([]);
+  const [scheduleProposalNote, setScheduleProposalNote] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const client = getSupabaseBrowserClient();
-        const rows = await listLocations(client);
+        const [locRows, gearRows] = await Promise.all([
+          listLocations(client),
+          listGearProfiles(client),
+        ]);
         if (cancelled) return;
         setDbLocations(
-          rows.map((r) => ({
+          locRows.map((r) => ({
             id: r.id,
             name: r.name,
             lat: r.lat,
             lon: r.lon,
             bortle: r.bortle,
             notes: r.notes ?? undefined,
+          })),
+        );
+        setDbGear(
+          gearRows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            telescope_name: r.telescope_name,
+            focal_length: r.focal_length,
+            aperture: r.aperture,
+            camera_name: r.camera_name,
+            sensor_preset: r.sensor_preset,
+            sensor_width_mm: r.sensor_width_mm ?? null,
+            sensor_height_mm: r.sensor_height_mm ?? null,
+            optics_factor: r.optics_factor ?? null,
+            pixel_size: r.pixel_size ?? undefined,
+            mount_type: r.mount_type,
+            guiding: r.guiding,
+            active: r.is_active,
           })),
         );
       } catch {
@@ -107,6 +152,29 @@ export default function DashboardPage() {
     );
   }, [activeLocationId, dbLocations]);
 
+  const activeGear = useMemo(() => {
+    if (isUuid(activeGearId)) {
+      const fromDb = dbGear.find((g) => g.id === activeGearId);
+      if (fromDb) return fromDb;
+    }
+    return (
+      MOCK_GEAR.find((g) => g.id === activeGearId) ??
+      dbGear.find((g) => g.active) ??
+      dbGear[0] ??
+      MOCK_GEAR[0]
+    );
+  }, [activeGearId, dbGear]);
+
+  const framingGear = useMemo(() => {
+    if (!activeGear) return null;
+    return {
+      focalLengthMm: activeGear.focal_length,
+      sensorWidthMm: activeGear.sensor_width_mm,
+      sensorHeightMm: activeGear.sensor_height_mm,
+      opticsFactor: activeGear.optics_factor,
+    };
+  }, [activeGear]);
+
   const constraints = useMemo(
     () => ({
       minAltitude,
@@ -123,6 +191,7 @@ export default function DashboardPage() {
     lonDeg: activeLoc?.lon,
     dateTime,
     constraints,
+    gear: framingGear,
   });
 
   const contextKey = recommendationsContextKey({
@@ -148,13 +217,31 @@ export default function DashboardPage() {
     }
   }, [contextKey, plannedTargets.length, clearPlan, toast]);
 
-  const plannedTargetsResolved = useMemo(
-    () =>
-      plannedTargets
-        .map((id) => recResult.recommendations.find((t) => t.id === id))
-        .filter((t): t is DashboardRecommendation => !!t),
-    [plannedTargets, recResult.recommendations],
-  );
+  const plannedTargetsResolved = useMemo(() => {
+    return plannedTargets
+      .map((id) => {
+        const fromRecs = recResult.recommendations.find((t) => t.id === id);
+        if (fromRecs) return fromRecs;
+        // Visible-unranked (or any catalog id with a session window)
+        return buildRecommendationForCatalogId({
+          targetId: id,
+          latDeg: activeLoc?.lat,
+          lonDeg: activeLoc?.lon,
+          dateTime,
+          constraints,
+          gear: framingGear,
+        });
+      })
+      .filter((t): t is DashboardRecommendation => t != null);
+  }, [
+    plannedTargets,
+    recResult.recommendations,
+    activeLoc?.lat,
+    activeLoc?.lon,
+    dateTime,
+    constraints,
+    framingGear,
+  ]);
 
   const hasGear = Boolean(activeGearId);
   const hasLocation = Boolean(activeLocationId);
@@ -200,7 +287,7 @@ export default function DashboardPage() {
     (missionStatus === "COMPLETED" ? lastSessionMission : null);
 
   const buildMission = useCallback(
-    (targets: MissionTarget[], name: string) => {
+    (targets: MissionTarget[], name: string, transitionMinutes?: number) => {
       const mission = {
         id: generateId(),
         name,
@@ -211,6 +298,7 @@ export default function DashboardPage() {
         targets,
         status: "ready" as const,
         phase: "planning" as const,
+        transitionMinutes: transitionMinutes ?? DEFAULT_TRANSITION_MINUTES,
         createdAt: new Date().toISOString(),
       };
       addMission(mission);
@@ -230,28 +318,93 @@ export default function DashboardPage() {
     ],
   );
 
+  const openScheduleReview = useCallback(
+    (rows: ScheduleReviewRow[], proposalNote: string | null = null) => {
+      setScheduleRows(rows);
+      setScheduleProposalNote(proposalNote);
+      setScheduleOpen(true);
+    },
+    [],
+  );
+
+  const rowsFromResolved = useCallback((): ScheduleReviewRow[] => {
+    return plannedTargetsResolved.map((rec) => {
+      const entry = plannedEntries.find((e) => e.catalogId === rec.id);
+      return {
+        catalogId: rec.id,
+        name: rec.name,
+        desiredMinutes: entry?.desiredMinutes ?? DEFAULT_IMAGING_MINUTES,
+        recommendation: rec,
+      };
+    });
+  }, [plannedTargetsResolved, plannedEntries]);
+
   const handleCreateMissionPlan = useCallback(
     (target: DashboardRecommendation) => {
       if (!canCreateMission) {
         toast("Select a location and gear profile first", "error");
         return;
       }
+      if (!defaultDurationFitsWindow(target, DEFAULT_IMAGING_MINUTES)) {
+        openScheduleReview(
+          [
+            {
+              catalogId: target.id,
+              name: target.name,
+              desiredMinutes: DEFAULT_IMAGING_MINUTES,
+              recommendation: target,
+            },
+          ],
+          `Default ${DEFAULT_IMAGING_MINUTES} min exceeds the usable window (${target.windowDurationMinutes} min). Adjust duration to continue.`,
+        );
+        return;
+      }
+      const single = proposeFeasibleSchedule({
+        sessionStart: recResult.sessionStart,
+        sessionEnd: recResult.sessionEnd,
+        targets: [
+          recommendationToScheduleInput(target, DEFAULT_IMAGING_MINUTES),
+        ],
+        transitionMinutes: DEFAULT_TRANSITION_MINUTES,
+      });
+      if (!single.ok || single.segments.length === 0) {
+        openScheduleReview(
+          [
+            {
+              catalogId: target.id,
+              name: target.name,
+              desiredMinutes: DEFAULT_IMAGING_MINUTES,
+              recommendation: target,
+            },
+          ],
+          single.proposalNote,
+        );
+        return;
+      }
       buildMission(
-        [recommendationToMissionTarget(target, 1)],
+        missionTargetsFromSchedule(single, [target]),
         `Mission · ${target.name}`,
+        single.transitionMinutes,
       );
     },
-    [canCreateMission, buildMission, toast],
+    [
+      canCreateMission,
+      buildMission,
+      toast,
+      openScheduleReview,
+      recResult.sessionStart,
+      recResult.sessionEnd,
+    ],
   );
 
   const handleAddToPlan = useCallback(
     (target: DashboardRecommendation) => {
-      addToPlan(target.id);
+      addToPlan(target.id, DEFAULT_IMAGING_MINUTES);
     },
     [addToPlan],
   );
 
-  const handlePlanTopTargets = useCallback(() => {
+  const handleProposeSchedule = useCallback(() => {
     if (!canCreateMission) {
       toast("Select a location and gear profile first", "error");
       return;
@@ -261,31 +414,82 @@ export default function DashboardPage() {
       toast("No targets available to plan", "error");
       return;
     }
-    const ids = top.map((t) => t.id);
-    setPlannedTargets(ids);
-    const missionTargets = top.map((t, i) =>
-      recommendationToMissionTarget(t, i + 1),
-    );
-    buildMission(missionTargets, "Planned night");
+    setPlannedTargets(top.map((t) => t.id), DEFAULT_IMAGING_MINUTES);
+    const proposed = proposeFeasibleSchedule({
+      sessionStart: recResult.sessionStart,
+      sessionEnd: recResult.sessionEnd,
+      targets: top.map((t) =>
+        recommendationToScheduleInput(t, DEFAULT_IMAGING_MINUTES),
+      ),
+      transitionMinutes: DEFAULT_TRANSITION_MINUTES,
+    });
+    const scheduledIds = new Set(proposed.segments.map((s) => s.catalogId));
+    const rows: ScheduleReviewRow[] = [
+      ...proposed.segments.map((s) => {
+        const rec = top.find((t) => t.id === s.catalogId)!;
+        return {
+          catalogId: s.catalogId,
+          name: s.name,
+          desiredMinutes: DEFAULT_IMAGING_MINUTES,
+          recommendation: rec,
+        };
+      }),
+      ...top
+        .filter((t) => !scheduledIds.has(t.id))
+        .map((t) => ({
+          catalogId: t.id,
+          name: t.name,
+          desiredMinutes: DEFAULT_IMAGING_MINUTES,
+          recommendation: t,
+        })),
+    ];
+    openScheduleReview(rows, proposed.proposalNote);
   }, [
     canCreateMission,
     recResult.recommendations,
+    recResult.sessionStart,
+    recResult.sessionEnd,
     setPlannedTargets,
-    buildMission,
+    openScheduleReview,
     toast,
   ]);
 
-  const handleStartPlannedMission = useCallback(() => {
+  const handleReviewSchedule = useCallback(() => {
     if (!canCreateMission) {
       toast("Select a location and gear profile first", "error");
       return;
     }
-    if (plannedTargetsResolved.length === 0) return;
-    const missionTargets = plannedTargetsResolved.map((t, i) =>
-      recommendationToMissionTarget(t, i + 1),
-    );
-    buildMission(missionTargets, "Planned night");
-  }, [canCreateMission, plannedTargetsResolved, buildMission, toast]);
+    const rows = rowsFromResolved();
+    if (rows.length === 0) return;
+    openScheduleReview(rows, null);
+  }, [canCreateMission, rowsFromResolved, openScheduleReview, toast]);
+
+  const handleAcceptSchedule = useCallback(
+    (result: NightScheduleResult, orderedRows: ScheduleReviewRow[]) => {
+      if (result.segments.length === 0) {
+        toast("Nothing to schedule — adjust durations or targets", "error");
+        return;
+      }
+      reorderPlan(orderedRows.map((r) => r.catalogId));
+      for (const row of orderedRows) {
+        setDesiredMinutes(row.catalogId, row.desiredMinutes);
+      }
+      const recs = orderedRows.map((r) => r.recommendation);
+      buildMission(
+        missionTargetsFromSchedule(result, recs),
+        "Planned night",
+        result.transitionMinutes,
+      );
+      setScheduleOpen(false);
+    },
+    [buildMission, reorderPlan, setDesiredMinutes, toast],
+  );
+
+  const plannedDurations = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const e of plannedEntries) m[e.catalogId] = e.desiredMinutes;
+    return m;
+  }, [plannedEntries]);
 
   const topRecommendedTarget = recResult.recommendations[0] ?? null;
 
@@ -326,7 +530,7 @@ export default function DashboardPage() {
           plannedTargetNames={plannedTargetsResolved.map((t) => t.name)}
           onStartPlannedMission={
             plannedTargetsResolved.length > 0
-              ? handleStartPlannedMission
+              ? handleReviewSchedule
               : undefined
           }
           noTargetsMessage={
@@ -382,14 +586,15 @@ export default function DashboardPage() {
             onSelectTarget={setSelectedTargetId}
             activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
             plannedTargets={plannedTargetsResolved}
+            plannedDurations={plannedDurations}
             onCreateMissionPlan={handleCreateMissionPlan}
             onAddToPlan={handleAddToPlan}
-            onPlanTopTargets={handlePlanTopTargets}
+            onProposeSchedule={handleProposeSchedule}
             onRemoveFromPlan={removeFromPlan}
             onClearPlan={clearPlan}
-            onStartPlannedMission={
+            onReviewSchedule={
               plannedTargetsResolved.length > 0
-                ? handleStartPlannedMission
+                ? handleReviewSchedule
                 : undefined
             }
             onOpenEvidence={openEvidence}
@@ -401,6 +606,16 @@ export default function DashboardPage() {
         target={drawerTarget}
         isOpen={drawerOpen}
         onClose={closeDrawer}
+      />
+
+      <NightScheduleReview
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        sessionStart={recResult.sessionStart}
+        sessionEnd={recResult.sessionEnd}
+        rows={scheduleRows}
+        proposalNote={scheduleProposalNote}
+        onAccept={handleAcceptSchedule}
       />
     </div>
   );

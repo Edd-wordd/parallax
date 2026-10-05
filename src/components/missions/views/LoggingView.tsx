@@ -5,6 +5,7 @@ import { MissionTimeline } from "@/components/MissionTimeline";
 import { Button } from "@/components/ui/button";
 import type { Mission } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { targetScheduleLabel } from "@/lib/schedule/display";
 
 const PANEL_STYLE = "mission-panel";
 
@@ -232,7 +233,7 @@ export function LoggingView({
                           {t.targetName}
                         </span>
                         <span className="text-xs text-zinc-500 shrink-0 tabular-nums">
-                          {t.plannedWindowStart}–{t.plannedWindowEnd}
+                          {targetScheduleLabel(t)}
                         </span>
                       </div>
                     </div>

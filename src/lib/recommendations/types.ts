@@ -1,13 +1,13 @@
 /**
- * Dashboard recommendation view-models built only from
- * generateDeepSkyPlan / computeSessionAstronomy + curated catalog.
- * No framing, exposure, or historical claims.
+ * Dashboard recommendation view-models from generateDeepSkyPlan + optional
+ * rig framing evidence. Ranking score remains altitude + Moon only.
  */
 
 import type { TargetType } from "@/lib/types";
 import type { UnavailableReason } from "@/lib/sky/visibility";
+import type { RigFitState } from "@/lib/gear/framing";
 
-export type RigFitState = "not_calculated";
+export type { RigFitState };
 
 export interface DashboardRecommendation {
   id: string;
@@ -36,7 +36,15 @@ export interface DashboardRecommendation {
   minAltitudeDeg: number;
   sessionStart: Date;
   sessionEnd: Date;
+  /** Qualitative FOV fit — not part of score */
   rigFit: RigFitState;
+  rigFitDetail: string;
+  fovWidthArcmin: number | null;
+  fovHeightArcmin: number | null;
+  targetSizeMajorArcmin: number | null;
+  targetSizeMinorArcmin: number | null;
+  targetSizeKind: string | null;
+  targetSizeSource: string | null;
   /** MissionTarget-ready fields */
   plannedWindowStart: string;
   plannedWindowEnd: string;
@@ -61,3 +69,10 @@ export interface DashboardRecommendationsResult {
   sessionStart: Date;
   sessionEnd: Date;
 }
+
+export type FramingGearForRecs = {
+  focalLengthMm: number;
+  sensorWidthMm: number | null | undefined;
+  sensorHeightMm: number | null | undefined;
+  opticsFactor?: number | null;
+} | null;

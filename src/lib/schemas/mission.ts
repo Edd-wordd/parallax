@@ -43,6 +43,7 @@ export const MissionSchema = z.object({
   notes: z.string().nullable().optional(),
   cancelled_reason: z.string().nullable().optional(),
   log_locked: z.boolean(),
+  transition_minutes: z.number().int().nullable().optional(),
   deleted_at: z.string().datetime().nullable().optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),
@@ -57,6 +58,9 @@ export const MissionTargetSchema = z.object({
   target_type: z.string().min(1),
   planned_window_start: z.string().nullable().optional(),
   planned_window_end: z.string().nullable().optional(),
+  scheduled_start_at: z.string().datetime().nullable().optional(),
+  scheduled_end_at: z.string().datetime().nullable().optional(),
+  planned_imaging_minutes: z.number().int().nullable().optional(),
   score: z.number(),
   sequence_index: z.number().int().nullable().optional(),
   role_label: z.string().nullable().optional(),
@@ -86,6 +90,7 @@ export const MissionInsertSchema = z.object({
   phase: MissionPhaseSchema,
   current_target_catalog_id: CatalogIdSchema.optional(),
   notes: z.string().optional(),
+  transition_minutes: z.number().int().nullable().optional(),
 });
 
 export type MissionRow = z.infer<typeof MissionSchema>;

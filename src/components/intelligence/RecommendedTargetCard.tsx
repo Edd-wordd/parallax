@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatLocalHm } from "@/lib/sky/visibility";
+import { rigFitLabel } from "@/lib/gear/framing";
 import type { DashboardRecommendation } from "@/lib/recommendations/types";
 
 interface RecommendedTargetCardProps {
@@ -228,7 +230,31 @@ export function RecommendedTargetCard({
           peakAt={target.peakAt}
         />
 
-        <p className="mt-1 text-[10px] text-zinc-600">Rig fit not calculated</p>
+        <p className="mt-1 text-[10px] text-zinc-500">
+          Rig fit:{" "}
+          <span className="text-zinc-300">{rigFitLabel(target.rigFit)}</span>
+          {target.fovWidthArcmin != null && target.fovHeightArcmin != null && (
+            <span className="text-zinc-600">
+              {" "}
+              · FOV {target.fovWidthArcmin.toFixed(0)}′×
+              {target.fovHeightArcmin.toFixed(0)}′
+            </span>
+          )}
+          {target.rigFit === "unknown" &&
+            target.rigFitDetail.includes("sensor") && (
+              <>
+                {" "}
+                ·{" "}
+                <Link
+                  href="/settings?tab=gear"
+                  className="text-indigo-400/90 underline-offset-2 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Edit rig
+                </Link>
+              </>
+            )}
+        </p>
 
         <div className="mt-2 flex flex-wrap gap-1.5">
           <Button

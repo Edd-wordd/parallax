@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type PlanPanelTarget = { id: string; name: string };
+export type PlanPanelTarget = {
+  id: string;
+  name: string;
+  desiredMinutes?: number;
+};
 
 interface MissionPlanPanelProps {
   targets: PlanPanelTarget[];
@@ -11,6 +15,9 @@ interface MissionPlanPanelProps {
   status: "planning" | "ready" | "capturing" | "completed";
   onRemoveTarget?: (targetId: string) => void;
   onClearPlan?: () => void;
+  /** Opens schedule review (preferred). */
+  onReviewSchedule?: () => void;
+  /** Legacy alias — treated as review when onReviewSchedule absent. */
   onStartPlannedMission?: () => void;
   className?: string;
 }
@@ -20,10 +27,13 @@ export function MissionPlanPanel({
   activeTargetId,
   onRemoveTarget,
   onClearPlan,
+  onReviewSchedule,
   onStartPlannedMission,
   className,
 }: MissionPlanPanelProps) {
   if (targets.length === 0) return null;
+
+  const review = onReviewSchedule ?? onStartPlannedMission;
 
   return (
     <div
@@ -55,6 +65,11 @@ export function MissionPlanPanel({
                   {i + 1}.
                 </span>
                 <span className="truncate">{t.name}</span>
+                {t.desiredMinutes != null && (
+                  <span className="shrink-0 text-[10px] tabular-nums text-zinc-600">
+                    {t.desiredMinutes}m
+                  </span>
+                )}
                 {activeTargetId === t.id && (
                   <span className="shrink-0 text-[9px] font-medium uppercase text-indigo-400">
                     Current focus
@@ -74,14 +89,14 @@ export function MissionPlanPanel({
           ))}
         </ol>
         <div className="flex flex-wrap gap-2 border-t border-zinc-800/60 pt-2">
-          {onStartPlannedMission && (
+          {review && (
             <Button
               variant="cta"
               size="sm"
               className="text-xs"
-              onClick={onStartPlannedMission}
+              onClick={review}
             >
-              Create Mission Plan
+              Review night schedule
             </Button>
           )}
           {onClearPlan && (

@@ -10,6 +10,10 @@ import type { Mission, MissionTarget } from "@/lib/types";
 import type { ExposurePlan } from "@/lib/mock/exposurePlans";
 import type { SessionSimulation } from "@/lib/mock/sessionSimulations";
 import { cn } from "@/lib/utils";
+import {
+  hasTimedSchedule,
+  targetScheduleLabel,
+} from "@/lib/schedule/display";
 import { Moon, Plus, Target, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
 const PANEL_STYLE = "mission-panel";
@@ -203,8 +207,8 @@ export function PlanningView({
                     {currentTarget.frames ?? 60} subs
                   </span>
                   <span className="tabular-nums">
-                    Window: {currentTarget.plannedWindowStart} –{" "}
-                    {currentTarget.plannedWindowEnd}
+                    {hasTimedSchedule(currentTarget) ? "Scheduled" : "Window"}:{" "}
+                    {targetScheduleLabel(currentTarget)}
                   </span>
                 </>
               )}
@@ -363,7 +367,7 @@ export function PlanningView({
                             {t.targetName}
                           </span>
                           <span className="text-xs text-zinc-500 shrink-0 tabular-nums">
-                            {t.plannedWindowStart}–{t.plannedWindowEnd}
+                            {targetScheduleLabel(t)}
                           </span>
                         </div>
                       </div>

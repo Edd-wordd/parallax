@@ -43,7 +43,12 @@ export interface GearProfile {
   focal_length: number; // mm
   aperture: number; // mm
   camera_name: string;
+  /** Legacy enum; framing uses sensor_width_mm / sensor_height_mm */
   sensor_preset: "apsc" | "full_frame" | "m43" | "1inch";
+  sensor_width_mm?: number | null;
+  sensor_height_mm?: number | null;
+  /** Reducer (&lt;1) or Barlow (&gt;1); null = use focal_length as-is */
+  optics_factor?: number | null;
   pixel_size?: number; // microns
   mount_type: "alt-az" | "equatorial";
   guiding: boolean;
@@ -139,6 +144,11 @@ export interface MissionTarget {
   whyIncluded?: string;
   /** ISO or gain for exposure recipe (e.g. "1600" or "120") */
   isoGain?: string;
+  /** Authoritative timed schedule (ISO); null/undefined = no timed schedule */
+  scheduledStartAt?: string | null;
+  scheduledEndAt?: string | null;
+  /** Desired/on-target imaging minutes for the scheduled segment */
+  plannedImagingMinutes?: number | null;
 }
 
 export type MissionPhase =
@@ -160,6 +170,8 @@ export interface Mission {
   targets: MissionTarget[];
   status: MissionStatus;
   phase?: MissionPhase;
+  /** Transition gap between scheduled targets (minutes); null → treat as 15 */
+  transitionMinutes?: number | null;
   /** Currently focused/active target in the queue (mock) */
   currentTargetId?: string | null;
   notes?: string;

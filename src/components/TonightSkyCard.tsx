@@ -106,7 +106,7 @@ export function TonightSkyCard({
       <div className="mt-4 grid grid-cols-1 gap-4 border-t border-zinc-800/60 pt-3 sm:grid-cols-2 sm:gap-0">
         <div className="min-w-0 sm:border-r sm:border-zinc-800/60 sm:pr-4">
           <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Session notes{" "}
+            Tonight AI Generated Details{" "}
             <span className="font-normal normal-case text-amber-400/80">
               (Demo)
             </span>

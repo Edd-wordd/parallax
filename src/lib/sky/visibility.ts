@@ -274,6 +274,35 @@ function targetAltitudeDeg(
   return hor.altitude;
 }
 
+/** Altitude samples across a session for charts (calculated, not mock). */
+export function sampleTargetAltitudeSeries(input: {
+  latDeg: number;
+  lonDeg: number;
+  target: CuratedTarget;
+  sessionStart: Date;
+  sessionEnd: Date;
+  stepMinutes?: number;
+}): { time: string; altitude: number }[] {
+  const stepMs = (input.stepMinutes ?? 30) * 60_000;
+  const observer = makeObserver({
+    latDeg: input.latDeg,
+    lonDeg: input.lonDeg,
+  });
+  const out: { time: string; altitude: number }[] = [];
+  for (
+    let t = input.sessionStart.getTime();
+    t <= input.sessionEnd.getTime();
+    t += stepMs
+  ) {
+    const d = new Date(t);
+    out.push({
+      time: formatLocalHm(d),
+      altitude: Math.max(0, targetAltitudeDeg(d, observer, input.target)),
+    });
+  }
+  return out;
+}
+
 /** Contiguous intervals where sample predicate holds. */
 function intervalsFromSamples(
   times: Date[],

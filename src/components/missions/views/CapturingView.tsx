@@ -8,6 +8,10 @@ import { ConditionsCard } from "@/components/missions/ConditionsCard";
 import type { Mission, MissionTarget } from "@/lib/types";
 import type { ConditionsState } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
+import {
+  hasTimedSchedule,
+  targetScheduleLabel,
+} from "@/lib/schedule/display";
 
 const PANEL_STYLE = "mission-panel";
 
@@ -193,8 +197,8 @@ export function CapturingView({
                     </span>
                   )}
                   <span className="tabular-nums">
-                    Window: {currentTarget.plannedWindowStart} –{" "}
-                    {currentTarget.plannedWindowEnd}
+                    {hasTimedSchedule(currentTarget) ? "Scheduled" : "Window"}:{" "}
+                    {targetScheduleLabel(currentTarget)}
                   </span>
                 </>
               )}
@@ -276,7 +280,7 @@ export function CapturingView({
                             {t.targetName}
                           </span>
                           <span className="text-xs text-zinc-500 shrink-0 tabular-nums">
-                            {t.plannedWindowStart}–{t.plannedWindowEnd}
+                            {targetScheduleLabel(t)}
                           </span>
                         </div>
                       </div>

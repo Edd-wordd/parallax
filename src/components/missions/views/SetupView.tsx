@@ -1,20 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { SoftwareSelect } from "@/components/missions/SoftwareSelect";
 import { LiveSkyMonitorCard } from "@/components/sky-intelligence/LiveSkyMonitorCard";
+import { MissionConditionsPanel } from "@/components/missions/MissionConditionsPanel";
+import { GoNoGoBanner } from "@/components/missions/GoNoGoBanner";
+import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
 import {
   MOCK_LIVE_EVENTS,
   MOCK_LIVE_STATE,
 } from "@/lib/mock/skyIntelligence";
-import type { SoftwareState } from "@/lib/missionUIStore";
+import type { ConditionsState, SoftwareState } from "@/lib/missionUIStore";
 import {
   HOW_TO_CONTENT,
   OPTIMIZE_RECOMMENDATIONS,
 } from "@/lib/mockMissionData";
+import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
+import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
+import { checklistStateFromEvents } from "@/lib/missions/checklistFromEvents";
+
+export type ChecklistTogglePayload = {
+  sectionId: string;
+  stepId: string;
+  label: string;
+  sectionLabel: string;
+  checked: boolean;
+};
 
 const PANEL_STYLE = "mission-panel";
 
@@ -70,32 +84,57 @@ interface SetupViewProps {
   onStartMission: () => void;
   onCancelMission: () => void;
 
-  /** Notes / session log */
-  noteLog: { text: string; at: string }[];
   isReadOnlySession: boolean;
   onAddNote: (text: string) => void;
   onQuickEvent: (label: string) => void;
+  onChecklistToggle: (item: ChecklistTogglePayload) => void;
   /** Optional initial software state (if available later) */
   software?: SoftwareState;
-}
 
-const QUICK_EVENT_LABELS = [
-  "Clouds moving in",
-  "Guiding lost",
-  "Meridian flip",
-  "Conditions changed",
-] as const;
+  /** Mission site / window for real forecast + astronomy */
+  lat?: number | null;
+  lon?: number | null;
+  dateTime: string;
+  sessionEndAt?: string | null;
+  siteTimezone?: string | null;
+  siteName?: string | null;
+  minAltitudeDeg?: number;
+  moonToleranceDeg?: number;
+  conditions: ConditionsState;
+  onConditionsChange: (c: Partial<ConditionsState>) => void;
+  conditionLogs: ConditionLogRow[];
+  missionEvents: MissionEventRow[];
+  latestFieldReadingEventId?: string | null;
+  onCommitReading: (reading: ManualFieldReadingPayload) => Promise<void> | void;
+  committingReading?: boolean;
+  readingError?: string | null;
+}
 
 export function SetupView({
   onStartMission,
   onCancelMission,
-  noteLog,
   isReadOnlySession,
   onAddNote,
   onQuickEvent,
+  onChecklistToggle,
   software,
+  lat = null,
+  lon = null,
+  dateTime,
+  sessionEndAt = null,
+  siteTimezone = null,
+  siteName = null,
+  minAltitudeDeg = 30,
+  moonToleranceDeg = 15,
+  conditions,
+  onConditionsChange,
+  conditionLogs,
+  missionEvents,
+  latestFieldReadingEventId = null,
+  onCommitReading,
+  committingReading = false,
+  readingError = null,
 }: SetupViewProps) {
-  const [noteInput, setNoteInput] = useState("");
   const [softwareState, setSoftwareState] = useState<SoftwareState>(
     software ?? {
       name: "NINA",
@@ -103,24 +142,36 @@ export function SetupView({
       caps: { plateSolve: true, autoFocus: true, guiding: true, dithering: true },
     },
   );
-  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({});
+  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>(
+    () => checklistStateFromEvents(missionEvents),
+  );
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({});
   const [optimizeNote, setOptimizeNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCheckedSteps(checklistStateFromEvents(missionEvents));
+  }, [missionEvents]);
 
   const softwareProfile: SoftwareProfile =
     SOFTWARE_NAME_TO_PROFILE[softwareState.name] ?? "nina";
 
-  const handleSubmitNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = noteInput.trim();
-    if (!text) return;
-    onAddNote(text);
-    setNoteInput("");
-  };
-
-  const handleToggleStep = (sectionId: string, stepId: string) => {
+  const handleToggleStep = (
+    sectionId: string,
+    stepId: string,
+    label: string,
+    sectionLabel: string,
+  ) => {
+    if (isReadOnlySession) return;
     const key = `${sectionId}-${stepId}`;
-    setCheckedSteps((prev) => ({ ...prev, [key]: !prev[key] }));
+    const nextChecked = !(checkedSteps[key] ?? false);
+    setCheckedSteps((prev) => ({ ...prev, [key]: nextChecked }));
+    onChecklistToggle({
+      sectionId,
+      stepId,
+      label,
+      sectionLabel,
+      checked: nextChecked,
+    });
   };
 
   const handleToggleHowTo = (sectionId: string, stepId: string) => {
@@ -147,6 +198,15 @@ export function SetupView({
         </p>
       </div>
 
+      <GoNoGoBanner
+        lat={lat}
+        lon={lon}
+        dateTime={dateTime}
+        sessionEndAt={sessionEndAt}
+        minAltitudeDeg={minAltitudeDeg}
+        moonToleranceDeg={moonToleranceDeg}
+      />
+
       {/* Software selector */}
       <section className={cn(PANEL_STYLE, "p-4")}>
         <SoftwareSelect
@@ -163,58 +223,39 @@ export function SetupView({
 
       {/* Observing conditions + Equipment checklist with How-To */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Observing conditions card */}
+        {/* Observing conditions — forecast / calculated / field */}
         <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
           <div className="flex items-center justify-between mb-1">
             <h3 className="mission-section-label mb-0">
-              Observing Conditions (forecast)
+              Observing Conditions
             </h3>
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300 border border-emerald-500/30">
-              Read-only
-            </span>
           </div>
-          <p className="text-xs text-zinc-400">
-            Snapshot from forecast and site intelligence. Adjust overrides below if
-            field conditions differ.
-          </p>
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-            <div>
-              <dt className="text-zinc-500">Forecast confidence</dt>
-              <dd className="font-medium text-zinc-100">High (87%)</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Cloud cover</dt>
-              <dd className="font-medium text-zinc-100">10–20%</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Humidity</dt>
-              <dd className="font-medium text-zinc-100">42%</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Seeing</dt>
-              <dd className="font-medium text-zinc-100">2.1″ (good)</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Transparency</dt>
-              <dd className="font-medium text-zinc-100">3 / 5 (average)</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Wind</dt>
-              <dd className="font-medium text-zinc-100">5–8 mph</dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">Moon impact</dt>
-              <dd className="font-medium text-zinc-100">Low (18% illumination)</dd>
-            </div>
-          </dl>
+          <MissionConditionsPanel
+            lat={lat}
+            lon={lon}
+            dateTime={dateTime}
+            sessionEndAt={sessionEndAt}
+            siteTimezone={siteTimezone}
+            siteName={siteName}
+            minAltitudeDeg={minAltitudeDeg}
+            moonToleranceDeg={moonToleranceDeg}
+            conditions={conditions}
+            onConditionsChange={onConditionsChange}
+            conditionLogs={conditionLogs}
+            latestFieldReadingEventId={latestFieldReadingEventId}
+            onCommitReading={onCommitReading}
+            committing={committingReading}
+            commitError={readingError}
+            readOnly={isReadOnlySession}
+          />
         </section>
 
         {/* Equipment checklist with inline How-To */}
         <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
           <h3 className="mission-section-label mb-1">Equipment Checklist</h3>
           <p className="text-xs text-zinc-400">
-            Expand any item for software-specific how-to and what &quot;done&quot;
-            looks like.
+            Checkoffs are written to the observing log. Expand any item for
+            software-specific how-to.
           </p>
           <div className="mt-2 space-y-3 max-h-80 overflow-y-auto pr-1">
             {EQUIPMENT_SECTIONS.map((section) => (
@@ -241,9 +282,17 @@ export function SetupView({
                         >
                           <Checkbox
                             checked={checked}
-                            onCheckedChange={() => handleToggleStep(section.id, step.id)}
+                            onCheckedChange={() =>
+                              handleToggleStep(
+                                section.id,
+                                step.id,
+                                step.label,
+                                section.title,
+                              )
+                            }
                             className="h-3.5 w-3.5"
                             onClick={(e) => e.stopPropagation()}
+                            disabled={isReadOnlySession}
                           />
                           <span className="flex-1 text-zinc-200">
                             {step.label}
@@ -289,12 +338,18 @@ export function SetupView({
         </section>
       </div>
 
-      {/* Optimize suggestions */}
+      {/* Optimize suggestions (Demo) */}
       <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-        <h3 className="mission-section-label mb-1">Optimize Tonight&apos;s Plan</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="mission-section-label mb-0">
+            Optimize Tonight&apos;s Plan
+          </h3>
+          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+            Demo
+          </span>
+        </div>
         <p className="text-xs text-zinc-400">
-          Quick tweaks based on light pollution and moon. Apply suggestions to log
-          them into your session notes.
+          Demo suggestions only — not connected to live AI or equipment.
         </p>
         <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
           {OPTIMIZE_RECOMMENDATIONS.slice(0, 3).map((rec) => (
@@ -320,144 +375,23 @@ export function SetupView({
         </div>
         {optimizeNote && (
           <p className="text-[11px] text-zinc-500">
-            Logged to notes: <span className="text-zinc-300">{optimizeNote}</span>
+            Logged: <span className="text-zinc-300">{optimizeNote}</span>
           </p>
         )}
       </section>
 
-      {/* Field conditions + Sky verification */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Field conditions overrides */}
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <h3 className="mission-section-label mb-1">Field Conditions</h3>
-          <p className="text-xs text-zinc-400">
-            If reality doesn&apos;t match the forecast, capture overrides so Parallax
-            can recommend adjustments.
-          </p>
-          <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
-            <div className="space-y-1.5">
-              <label className="flex items-center justify-between text-[11px] text-zinc-400">
-                Clouds
-                <span className="text-zinc-300">Thin</span>
-              </label>
-              <div className="h-1.5 rounded-full bg-white/5">
-                <div className="h-full w-1/4 rounded-full bg-cyan-400/70" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="flex items-center justify-between text-[11px] text-zinc-400">
-                Seeing
-                <span className="text-zinc-300">Good</span>
-              </label>
-              <div className="h-1.5 rounded-full bg-white/5">
-                <div className="h-full w-1/3 rounded-full bg-emerald-400/70" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="flex items-center justify-between text-[11px] text-zinc-400">
-                Wind
-                <span className="text-zinc-300">Calm</span>
-              </label>
-              <div className="h-1.5 rounded-full bg-white/5">
-                <div className="h-full w-1/5 rounded-full bg-emerald-400/70" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="flex items-center justify-between text-[11px] text-zinc-400">
-                Moon glare
-                <span className="text-zinc-300">Minimal</span>
-              </label>
-              <div className="h-1.5 rounded-full bg-white/5">
-                <div className="h-full w-1/6 rounded-full bg-cyan-400/70" />
-              </div>
-            </div>
-          </div>
-          <div className="pt-2 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="h-8 px-3 text-[11px] border border-white/10 bg-white/5"
-            >
-              Field conditions match forecast
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="h-8 px-3 text-[11px] border border-amber-500/40 bg-amber-500/10 text-amber-200"
-            >
-              Override conditions for this session
-            </Button>
-          </div>
-        </section>
-
-        {/* Sky verification */}
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="mission-section-label mb-0">Sky Verification</h3>
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-              Proceed as planned
-            </span>
-          </div>
-          <p className="text-xs text-zinc-400">
-            Compare planned vs live conditions at your primary target and window.
-          </p>
-          <div className="mt-2 rounded-lg border border-white/10 bg-black/40 overflow-hidden">
-            <table className="w-full text-xs">
-              <thead className="bg-white/5 text-zinc-400">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium">Metric</th>
-                  <th className="px-3 py-2 text-left font-medium">Planned</th>
-                  <th className="px-3 py-2 text-left font-medium">Live</th>
-                  <th className="px-3 py-2 text-left font-medium">Delta</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                <tr>
-                  <td className="px-3 py-2 text-zinc-300">Cloud cover</td>
-                  <td className="px-3 py-2 text-zinc-400">15%</td>
-                  <td className="px-3 py-2 text-zinc-100">18%</td>
-                  <td className="px-3 py-2 text-emerald-300">+3%</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-zinc-300">Seeing</td>
-                  <td className="px-3 py-2 text-zinc-400">2.0″</td>
-                  <td className="px-3 py-2 text-zinc-100">2.1″</td>
-                  <td className="px-3 py-2 text-emerald-300">+0.1″</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-zinc-300">Wind</td>
-                  <td className="px-3 py-2 text-zinc-400">7 mph</td>
-                  <td className="px-3 py-2 text-zinc-100">8 mph</td>
-                  <td className="px-3 py-2 text-emerald-300">+1 mph</td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-2 text-zinc-300">Moon impact</td>
-                  <td className="px-3 py-2 text-zinc-400">Low</td>
-                  <td className="px-3 py-2 text-zinc-100">Low</td>
-                  <td className="px-3 py-2 text-emerald-300">No change</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-emerald-300">
-            Conditions are within tolerance for your plan — you can safely proceed as
-            planned.
-          </p>
-        </section>
-      </div>
-
-      {/* Third row: Live sky monitor + Notes */}
+      {/* Live sky monitor (Demo) + Notes */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
-        {/* Live sky monitor */}
         <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
           <div className="flex items-center justify-between mb-1">
             <h3 className="mission-section-label mb-0">Live Sky Monitor</h3>
-            <span className="text-[11px] text-zinc-500">
-              Mock feed · NINA / ASIAIR / Ekos
+            <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+              Demo
             </span>
           </div>
+          <p className="text-[11px] text-zinc-500">
+            Mock feed — not connected equipment telemetry.
+          </p>
           <LiveSkyMonitorCard
             cloudCover={18}
             starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? null}
@@ -468,68 +402,19 @@ export function SetupView({
           />
         </section>
 
-        {/* Notes / session log */}
         <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-          <h3 className="mission-section-label mb-1">Notes / Session Log</h3>
-          {noteLog.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] font-mono tabular-nums">
-              {noteLog.map((entry) => (
-                <div
-                  key={entry.at}
-                  className="flex gap-2 rounded border border-white/5 bg-black/20 px-2 py-1.5"
-                >
-                  <span className="text-xs text-zinc-500 shrink-0">
-                    {new Date(entry.at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-200 leading-snug">{entry.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <div className="flex flex-wrap gap-2 pt-2 pb-1">
-              {QUICK_EVENT_LABELS.map((label) => (
-                <Button
-                  key={label}
-                  type="button"
-                  size="lg"
-                  variant="ghost"
-                  className="min-w-[9rem] h-9 px-3 text-[11px] border border-white/10 bg-white/5 justify-start"
-                  onClick={() => onQuickEvent(label)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <form onSubmit={handleSubmitNote} className="mt-auto flex gap-2 pt-1">
-              <input
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="Log what just happened…"
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="secondary"
-                disabled={!noteInput.trim()}
-                className="border-white/10 bg-white/5"
-              >
-                Add
-              </Button>
-            </form>
-          )}
-          {isReadOnlySession && (
-            <p className="mt-auto pt-3 text-[11px] text-zinc-500">
-              Session ended — notes and events are locked for this mission.
-            </p>
-          )}
+          <SessionObservingLog
+            events={missionEvents}
+            isReadOnly={isReadOnlySession}
+            onAddNote={onAddNote}
+            onQuickEvent={onQuickEvent}
+            quickEventLabels={[
+              "Clouds moving in",
+              "Guiding lost",
+              "Meridian flip",
+              "Conditions changed",
+            ]}
+          />
         </section>
       </div>
     </div>

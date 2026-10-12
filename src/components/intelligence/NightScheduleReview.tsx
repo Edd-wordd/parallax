@@ -154,8 +154,10 @@ export function NightScheduleReview({
         </DialogHeader>
         <DialogBody className="space-y-4">
           <p className="text-[11px] text-zinc-500">
-            Times are in your device timezone. Overnight segments show calendar
-            dates.
+            Times use the session display timezone (site IANA when set, otherwise
+            device). Overnight segments show calendar dates. Changing the mission
+            window after accept requires a schedule review — times are never
+            rewritten silently.
           </p>
 
           {(proposalNote || result.proposalNote) && (

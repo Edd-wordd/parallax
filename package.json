@@ -15,6 +15,12 @@
     "test:framing": "tsx --tsconfig tsconfig.json scripts/verify-framing.ts",
     "test:catalog": "tsx --tsconfig tsconfig.json scripts/verify-catalog.ts",
     "test:schedule": "tsx --tsconfig tsconfig.json scripts/verify-schedule.ts",
+    "test:mission-events": "tsx --tsconfig tsconfig.json scripts/verify-mission-events.ts",
+    "test:session-window": "tsx --tsconfig tsconfig.json scripts/verify-session-window.ts",
+    "test:capture-worksheet": "tsx --tsconfig tsconfig.json scripts/verify-capture-worksheet.ts",
+    "test:go-nogo": "tsx --tsconfig tsconfig.json scripts/verify-go-nogo.ts",
+    "test:plan-snapshot": "tsx --tsconfig tsconfig.json scripts/verify-plan-snapshot.ts",
+    "test:checklist-events": "tsx --tsconfig tsconfig.json scripts/verify-checklist-events.ts",
     "catalog:build": "tsx --tsconfig tsconfig.json scripts/import-openngc.ts"
   },
   "dependencies": {

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Telescope, Moon, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatDate } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -12,6 +11,12 @@ import {
   listGearProfiles,
   setActiveGearProfile,
 } from "@/lib/supabase/queries/gear";
+import { LOCATIONS_CHANGED_EVENT } from "@/components/LocationsSection";
+import {
+  DEFAULT_SESSION_HOURS,
+  formatObservingNightLabel,
+  sessionWindowFromMission,
+} from "@/lib/time/sessionWindow";
 
 export function ContextChipsBar() {
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -30,11 +35,21 @@ export function ContextChipsBar() {
   const [gearOptions, setGearOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [siteTimezoneById, setSiteTimezoneById] = useState<
+    Record<string, string | null>
+  >({});
   const [dateLabel, setDateLabel] = useState("—");
   const [mounted, setMounted] = useState(false);
+  const [locationsEpoch, setLocationsEpoch] = useState(0);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const onChanged = () => setLocationsEpoch((n) => n + 1);
+    window.addEventListener(LOCATIONS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(LOCATIONS_CHANGED_EVENT, onChanged);
   }, []);
 
   useEffect(() => {
@@ -48,6 +63,11 @@ export function ContextChipsBar() {
         ]);
         if (cancelled) return;
         setSiteOptions(locations.map((l) => ({ value: l.id, label: l.name })));
+        const tzMap: Record<string, string | null> = {};
+        for (const l of locations) {
+          tzMap[l.id] = l.timezone ?? null;
+        }
+        setSiteTimezoneById(tzMap);
         setGearOptions(gear.map((g) => ({ value: g.id, label: g.name })));
       } catch {
         // AuthProvider surfaces connection errors; chips stay empty until ready.
@@ -57,20 +77,23 @@ export function ContextChipsBar() {
     return () => {
       cancelled = true;
     };
-  }, [activeLocationId, activeGearId]);
+  }, [activeLocationId, activeGearId, locationsEpoch]);
 
   useEffect(() => {
     if (!mounted) return;
-    const d = new Date(dateTime);
-    const now = new Date();
-    const isSameDay =
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate();
+    const siteTimezone = siteTimezoneById[activeLocationId] ?? null;
+    const window = sessionWindowFromMission({
+      dateTime,
+      fallbackHours: DEFAULT_SESSION_HOURS,
+    });
     setDateLabel(
-      isSameDay ? `Tonight (${formatDate(dateTime)})` : formatDate(dateTime),
+      formatObservingNightLabel({
+        start: window.start,
+        end: window.end,
+        siteTimezone,
+      }),
     );
-  }, [dateTime, mounted]);
+  }, [dateTime, mounted, activeLocationId, siteTimezoneById]);
 
   const chipBase = "inline-flex items-center gap-2 text-xs w-[200px] shrink-0";
   const iconClass = "size-[14px] shrink-0 text-zinc-300";
@@ -131,7 +154,7 @@ export function ContextChipsBar() {
       </div>
 
       <div
-        className={cn(chipBase, "cursor-pointer relative")}
+        className={cn(chipBase, "cursor-pointer relative min-w-[220px] w-auto")}
         onClick={() => dateInputRef.current?.showPicker?.()}
         onKeyDown={(e) =>
           e.key === "Enter" && dateInputRef.current?.showPicker?.()
@@ -144,7 +167,9 @@ export function ContextChipsBar() {
         <span className="min-w-0 flex-1 flex items-center gap-1">
           <span className="text-zinc-300 font-semibold shrink-0">Date</span>
           <span className="text-zinc-500 shrink-0">·</span>
-          <span className="truncate text-zinc-400">{dateLabel}</span>
+          <span className="truncate text-zinc-400" title={dateLabel}>
+            {dateLabel}
+          </span>
           <ChevronDown className="size-3 shrink-0 text-zinc-500" />
         </span>
         <input

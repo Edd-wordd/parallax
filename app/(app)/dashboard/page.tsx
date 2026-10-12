@@ -518,8 +518,33 @@ export default function DashboardPage() {
         <DashboardMissionStatusCard
           mission={displayMission}
           missionStatus={missionStatus}
-          activeLocationId={activeLocationId}
-          activeGearId={activeGearId}
+          siteName={
+            (() => {
+              const locId =
+                displayMission?.locationId ??
+                activeMission?.locationId ??
+                activeLocationId;
+              return (
+                dbLocations.find((l) => l.id === locId)?.name ??
+                activeLoc?.name ??
+                null
+              );
+            })()
+          }
+          rigName={
+            (() => {
+              const gearId =
+                displayMission?.gearId ??
+                activeMission?.gearId ??
+                activeGearId;
+              return (
+                dbGear.find((g) => g.id === gearId)?.name ??
+                activeGear?.name ??
+                null
+              );
+            })()
+          }
+          contextDateTime={dateTime}
           canCreateMission={canCreateMission}
           createMissionHelperText={createMissionHelperText}
           onClearMission={handleClearMission}

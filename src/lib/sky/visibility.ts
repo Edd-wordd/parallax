@@ -133,14 +133,20 @@ function isSameLocalCalendarDay(a: Date, b: Date): boolean {
 
 /**
  * HH:MM–HH:MM, with calendar dates when the window crosses midnight.
+ * Optional timezoneAbbreviation appends e.g. " (MDT)".
  */
-export function formatWindowLabel(start: Date, end: Date): string {
+export function formatWindowLabel(
+  start: Date,
+  end: Date,
+  timezoneAbbreviation?: string | null,
+): string {
   const startHm = formatLocalHm(start);
   const endHm = formatLocalHm(end);
-  if (isSameLocalCalendarDay(start, end)) {
-    return `${startHm}–${endHm}`;
-  }
-  return `${startHm} ${shortMonthDay(start)} – ${endHm} ${shortMonthDay(end)}`;
+  const base = isSameLocalCalendarDay(start, end)
+    ? `${startHm}–${endHm}`
+    : `${startHm} ${shortMonthDay(start)} – ${endHm} ${shortMonthDay(end)}`;
+  const abbr = timezoneAbbreviation?.trim();
+  return abbr ? `${base} (${abbr})` : base;
 }
 
 export function moonPhaseLabel(elongationDeg: number): string {

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { Button } from "@/components/ui/button";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
-import { ConditionsCard } from "@/components/missions/ConditionsCard";
+import { MissionConditionsPanel } from "@/components/missions/MissionConditionsPanel";
+import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
+import { CaptureWorksheet } from "@/components/missions/CaptureWorksheet";
 import type { Mission, MissionTarget } from "@/lib/types";
 import type { ConditionsState } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
@@ -12,19 +13,21 @@ import {
   hasTimedSchedule,
   targetScheduleLabel,
 } from "@/lib/schedule/display";
+import {
+  actualLabel,
+  fromDatetimeLocalValue,
+  scheduleSummaryLines,
+  toDatetimeLocalValue,
+  transitionMinutesOf,
+} from "@/lib/schedule/observing";
+import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
+import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
+import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
 
 const PANEL_STYLE = "mission-panel";
 
-const QUICK_EVENT_LABELS = [
-  "Clouds moving in",
-  "Guiding lost",
-  "Meridian flip",
-  "Conditions improved",
-] as const;
-
 export interface CapturingViewProps {
   mission: Mission;
-  noteLog: { text: string; at: string }[];
   isReadOnlySession: boolean;
   isFieldMode: boolean;
   currentTarget: MissionTarget | null;
@@ -34,28 +37,28 @@ export interface CapturingViewProps {
   nextTargetLabel: string | null;
   selectedTargetId: string | null;
   conditions: ConditionsState;
-  conditionsLog: {
-    id: string;
-    at: string;
-    seeing: number;
-    transparency: number;
-    clouds: number;
-    wind: string;
-    moonGlare: boolean;
-  }[];
+  conditionLogs: ConditionLogRow[];
+  missionEvents: MissionEventRow[];
+  latestFieldReadingEventId?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  siteTimezone?: string | null;
+  siteName?: string | null;
   isOffline: boolean;
   onAddNote: (text: string) => void;
   onQuickEvent: (label: string) => void;
   onMarkTargetComplete: () => void;
-  onStampConditions: () => void;
+  onPatchTarget: (targetId: string, patch: Partial<MissionTarget>) => void;
   onConditionsChange: (c: Partial<ConditionsState>) => void;
-  onResetConditions: () => void;
+  onCommitReading: (reading: ManualFieldReadingPayload) => Promise<void> | void;
+  committingReading?: boolean;
+  readingError?: string | null;
   onUpdatePlan: () => void;
+  cameraName?: string | null;
 }
 
 export function CapturingView({
   mission,
-  noteLog,
   isReadOnlySession,
   isFieldMode,
   currentTarget,
@@ -65,118 +68,68 @@ export function CapturingView({
   nextTargetLabel,
   selectedTargetId,
   conditions,
-  conditionsLog,
+  conditionLogs,
+  missionEvents,
+  latestFieldReadingEventId = null,
+  lat = null,
+  lon = null,
+  siteTimezone = null,
+  siteName = null,
   isOffline,
   onAddNote,
   onQuickEvent,
   onMarkTargetComplete,
-  onStampConditions,
+  onPatchTarget,
   onConditionsChange,
-  onResetConditions,
+  onCommitReading,
+  committingReading = false,
+  readingError = null,
   onUpdatePlan,
+  cameraName = null,
 }: CapturingViewProps) {
-  const [noteInput, setNoteInput] = useState("");
+  const sessionWindow = sessionWindowFromMission({
+    dateTime: mission.dateTime,
+    sessionEndAt: mission.sessionEndAt,
+  });
+  const availableMinutes = Math.max(
+    0,
+    Math.round(
+      (sessionWindow.end.getTime() - sessionWindow.start.getTime()) / 60_000,
+    ),
+  );
 
-  const handleSubmitNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = noteInput.trim();
-    if (!text) return;
-    onAddNote(text);
-    setNoteInput("");
-  };
-
-  const activeTargetSeqLabel =
-    currentTarget &&
-    (currentTarget.roleLabel ??
-      (currentTarget.isFallback
-        ? "Fallback"
-        : `SEQ ${currentTarget.sequenceIndex ?? 1}`));
-
-  const showTransitionBanner =
-    currentTarget?.targetName.toLowerCase().includes("pleiades") &&
-    nextTarget?.targetName.toLowerCase().includes("m42");
+  const summaryLines = scheduleSummaryLines({
+    mission,
+    current: currentTarget,
+    next: nextTarget,
+  });
 
   return (
     <div className="space-y-4">
       {isOffline && (
         <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Offline mode active — data will sync when reconnected
+          You appear offline. Changes are only saved when the write succeeds —
+          there is no automatic sync queue.
         </div>
       )}
 
-      {showTransitionBanner && (
-        <div className="rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
-          Pleiades window closes in 15 min — prepare to advance to M42
-        </div>
-      )}
+      <div className="rounded-lg border border-zinc-700/60 bg-zinc-900/40 px-4 py-3 text-xs text-zinc-400">
+        Record what you captured — Parallax does not control the camera or
+        receive live telemetry.
+      </div>
 
-      {/* Top row: Notes / Quick events + Timeline */}
+      {/* Top row: Observing log + Schedule */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        {/* Notes / Session log */}
         <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-          <h2 className="mission-section-label mb-1">Notes / Session Log</h2>
-          {noteLog.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] font-mono tabular-nums">
-              {noteLog.map((entry) => (
-                <div
-                  key={entry.at}
-                  className="flex gap-2 rounded border border-white/5 bg-black/20 px-2 py-1.5"
-                >
-                  <span className="text-xs text-zinc-500 shrink-0">
-                    {new Date(entry.at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-200 leading-snug">{entry.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <div className="flex flex-wrap gap-2 pt-2 pb-1">
-              {QUICK_EVENT_LABELS.map((label) => (
-                <Button
-                  key={label}
-                  type="button"
-                  size="lg"
-                  variant="ghost"
-                  className="min-w-[9rem] h-9 px-3 text-[11px] border border-white/10 bg-white/5 justify-start"
-                  onClick={() => onQuickEvent(label)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <form onSubmit={handleSubmitNote} className="mt-auto flex gap-2 pt-1">
-              <input
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="Log what just happened…"
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="secondary"
-                disabled={!noteInput.trim()}
-                className="border-white/10 bg-white/5"
-              >
-                Add
-              </Button>
-            </form>
-          )}
-          {isReadOnlySession && (
-            <p className="mt-auto pt-3 text-[11px] text-zinc-500">
-              Session ended — notes and events are locked for this mission.
-            </p>
-          )}
+          <SessionObservingLog
+            events={missionEvents}
+            isReadOnly={isReadOnlySession}
+            onAddNote={onAddNote}
+            onQuickEvent={onQuickEvent}
+          />
         </section>
 
-        {/* Timeline + next target countdown */}
+        {/* Schedule summary (authoritative for this slice; mock timeline demoted) */}
         <section
           className={cn(
             PANEL_STYLE,
@@ -184,42 +137,130 @@ export function CapturingView({
           )}
         >
           <div className="flex items-center justify-between mb-3 text-sm">
-            <h2 className="mission-section-label mb-0">Mission Timeline</h2>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-              {currentTarget && (
-                <>
-                  <span className="font-medium text-zinc-100">
-                    {currentTarget.targetName}
-                  </span>
-                  {activeTargetSeqLabel && (
-                    <span className="uppercase text-[10px] text-zinc-500">
-                      {activeTargetSeqLabel}
-                    </span>
-                  )}
-                  <span className="tabular-nums">
-                    {hasTimedSchedule(currentTarget) ? "Scheduled" : "Window"}:{" "}
-                    {targetScheduleLabel(currentTarget)}
-                  </span>
-                </>
-              )}
-              {nextTargetLabel && (
-                <span className="text-cyan-300 tabular-nums">
-                  Next: {nextTargetLabel}
-                </span>
-              )}
-            </div>
+            <h2 className="mission-section-label mb-0">Night schedule</h2>
+            <span className="text-[10px] text-zinc-500">
+              Transition {transitionMinutesOf(mission)} min
+            </span>
           </div>
 
-          <div className="flex-1 min-h-0 flex flex-col gap-3">
-            <MissionTimeline
-              targets={mission.targets}
-              missionDate={mission.dateTime}
-              hero
-              selectedTargetId={selectedTargetId ?? currentTargetId ?? null}
-              currentTargetId={currentTargetId ?? undefined}
-              fieldMode={isFieldMode}
-            />
+          <div className="space-y-2 text-xs text-zinc-300">
+            {summaryLines.map((line) => (
+              <p key={line} className="tabular-nums">
+                {line}
+              </p>
+            ))}
+            {nextTargetLabel && (
+              <p className="text-cyan-300/90">{nextTargetLabel}</p>
+            )}
           </div>
+
+          {currentTarget && !isReadOnlySession && (
+            <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                Actual (manual)
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label className="text-[11px] text-zinc-500">
+                  Actual start
+                  <input
+                    type="datetime-local"
+                    value={toDatetimeLocalValue(currentTarget.actualStartAt)}
+                    onChange={(e) =>
+                      onPatchTarget(currentTarget.targetId, {
+                        actualStartAt: fromDatetimeLocalValue(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-zinc-100"
+                  />
+                </label>
+                <label className="text-[11px] text-zinc-500">
+                  Actual end
+                  <input
+                    type="datetime-local"
+                    value={toDatetimeLocalValue(currentTarget.actualEndAt)}
+                    onChange={(e) =>
+                      onPatchTarget(currentTarget.targetId, {
+                        actualEndAt: fromDatetimeLocalValue(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-zinc-100"
+                  />
+                </label>
+                <label className="text-[11px] text-zinc-500">
+                  Frames captured
+                  <input
+                    type="number"
+                    min={0}
+                    value={currentTarget.frames ?? ""}
+                    placeholder="—"
+                    onChange={(e) =>
+                      onPatchTarget(currentTarget.targetId, {
+                        frames:
+                          e.target.value === ""
+                            ? undefined
+                            : Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-zinc-100"
+                  />
+                </label>
+                <label className="text-[11px] text-zinc-500">
+                  Exposure length (s)
+                  <input
+                    type="number"
+                    min={0}
+                    value={currentTarget.subLength ?? ""}
+                    placeholder="—"
+                    onChange={(e) =>
+                      onPatchTarget(currentTarget.targetId, {
+                        subLength:
+                          e.target.value === ""
+                            ? undefined
+                            : Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                    className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-zinc-100"
+                  />
+                </label>
+              </div>
+              <label className="block text-[11px] text-zinc-500">
+                Notes
+                <input
+                  type="text"
+                  value={currentTarget.notes ?? ""}
+                  onChange={(e) =>
+                    onPatchTarget(currentTarget.targetId, {
+                      notes: e.target.value,
+                    })
+                  }
+                  className="mt-1 w-full rounded border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-zinc-100"
+                  placeholder="Optional"
+                />
+              </label>
+              {actualLabel(currentTarget) && (
+                <p className="text-[11px] text-emerald-400/90 tabular-nums">
+                  Actual: {actualLabel(currentTarget)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Demoted mock timeline — not schedule SoT */}
+          <details className="mt-3">
+            <summary className="cursor-pointer text-[10px] text-zinc-600">
+              Legacy timeline preview (Demo geometry)
+            </summary>
+            <div className="mt-2 opacity-60">
+              <MissionTimeline
+                targets={mission.targets}
+                missionDate={mission.dateTime}
+                hero
+                selectedTargetId={selectedTargetId ?? currentTargetId ?? null}
+                currentTargetId={currentTargetId ?? undefined}
+                fieldMode={isFieldMode}
+              />
+            </div>
+          </details>
         </section>
       </div>
 
@@ -292,20 +333,11 @@ export function CapturingView({
                     </div>
 
                     {isActiveTarget && (
-                      <div className="flex items-center gap-3 text-xs text-zinc-300">
-                        <div className="flex flex-col flex-1 gap-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-zinc-400">
-                              Frame 24 / 60
-                            </span>
-                            <span className="text-[11px] text-zinc-500">
-                              Live capture
-                            </span>
-                          </div>
-                          <div className="h-1.5 w-full rounded-full bg-zinc-800/80 overflow-hidden">
-                            <div className="h-full w-[40%] rounded-full bg-cyan-400" />
-                          </div>
-                        </div>
+                      <div className="flex items-center justify-between gap-3 text-xs text-zinc-300">
+                        <span className="text-[11px] text-zinc-500">
+                          Planned {targetScheduleLabel(t)}
+                          {hasTimedSchedule(t) ? "" : " (usable window)"}
+                        </span>
                         <Button
                           type="button"
                           size="sm"
@@ -333,83 +365,38 @@ export function CapturingView({
         />
       </div>
 
-      {/* Observing conditions + Field conditions */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Observing conditions — simple snapshot card */}
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <h2 className="mission-section-label">Observing Conditions</h2>
-          <p className="text-xs text-zinc-500">
-            Forecast snapshot for tonight&apos;s session. Read-only.
-          </p>
-          <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Forecast confidence</span>
-              <span className="text-zinc-200 font-medium">78%</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Cloud cover</span>
-              <span className="text-zinc-200 font-medium">18%</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Humidity</span>
-              <span className="text-zinc-200 font-medium">67%</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Seeing</span>
-              <span className="text-zinc-200 font-medium">3 / 5</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Wind</span>
-              <span className="text-zinc-200 font-medium">8 mph</span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-zinc-500">Moon impact</span>
-              <span className="text-zinc-200 font-medium">Low</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Field conditions — override only */}
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <h2 className="mission-section-label">Field Conditions</h2>
-          <p className="text-xs text-zinc-500">
-            Override forecast with live field readings.
-          </p>
-          <ConditionsCard
-            conditions={conditions}
-            onChange={onConditionsChange}
-            onReset={onResetConditions}
-            readOnly={false}
-            className="mt-1"
+      {mission.targets.length > 0 && (
+        <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+          <CaptureWorksheet
+            targets={mission.targets}
+            transitionMinutes={transitionMinutesOf(mission)}
+            availableMinutes={availableMinutes}
+            cameraName={cameraName}
+            hasSkyContext
+            hasTrackingHint={!!cameraName}
+            readOnly={isReadOnlySession}
+            onPatchTarget={onPatchTarget}
+            compact
           />
-          <p className="text-[11px] text-zinc-500">
-            Adjustments affect mission guidance only.
-          </p>
         </section>
-      </div>
+      )}
 
-      {/* Conditions timeline stamp */}
-      <section className={cn(PANEL_STYLE, "p-4 mt-4 flex items-center justify-between gap-2 text-xs text-zinc-400")}>
-        <div className="flex items-center gap-2">
-          <span className="uppercase tracking-wide text-[10px] text-zinc-500">
-            Conditions timeline
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={onStampConditions}
-            className="h-6 px-2 text-[10px] border-white/10 bg-white/5"
-          >
-            Stamp now
-          </Button>
-        </div>
-        {conditionsLog.length > 0 && (
-          <span className="text-[10px] text-zinc-500">
-            {conditionsLog.length} stamps
-          </span>
-        )}
-      </section>
+      <MissionConditionsPanel
+        lat={lat}
+        lon={lon}
+        dateTime={mission.dateTime}
+        sessionEndAt={mission.sessionEndAt}
+        siteTimezone={siteTimezone}
+        siteName={siteName}
+        conditions={conditions}
+        onConditionsChange={onConditionsChange}
+        conditionLogs={conditionLogs}
+        latestFieldReadingEventId={latestFieldReadingEventId}
+        onCommitReading={onCommitReading}
+        committing={committingReading}
+        commitError={readingError}
+        className="mt-4"
+      />
     </div>
   );
 }

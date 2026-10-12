@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { MOCK_GEAR } from "@/lib/mock/gear";
 import { MOCK_TARGETS } from "@/lib/mock/targets";
+import { toDatetimeLocalValue } from "@/lib/schedule/observing";
 
 interface SessionFormProps {
   prefilledTargetId?: string;
@@ -19,7 +20,9 @@ interface SessionFormProps {
 
 export function SessionForm({ prefilledTargetId }: SessionFormProps) {
   const { toast } = useToast();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 16));
+  const [date, setDate] = useState(() =>
+    toDatetimeLocalValue(new Date().toISOString()),
+  );
   const [locationId, setLocationId] = useState("loc1");
   const [gearId, setGearId] = useState("gear1");
   const [cloud, setCloud] = useState(10);

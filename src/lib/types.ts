@@ -61,6 +61,8 @@ export interface Location {
   lat: number;
   lon: number;
   bortle: number;
+  /** Optional IANA timezone for site civil time */
+  timezone?: string | null;
   notes?: string;
 }
 
@@ -126,7 +128,7 @@ export interface MissionTarget {
   plannedWindowEnd: string;
   score: number;
   captured?: boolean;
-  result?: "success" | "partial" | "failed";
+  result?: "success" | "partial" | "failed" | "skipped";
   subLength?: number;
   frames?: number;
   notes?: string;
@@ -142,13 +144,22 @@ export interface MissionTarget {
   rigFramingScore?: number;
   /** One-line reason target was included */
   whyIncluded?: string;
-  /** ISO or gain for exposure recipe (e.g. "1600" or "120") */
+  /** ISO or gain for exposure recipe (e.g. "1600" or "120") — legacy / display */
   isoGain?: string;
+  /** Proposed capture worksheet fields (separate from actuals) */
+  proposedFilter?: string | null;
+  proposedSubLengthSeconds?: number | null;
+  proposedIso?: number | null;
+  proposedGain?: number | null;
+  proposedIntegrationMinutes?: number | null;
   /** Authoritative timed schedule (ISO); null/undefined = no timed schedule */
   scheduledStartAt?: string | null;
   scheduledEndAt?: string | null;
   /** Desired/on-target imaging minutes for the scheduled segment */
   plannedImagingMinutes?: number | null;
+  /** User-recorded actual imaging window (ISO) */
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
 }
 
 export type MissionPhase =
@@ -162,6 +173,8 @@ export interface Mission {
   id: string;
   name: string;
   dateTime: string;
+  /** Session window end (ISO); when missing, consumers fall back to dateTime + 6h */
+  sessionEndAt?: string | null;
   locationId: string;
   gearId: string;
   /** Mission type from Create Mission flow; shown on list when set */

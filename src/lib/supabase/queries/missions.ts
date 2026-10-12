@@ -20,16 +20,23 @@ export type MissionTargetWrite = {
   scheduled_start_at?: string | null;
   scheduled_end_at?: string | null;
   planned_imaging_minutes?: number | null;
+  actual_start_at?: string | null;
+  actual_end_at?: string | null;
   score: number;
   sequence_index?: number | null;
   role_label?: string | null;
   is_fallback?: boolean;
   captured?: boolean;
-  result?: "success" | "partial" | "failed" | null;
+  result?: "success" | "partial" | "failed" | "skipped" | null;
   sub_length?: number | null;
   frames?: number | null;
   notes?: string | null;
   planned_iso_gain?: string | null;
+  proposed_filter?: string | null;
+  proposed_sub_length_seconds?: number | null;
+  proposed_iso?: number | null;
+  proposed_gain?: number | null;
+  proposed_integration_minutes?: number | null;
   altitude_score?: number | null;
   moon_separation_score?: number | null;
   rig_framing_score?: number | null;
@@ -87,6 +94,8 @@ export async function upsertMissionWithTargets(
           scheduled_start_at: t.scheduled_start_at ?? null,
           scheduled_end_at: t.scheduled_end_at ?? null,
           planned_imaging_minutes: t.planned_imaging_minutes ?? null,
+          actual_start_at: t.actual_start_at ?? null,
+          actual_end_at: t.actual_end_at ?? null,
           score: t.score,
           sequence_index: t.sequence_index ?? null,
           role_label: t.role_label ?? null,
@@ -97,6 +106,11 @@ export async function upsertMissionWithTargets(
           frames: t.frames ?? null,
           notes: t.notes ?? null,
           planned_iso_gain: t.planned_iso_gain ?? null,
+          proposed_filter: t.proposed_filter ?? null,
+          proposed_sub_length_seconds: t.proposed_sub_length_seconds ?? null,
+          proposed_iso: t.proposed_iso ?? null,
+          proposed_gain: t.proposed_gain ?? null,
+          proposed_integration_minutes: t.proposed_integration_minutes ?? null,
           altitude_score: t.altitude_score ?? null,
           moon_separation_score: t.moon_separation_score ?? null,
           rig_framing_score: t.rig_framing_score ?? null,
@@ -116,6 +130,10 @@ export async function upsertMissionWithTargets(
           "moon_separation_score",
           "rig_framing_score",
           "planned_imaging_minutes",
+          "proposed_sub_length_seconds",
+          "proposed_iso",
+          "proposed_gain",
+          "proposed_integration_minutes",
         ]),
       ),
     );
@@ -194,6 +212,10 @@ function parseMissionJoin(row: MissionJoinRow): Mission {
         "moon_separation_score",
         "rig_framing_score",
         "planned_imaging_minutes",
+        "proposed_sub_length_seconds",
+        "proposed_iso",
+        "proposed_gain",
+        "proposed_integration_minutes",
       ]),
     ),
   );
@@ -230,9 +252,20 @@ export async function getMissionWithTargets(
 }
 
 function normalizeTimestamps(row: Record<string, unknown>) {
+  const dateTime =
+    row.date_time != null ? toIso(row.date_time) : undefined;
+  const sessionEndAt =
+    row.session_end_at != null
+      ? toIso(row.session_end_at)
+      : dateTime != null
+        ? new Date(
+            new Date(dateTime).getTime() + 6 * 3_600_000,
+          ).toISOString()
+        : undefined;
   return {
     ...row,
-    date_time: row.date_time != null ? toIso(row.date_time) : undefined,
+    date_time: dateTime,
+    session_end_at: sessionEndAt,
     created_at: toIso(row.created_at),
     updated_at: toIso(row.updated_at),
     deleted_at: row.deleted_at == null ? null : toIso(row.deleted_at),
@@ -240,6 +273,9 @@ function normalizeTimestamps(row: Record<string, unknown>) {
       row.scheduled_start_at == null ? null : toIso(row.scheduled_start_at),
     scheduled_end_at:
       row.scheduled_end_at == null ? null : toIso(row.scheduled_end_at),
+    actual_start_at:
+      row.actual_start_at == null ? null : toIso(row.actual_start_at),
+    actual_end_at: row.actual_end_at == null ? null : toIso(row.actual_end_at),
   };
 }
 

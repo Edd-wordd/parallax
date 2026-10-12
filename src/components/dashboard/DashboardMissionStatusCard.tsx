@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import { formatDateTime } from "@/lib/utils";
 import type { Mission } from "@/lib/types";
 import type { DashboardMissionStatus } from "@/lib/missionStatus";
@@ -24,8 +22,11 @@ const STATUS_LABELS: Record<DashboardMissionStatus, string> = {
 interface DashboardMissionStatusCardProps {
   mission: Mission | null;
   missionStatus: DashboardMissionStatus;
-  activeLocationId?: string;
-  activeGearId?: string;
+  /** Resolved display names from DB / context (not mock catalogs). */
+  siteName?: string | null;
+  rigName?: string | null;
+  /** Fallback date when no mission yet (store dateTime). */
+  contextDateTime?: string | null;
   canCreateMission?: boolean;
   createMissionHelperText?: string | null;
   /** Called when user clicks Clear Mission in planning state. */
@@ -45,8 +46,9 @@ interface DashboardMissionStatusCardProps {
 export function DashboardMissionStatusCard({
   mission,
   missionStatus,
-  activeLocationId,
-  activeGearId,
+  siteName = null,
+  rigName = null,
+  contextDateTime = null,
   canCreateMission = true,
   createMissionHelperText,
   onClearMission,
@@ -70,15 +72,7 @@ export function DashboardMissionStatusCard({
     showActiveActions ||
     showPlanningState ||
     (missionStatus === "COMPLETED" && mission);
-  const site = hasMissionContext
-    ? (MOCK_LOCATIONS.find(
-        (l) => l.id === (mission?.locationId ?? activeLocationId),
-      ) ?? null)
-    : null;
-  const rig = hasMissionContext
-    ? (MOCK_GEAR.find((g) => g.id === (mission?.gearId ?? activeGearId)) ??
-      null)
-    : null;
+  const dateIso = mission?.dateTime ?? contextDateTime;
 
   return (
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
@@ -142,18 +136,18 @@ export function DashboardMissionStatusCard({
                 <p>
                   <span className="text-zinc-500 font-medium">Site</span>
                   <span className="text-zinc-600 mx-1.5">·</span>
-                  <span className="text-zinc-300">{site?.name ?? "—"}</span>
+                  <span className="text-zinc-300">{siteName ?? "—"}</span>
                 </p>
                 <p>
                   <span className="text-zinc-500 font-medium">Rig</span>
                   <span className="text-zinc-600 mx-1.5">·</span>
-                  <span className="text-zinc-300">{rig?.name ?? "—"}</span>
+                  <span className="text-zinc-300">{rigName ?? "—"}</span>
                 </p>
                 <p>
                   <span className="text-zinc-500 font-medium">Date</span>
                   <span className="text-zinc-600 mx-1.5">·</span>
                   <span className="text-zinc-300">
-                    {mission ? formatDateTime(mission.dateTime) : "—"}
+                    {dateIso ? formatDateTime(dateIso) : "—"}
                   </span>
                 </p>
               </div>

@@ -1,33 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { ExposurePlannerCard, SessionSimulatorCard } from "@/components/intelligence";
+import { CaptureWorksheet } from "@/components/missions/CaptureWorksheet";
+import { GoNoGoBanner } from "@/components/missions/GoNoGoBanner";
+import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
 import type { Mission, MissionTarget } from "@/lib/types";
 import type { ExposurePlan } from "@/lib/mock/exposurePlans";
 import type { SessionSimulation } from "@/lib/mock/sessionSimulations";
+import type { MissionEventRow } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
   hasTimedSchedule,
   targetScheduleLabel,
 } from "@/lib/schedule/display";
+import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
+import { DEFAULT_TRANSITION_MINUTES } from "@/lib/schedule/types";
 import { Moon, Plus, Target, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
 const PANEL_STYLE = "mission-panel";
 
-const QUICK_EVENT_LABELS = [
-  "Clouds moving in",
-  "Guiding lost",
-  "Meridian flip",
-  "Conditions improved",
-] as const;
-
 export interface PlanningViewProps {
   mission: Mission;
-  noteLog: { text: string; at: string }[];
   isReadOnlySession: boolean;
   isFieldMode: boolean;
   currentTarget: MissionTarget | null;
@@ -50,11 +47,15 @@ export interface PlanningViewProps {
   onMakePrimary: (t: MissionTarget) => void;
   canEditTargets: boolean;
   onOpenAddTarget: () => void;
+  onPatchTarget?: (targetId: string, patch: Partial<MissionTarget>) => void;
+  cameraName?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  missionEvents?: MissionEventRow[];
 }
 
 export function PlanningView({
   mission,
-  noteLog,
   isReadOnlySession,
   isFieldMode,
   currentTarget,
@@ -76,95 +77,53 @@ export function PlanningView({
   onMakePrimary,
   canEditTargets,
   onOpenAddTarget,
+  onPatchTarget,
+  cameraName = null,
+  lat = null,
+  lon = null,
+  missionEvents = [],
 }: PlanningViewProps) {
-  const [noteInput, setNoteInput] = useState("");
-
-  const handleSubmitNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = noteInput.trim();
-    if (!text) return;
-    onAddNote(text);
-    setNoteInput("");
-  };
+  const sessionWindow = sessionWindowFromMission({
+    dateTime: mission.dateTime,
+    sessionEndAt: mission.sessionEndAt,
+  });
+  const availableMinutes = Math.max(
+    0,
+    Math.round(
+      (sessionWindow.end.getTime() - sessionWindow.start.getTime()) / 60_000,
+    ),
+  );
+  const transitionMinutes =
+    mission.transitionMinutes ?? DEFAULT_TRANSITION_MINUTES;
 
   return (
     <>
-      {/* Simulate Night */}
+      {/* Simulate Night (Demo) */}
       <div className="flex justify-end">
         <Button
           variant="secondary"
           size="sm"
           onClick={onSimulateNight}
           className="border-white/10 bg-white/5"
+          title="Demo preview — mock sunset clock"
         >
           <Moon className="h-4 w-4 mr-1" />
           Simulate Night
+          <span className="ml-1.5 text-[9px] uppercase tracking-wider text-amber-400/90">
+            Demo
+          </span>
         </Button>
       </div>
 
-      {/* Main row: Notes + Timeline with Go/No-Go */}
+      {/* Main row: Observing log + Timeline with Go/No-Go */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <div className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-          <h2 className="mission-section-label mb-1">Notes / Session Log</h2>
-          {noteLog.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto text-[11px] font-mono tabular-nums">
-              {noteLog.map((entry) => (
-                <div
-                  key={entry.at}
-                  className="flex gap-2 rounded border border-white/5 bg-black/20 px-2 py-1.5"
-                >
-                  <span className="text-xs text-zinc-500 shrink-0">
-                    {new Date(entry.at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-200 leading-snug">{entry.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <div className="flex flex-wrap gap-2 pt-2 pb-1">
-              {QUICK_EVENT_LABELS.map((label) => (
-                <Button
-                  key={label}
-                  type="button"
-                  size="lg"
-                  variant="ghost"
-                  className="min-w-[9rem] h-9 px-3 text-[11px] border border-white/10 bg-white/5 justify-start"
-                  onClick={() => onQuickEvent(label)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          )}
-          {!isReadOnlySession && (
-            <form onSubmit={handleSubmitNote} className="mt-auto flex gap-2 pt-1">
-              <input
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="Log what just happened…"
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm placeholder:text-zinc-500"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="secondary"
-                disabled={!noteInput.trim()}
-                className="border-white/10 bg-white/5"
-              >
-                Add
-              </Button>
-            </form>
-          )}
-          {isReadOnlySession && (
-            <p className="mt-auto pt-3 text-[11px] text-zinc-500">
-              Session ended — notes and events are locked for this mission.
-            </p>
-          )}
+          <SessionObservingLog
+            events={missionEvents}
+            isReadOnly={isReadOnlySession}
+            onAddNote={onAddNote}
+            onQuickEvent={onQuickEvent}
+          />
         </div>
 
         <section
@@ -173,25 +132,13 @@ export function PlanningView({
             "p-4 min-h-0 flex flex-col overflow-hidden",
           )}
         >
-          {/* Go/No-Go banner (mocked as Go) */}
-          <div
-            className={cn(
-              "mb-3 flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm",
-              "border-emerald-500/40 bg-emerald-500/10",
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-emerald-300">
-                Go / No-Go
-              </span>
-              <span className="text-[11px] text-emerald-200/80">
-                Based on forecast confidence, clouds, seeing &amp; moon
-              </span>
-            </div>
-            <p className="text-sm font-medium text-emerald-100">
-              Tonight looks good — conditions are favorable for your plan.
-            </p>
-          </div>
+          <GoNoGoBanner
+            className="mb-3"
+            lat={lat}
+            lon={lon}
+            dateTime={mission.dateTime}
+            sessionEndAt={mission.sessionEndAt}
+          />
 
           <div className="flex items-center justify-between mb-3 text-sm">
             <h2 className="mission-section-label mb-0">Mission Timeline</h2>
@@ -392,8 +339,23 @@ export function PlanningView({
         />
       </div>
 
+      {onPatchTarget && mission.targets.length > 0 && (
+        <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+          <CaptureWorksheet
+            targets={mission.targets}
+            transitionMinutes={transitionMinutes}
+            availableMinutes={availableMinutes}
+            cameraName={cameraName}
+            hasSkyContext
+            hasTrackingHint={!!cameraName}
+            readOnly={isReadOnlySession || !canEditTargets}
+            onPatchTarget={onPatchTarget}
+          />
+        </section>
+      )}
+
       {/* Exposure Plan + Session Simulator */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
         <ExposurePlannerCard targetName={primaryTargetName} plan={exposurePlan} />
         <SessionSimulatorCard
           targetName={primaryTargetName}

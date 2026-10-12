@@ -30,9 +30,16 @@ function mapTarget(row: MissionTargetRow): MissionTarget {
     rigFramingScore: row.rig_framing_score ?? undefined,
     whyIncluded: row.why_included ?? undefined,
     isoGain: row.planned_iso_gain ?? undefined,
+    proposedFilter: row.proposed_filter ?? null,
+    proposedSubLengthSeconds: row.proposed_sub_length_seconds ?? null,
+    proposedIso: row.proposed_iso ?? null,
+    proposedGain: row.proposed_gain ?? null,
+    proposedIntegrationMinutes: row.proposed_integration_minutes ?? null,
     scheduledStartAt: row.scheduled_start_at ?? null,
     scheduledEndAt: row.scheduled_end_at ?? null,
     plannedImagingMinutes: row.planned_imaging_minutes ?? null,
+    actualStartAt: row.actual_start_at ?? null,
+    actualEndAt: row.actual_end_at ?? null,
   };
 }
 
@@ -51,6 +58,7 @@ export function mapMissionFromDb(
     id: row.id,
     name: row.name,
     dateTime: row.date_time,
+    sessionEndAt: row.session_end_at,
     locationId: row.location_id,
     gearId: row.gear_id,
     missionType: row.mission_type ?? null,

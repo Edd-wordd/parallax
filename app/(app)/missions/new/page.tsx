@@ -14,6 +14,16 @@ import {
 } from "@/lib/sky/visibility";
 import { CURATED_DEEP_SKY_TARGETS } from "@/lib/sky/curatedTargets";
 import { useSiteSessionForecast } from "@/lib/forecast/useSiteSessionForecast";
+import {
+  defaultUpcomingSession,
+  formatSessionWindowDates,
+  isSessionStartInPast,
+  isSessionWindowEnded,
+  isValidSessionOrder,
+  resolveDisplayTimeZone,
+  toDatetimeLocalValueFromDate,
+  useCurrentTimeWindow,
+} from "@/lib/time/sessionWindow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -87,9 +97,8 @@ export default function MissionWizardPage() {
   );
   const [gearId, setGearId] = useState(isUuid(storeGearId) ? storeGearId : "");
   const [dateTime, setDateTime] = useState(() => {
-    const d = new Date();
-    d.setHours(21, 0, 0, 0);
-    return d.toISOString().slice(0, 16);
+    const { start } = defaultUpcomingSession();
+    return toDatetimeLocalValueFromDate(start);
   });
   const [constraints, setConstraints] = useState<MissionConstraint>({
     minAltitude: minAltitude,
@@ -109,32 +118,39 @@ export default function MissionWizardPage() {
   >(null);
   const [selectedPlanetaryTargets, setSelectedPlanetaryTargets] = useState<Set<string>>(new Set(["Jupiter"]));
   const [sessionEndTime, setSessionEndTime] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1); // tomorrow
-    d.setHours(3, 0, 0, 0); // default 3 AM
-    return d.toISOString().slice(0, 16);
+    const { end } = defaultUpcomingSession();
+    return toDatetimeLocalValueFromDate(end);
   });
+  const [keepPastStart, setKeepPastStart] = useState(false);
   const [expandedTargetId, setExpandedTargetId] = useState<string | null>(null);
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const location = locations.find((l) => l.id === locationId);
   const gear = gearProfiles.find((g) => g.id === gearId);
-  const displayDate = new Date(dateTime).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const siteTimezone = location?.timezone ?? null;
+  const displayTz = resolveDisplayTimeZone(siteTimezone);
 
-  /** Resolve session start/end; if end ≤ start, roll end forward 24h (wizard default). */
+  /** Validated session window — never silently rolls end +24h. */
   const sessionInterval = useMemo(() => {
     const start = new Date(dateTime);
-    let end = new Date(sessionEndTime);
-    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end.getTime() <= start.getTime()) {
-      end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-    }
+    const end = new Date(sessionEndTime);
     return { start, end };
   }, [dateTime, sessionEndTime]);
+
+  const sessionOrderValid = isValidSessionOrder(
+    sessionInterval.start,
+    sessionInterval.end,
+  );
+  const startInPast = isSessionStartInPast(sessionInterval.start);
+  const sessionEnded = isSessionWindowEnded(sessionInterval.end);
+  const displayDate = sessionOrderValid
+    ? formatSessionWindowDates({
+        start: sessionInterval.start,
+        end: sessionInterval.end,
+        siteTimezone,
+      })
+    : "Invalid start/end";
 
   const sessionAstronomy = useMemo(() => {
     if (!location) return null;
@@ -168,6 +184,8 @@ export default function MissionWizardPage() {
 
   const weatherDisplay = (value: number | null | undefined, unit: string) => {
     if (!location) return "Select a site";
+    if (!sessionOrderValid) return "Fix session times";
+    if (sessionEnded) return "Session ended";
     if (forecastLoading) return "Loading…";
     if (forecastState.status === "error") return "Unavailable";
     if (forecast?.status.weather === "out_of_range") return "Out of range";
@@ -180,6 +198,8 @@ export default function MissionWizardPage() {
     value: number | null | undefined,
   ): string => {
     if (!location) return "Select a site";
+    if (!sessionOrderValid) return "Fix session times";
+    if (sessionEnded) return "Session ended";
     if (forecastLoading) return "Loading…";
     if (forecastState.status === "error") return "Unavailable";
     if (forecast?.status.astroWx === "out_of_range") return "Out of range";
@@ -379,7 +399,16 @@ export default function MissionWizardPage() {
 
   const updateTargetRecipe = (
     targetId: string,
-    updates: Partial<Pick<MissionTarget, "subLength" | "frames" | "isoGain">>,
+    updates: Partial<
+      Pick<
+        MissionTarget,
+        | "proposedSubLengthSeconds"
+        | "proposedIso"
+        | "proposedGain"
+        | "proposedIntegrationMinutes"
+        | "proposedFilter"
+      >
+    >,
   ) => {
     setTargets((prev) =>
       prev.map((t) => (t.targetId === targetId ? { ...t, ...updates } : t)),
@@ -417,11 +446,16 @@ export default function MissionWizardPage() {
       toast("Select a location and gear profile before saving", "error");
       return;
     }
+    if (!sessionOrderValid) {
+      toast("End must be after start", "error");
+      return;
+    }
     const finalTargets = orderedTargets;
     const mission: Mission = {
       id: generateId(),
       name,
-      dateTime: new Date(dateTime).toISOString(),
+      dateTime: sessionInterval.start.toISOString(),
+      sessionEndAt: sessionInterval.end.toISOString(),
       locationId,
       gearId,
       missionType: missionType ?? null,
@@ -518,12 +552,15 @@ export default function MissionWizardPage() {
                       </div>
                       <div className="relative z-[100]">
                         <label className="mb-1 block text-xs text-white/60">
-                          Date & time
+                          Start ({displayTz.abbreviation})
                         </label>
                         <Input
                           type="datetime-local"
                           value={dateTime}
-                          onChange={(e) => setDateTime(e.target.value)}
+                          onChange={(e) => {
+                            setDateTime(e.target.value);
+                            setKeepPastStart(false);
+                          }}
                           onClick={(e) => {
                             const input = e.currentTarget;
                             if (typeof input.showPicker === "function") {
@@ -534,12 +571,12 @@ export default function MissionWizardPage() {
                               }
                             }
                           }}
-                          className="h-9 max-w-[200px] cursor-pointer"
+                          className="h-9 max-w-[220px] cursor-pointer"
                         />
                       </div>
                       <div className="relative z-[100]">
                         <label className="mb-1 block text-xs text-white/60">
-                          Session end time
+                          End ({displayTz.abbreviation})
                         </label>
                         <Input
                           type="datetime-local"
@@ -555,25 +592,76 @@ export default function MissionWizardPage() {
                               }
                             }
                           }}
-                          className="h-9 max-w-[200px] cursor-pointer"
+                          className="h-9 max-w-[220px] cursor-pointer"
                         />
                       </div>
-                      <div className="md:col-span-2">
-                        <p className="text-[11px] text-indigo-300/90">
-                          {(() => {
-                            const start = new Date(dateTime);
-                            let end = new Date(sessionEndTime);
-                            if (end.getTime() <= start.getTime()) {
-                              end = new Date(
-                                end.getTime() + 24 * 60 * 60 * 1000,
-                              );
-                            }
-                            const ms = end.getTime() - start.getTime();
-                            const h = Math.floor(ms / 3_600_000);
-                            const m = Math.floor((ms % 3_600_000) / 60_000);
-                            return `Session duration: ${h} h ${m} min`;
-                          })()}
+                      <div className="md:col-span-2 space-y-2">
+                        <p className="text-[11px] text-white/55">
+                          Times use {displayTz.sourceLabel}
+                          {siteTimezone ? ` (${siteTimezone})` : ""}.
                         </p>
+                        {!sessionOrderValid ? (
+                          <p className="text-[11px] text-amber-300/95">
+                            End must be after start. The interval is not
+                            adjusted automatically.
+                          </p>
+                        ) : (
+                          <p className="text-[11px] text-indigo-300/90">
+                            {(() => {
+                              const ms =
+                                sessionInterval.end.getTime() -
+                                sessionInterval.start.getTime();
+                              const h = Math.floor(ms / 3_600_000);
+                              const m = Math.floor((ms % 3_600_000) / 60_000);
+                              return `Session duration: ${h} h ${m} min · ${displayDate}`;
+                            })()}
+                          </p>
+                        )}
+                        {sessionOrderValid && startInPast && !keepPastStart && (
+                          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100/95">
+                            <p>
+                              Start is in the past. Use the current time for a
+                              new session, or keep this time to log an earlier
+                              session.
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                className="h-7 text-[11px]"
+                                onClick={() => {
+                                  const next = useCurrentTimeWindow(
+                                    sessionInterval,
+                                  );
+                                  setDateTime(
+                                    toDatetimeLocalValueFromDate(next.start),
+                                  );
+                                  setSessionEndTime(
+                                    toDatetimeLocalValueFromDate(next.end),
+                                  );
+                                  setKeepPastStart(false);
+                                }}
+                              >
+                                Use current time
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-[11px]"
+                                onClick={() => setKeepPastStart(true)}
+                              >
+                                Keep time to log an earlier session
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {sessionOrderValid && startInPast && keepPastStart && (
+                          <p className="text-[11px] text-white/50">
+                            Keeping past start to log an earlier session.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1130,17 +1218,22 @@ export default function MissionWizardPage() {
                                       <div className="grid grid-cols-2 gap-2 text-xs">
                                         <div>
                                           <label className="text-zinc-500 block mb-0.5">
-                                            Exposure (s)
+                                            Proposed sub (s)
                                           </label>
                                           <Input
                                             type="number"
                                             min={1}
-                                            value={t.subLength ?? 120}
+                                            value={
+                                              t.proposedSubLengthSeconds ?? ""
+                                            }
+                                            placeholder="e.g. 120"
                                             onChange={(e) =>
                                               updateTargetRecipe(t.targetId, {
-                                                subLength:
-                                                  Number(e.target.value) ||
-                                                  undefined,
+                                                proposedSubLengthSeconds:
+                                                  e.target.value === ""
+                                                    ? null
+                                                    : Number(e.target.value) ||
+                                                      null,
                                               })
                                             }
                                             className="h-8"
@@ -1148,47 +1241,87 @@ export default function MissionWizardPage() {
                                         </div>
                                         <div>
                                           <label className="text-zinc-500 block mb-0.5">
-                                            ISO / Gain
+                                            Filter
                                           </label>
                                           <Input
-                                            value={t.isoGain ?? ""}
+                                            value={t.proposedFilter ?? ""}
                                             onChange={(e) =>
                                               updateTargetRecipe(t.targetId, {
-                                                isoGain: e.target.value,
+                                                proposedFilter:
+                                                  e.target.value || null,
                                               })
                                             }
-                                            placeholder="e.g. 1600"
+                                            placeholder="e.g. L / Ha"
+                                            className="h-8"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-zinc-500 block mb-0.5">
+                                            Proposed ISO
+                                          </label>
+                                          <Input
+                                            type="number"
+                                            value={t.proposedIso ?? ""}
+                                            onChange={(e) =>
+                                              updateTargetRecipe(t.targetId, {
+                                                proposedIso:
+                                                  e.target.value === ""
+                                                    ? null
+                                                    : Number(e.target.value) ||
+                                                      null,
+                                              })
+                                            }
+                                            placeholder="optional"
+                                            className="h-8"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-zinc-500 block mb-0.5">
+                                            Proposed gain
+                                          </label>
+                                          <Input
+                                            type="number"
+                                            value={t.proposedGain ?? ""}
+                                            onChange={(e) =>
+                                              updateTargetRecipe(t.targetId, {
+                                                proposedGain:
+                                                  e.target.value === ""
+                                                    ? null
+                                                    : Number(e.target.value) ||
+                                                      null,
+                                              })
+                                            }
+                                            placeholder="optional"
                                             className="h-8"
                                           />
                                         </div>
                                         <div className="col-span-2">
                                           <label className="text-zinc-500 block mb-0.5">
-                                            Planned subs
+                                            Desired integration (min)
                                           </label>
                                           <Input
                                             type="number"
                                             min={1}
-                                            value={t.frames ?? 30}
+                                            value={
+                                              t.proposedIntegrationMinutes ?? ""
+                                            }
+                                            placeholder="e.g. 90"
                                             onChange={(e) =>
                                               updateTargetRecipe(t.targetId, {
-                                                frames:
-                                                  Number(e.target.value) ||
-                                                  undefined,
+                                                proposedIntegrationMinutes:
+                                                  e.target.value === ""
+                                                    ? null
+                                                    : Number(e.target.value) ||
+                                                      null,
                                               })
                                             }
                                             className="h-8"
                                           />
                                         </div>
                                         <div className="col-span-2 text-xs text-zinc-500">
-                                          Total integration:{" "}
-                                          {(() => {
-                                            const subLength = t.subLength ?? 120;
-                                            const frames = t.frames ?? 30;
-                                            const totalSec = subLength * frames;
-                                            const h = Math.floor(totalSec / 3600);
-                                            const m = Math.floor((totalSec % 3600) / 60);
-                                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                                          })()}
+                                          Proposed only — frames derived later
+                                          in the capture worksheet. Actuals stay
+                                          blank until Capture/Logging.
                                         </div>
                                       </div>
                                     </div>
@@ -1280,7 +1413,7 @@ export default function MissionWizardPage() {
                   <dd className="text-white/90">{gear?.name ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Date</dt>
+                  <dt className="text-white/50">Session window</dt>
                   <dd className="text-white/90">{displayDate}</dd>
                 </div>
                 <div>
@@ -1290,17 +1423,16 @@ export default function MissionWizardPage() {
                 <div>
                   <dt className="text-white/50">Session duration</dt>
                   <dd className="text-white/90">
-                    {(() => {
-                      const start = new Date(dateTime);
-                      let end = new Date(sessionEndTime);
-                      if (end.getTime() <= start.getTime()) {
-                        end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-                      }
-                      const ms = end.getTime() - start.getTime();
-                      const h = Math.floor(ms / 3_600_000);
-                      const m = Math.floor((ms % 3_600_000) / 60_000);
-                      return `${h} h ${m} min`;
-                    })()}
+                    {!sessionOrderValid
+                      ? "Invalid"
+                      : (() => {
+                          const ms =
+                            sessionInterval.end.getTime() -
+                            sessionInterval.start.getTime();
+                          const h = Math.floor(ms / 3_600_000);
+                          const m = Math.floor((ms % 3_600_000) / 60_000);
+                          return `${h} h ${m} min`;
+                        })()}
                   </dd>
                 </div>
                 <div>

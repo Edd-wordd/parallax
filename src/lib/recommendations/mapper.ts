@@ -17,9 +17,9 @@ import type {
   FramingGearForRecs,
   RejectedRecommendation,
 } from "@/lib/recommendations/types";
+import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
 
 const NARROW_WINDOW_MINUTES = 90;
-const SESSION_HOURS = 6;
 
 /** Geometric culmination upper bound (degrees). */
 export function geometricMaxAltitudeDeg(
@@ -39,23 +39,15 @@ export function isPeakAltitudeSane(
   return peakAltitudeDeg <= max + epsilonDeg;
 }
 
-export function sessionIntervalFromDateTime(dateTime: string | Date): {
+/** Shared session window — honors sessionEndAt; falls back to start + 6h. */
+export function sessionIntervalFromDateTime(
+  dateTime: string | Date,
+  sessionEndAt?: string | Date | null,
+): {
   start: Date;
   end: Date;
 } {
-  const start =
-    dateTime instanceof Date ? new Date(dateTime) : new Date(dateTime);
-  if (Number.isNaN(start.getTime())) {
-    const now = new Date();
-    return {
-      start: now,
-      end: new Date(now.getTime() + SESSION_HOURS * 3_600_000),
-    };
-  }
-  return {
-    start,
-    end: new Date(start.getTime() + SESSION_HOURS * 3_600_000),
-  };
+  return sessionWindowFromMission({ dateTime, sessionEndAt });
 }
 
 export function isSameLocalDay(a: Date, b: Date): boolean {
@@ -117,6 +109,8 @@ export type BuildRecommendationsInput = {
   latDeg: number | null | undefined;
   lonDeg: number | null | undefined;
   dateTime: string;
+  /** When set, used as session end; otherwise start + 6h */
+  sessionEndAt?: string | null;
   constraints: Mission["constraints"];
   maxRecommendations?: number;
   now?: Date;
@@ -203,6 +197,7 @@ export function buildDashboardRecommendations(
 ): DashboardRecommendationsResult {
   const { start: sessionStart, end: sessionEnd } = sessionIntervalFromDateTime(
     input.dateTime,
+    input.sessionEndAt,
   );
   const now = input.now ?? new Date();
   const isTonight = isSameLocalDay(sessionStart, now);

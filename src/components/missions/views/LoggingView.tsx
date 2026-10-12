@@ -3,23 +3,24 @@
 import { useMemo, useState } from "react";
 import { MissionTimeline } from "@/components/MissionTimeline";
 import { Button } from "@/components/ui/button";
+import { ObservingTimeline } from "@/components/missions/ObservingTimeline";
+import { MissionConditionsPanel } from "@/components/missions/MissionConditionsPanel";
 import type { Mission } from "@/lib/types";
+import type { ConditionsState } from "@/lib/missionUIStore";
 import { cn } from "@/lib/utils";
 import { targetScheduleLabel } from "@/lib/schedule/display";
+import {
+  actualLabel,
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/schedule/observing";
+import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
+import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
+import { derivedFrames } from "@/lib/capture/worksheetMath";
 
 const PANEL_STYLE = "mission-panel";
 
-type ConditionsStamp = {
-  id: string;
-  at: string;
-  seeing: number;
-  transparency: number;
-  clouds: number;
-  wind: string;
-  moonGlare: boolean;
-};
-
-type TargetResultStatus = "success" | "partial" | "failed";
+type TargetResultStatus = "success" | "partial" | "failed" | "skipped";
 
 export type SessionLogPayload = {
   outcomeScore: number;
@@ -28,65 +29,96 @@ export type SessionLogPayload = {
     catalogId: string;
     targetName: string;
     result: TargetResultStatus | null;
-    framesCaptured: number;
-    exposureSeconds: number;
-    isoGain: number | null;
+    framesCaptured: number | null;
+    exposureSeconds: number | null;
+    iso: number | null;
+    gain: number | null;
     notes: string;
+    actualStartAt: string | null;
+    actualEndAt: string | null;
+    plannedFilter?: string | null;
+    plannedSubLengthSeconds?: number | null;
+    plannedIso?: number | null;
+    plannedGain?: number | null;
+    plannedIntegrationMinutes?: number | null;
+    plannedFrames?: number | null;
   }[];
 };
 
 interface LoggingViewProps {
   mission: Mission;
-  noteLog: { text: string; at: string }[];
-  conditions: {
-    seeing: number;
-    transparency: number;
-    clouds: number;
-    wind: string;
-    moonGlare: boolean;
-  };
-  conditionsLog: ConditionsStamp[];
+  conditions: ConditionsState;
+  conditionLogs: ConditionLogRow[];
+  missionEvents: MissionEventRow[];
+  latestFieldReadingEventId?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  siteTimezone?: string | null;
+  siteName?: string | null;
+  onConditionsChange: (c: Partial<ConditionsState>) => void;
+  onCommitReading: (reading: ManualFieldReadingPayload) => Promise<void> | void;
+  committingReading?: boolean;
+  readingError?: string | null;
+  /** Outcomes form locked after Save Log; readings/events may still append. */
+  logFormLocked?: boolean;
   onSaveLog: (payload: SessionLogPayload) => void;
   saving?: boolean;
 }
 
 type TargetLogState = {
   status: TargetResultStatus | null;
-  framesCaptured: number;
-  subLengthSeconds: number;
-  isoGain: number | null;
+  framesCaptured: number | null;
+  subLengthSeconds: number | null;
+  iso: number | null;
+  gain: number | null;
   notes: string;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
 };
 
 type PerTargetState = Record<string, TargetLogState>;
 
+function emptyTargetState(t: Mission["targets"][number]): TargetLogState {
+  // Actual frames blank until recorded; seed settings from proposed worksheet.
+  const hasActualFrames = t.frames != null && t.frames > 0;
+  return {
+    status: t.result ?? null,
+    framesCaptured: hasActualFrames ? t.frames! : null,
+    subLengthSeconds:
+      t.subLength ?? t.proposedSubLengthSeconds ?? null,
+    iso: t.proposedIso ?? null,
+    gain: t.proposedGain ?? null,
+    notes: t.notes ?? "",
+    actualStartAt: t.actualStartAt ?? null,
+    actualEndAt: t.actualEndAt ?? null,
+  };
+}
+
 export function LoggingView({
   mission,
-  noteLog,
   conditions,
-  conditionsLog,
+  conditionLogs,
+  missionEvents,
+  latestFieldReadingEventId = null,
+  lat = null,
+  lon = null,
+  siteTimezone = null,
+  siteName = null,
+  onConditionsChange,
+  onCommitReading,
+  committingReading = false,
+  readingError = null,
+  logFormLocked = false,
   onSaveLog,
   saving = false,
 }: LoggingViewProps) {
   const [overallNotes, setOverallNotes] = useState("");
   const [outcomeScore, setOutcomeScore] = useState(7);
 
-  // Mocked values for the logging form.
-  const MOCK_FRAME_COUNTER = 24;
-
   const initialPerTargetState: PerTargetState = useMemo(() => {
     const byId: PerTargetState = {};
-    const targets = mission?.targets ?? [];
-    for (const t of targets) {
-      const frames = t.frames ?? MOCK_FRAME_COUNTER;
-      const subLengthSeconds = t.subLength ?? 120;
-      byId[t.targetId] = {
-        status: null,
-        framesCaptured: frames,
-        subLengthSeconds,
-        isoGain: null,
-        notes: "",
-      };
+    for (const t of mission?.targets ?? []) {
+      byId[t.targetId] = emptyTargetState(t);
     }
     return byId;
   }, [mission]);
@@ -115,13 +147,17 @@ export function LoggingView({
     partial: Partial<TargetLogState>,
   ) => {
     setPerTargetState((prev) => {
-      const current = prev[targetId] ?? {
+      const fallback: TargetLogState = {
         status: null,
-        framesCaptured: MOCK_FRAME_COUNTER,
-        subLengthSeconds: 120,
-        isoGain: null,
+        framesCaptured: null,
+        subLengthSeconds: null,
+        iso: null,
+        gain: null,
         notes: "",
+        actualStartAt: null,
+        actualEndAt: null,
       };
+      const current = prev[targetId] ?? fallback;
       return {
         ...prev,
         [targetId]: { ...current, ...partial },
@@ -131,8 +167,17 @@ export function LoggingView({
 
   const computeIntegrationMinutes = (targetId: string) => {
     const state = perTargetState[targetId];
-    if (!state) return 0;
-    const minutes = (state.framesCaptured * state.subLengthSeconds) / 60;
+    if (
+      !state ||
+      state.framesCaptured == null ||
+      state.subLengthSeconds == null ||
+      state.framesCaptured < 0 ||
+      state.subLengthSeconds <= 0
+    ) {
+      return null;
+    }
+    const minutes =
+      (state.framesCaptured * state.subLengthSeconds) / 60;
     return Math.round(minutes * 10) / 10;
   };
 
@@ -141,28 +186,15 @@ export function LoggingView({
       {/* Top row: Notes log + Mission timeline (read-only) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-          <h2 className="mission-section-label mb-0">Notes / Session Log</h2>
-          {noteLog.length > 0 ? (
-            <div className="space-y-1.5 max-h-52 overflow-y-auto text-[11px] font-mono tabular-nums">
-              {noteLog.map((entry) => (
-                <div
-                  key={entry.at}
-                  className="flex gap-2 rounded border border-white/5 bg-black/30 px-2 py-1.5"
-                >
-                  <span className="text-xs text-zinc-500 shrink-0">
-                    {new Date(entry.at).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-zinc-200 leading-snug">{entry.text}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs text-zinc-500">No notes recorded.</div>
-          )}
+          <h2 className="mission-section-label mb-0">Observing log</h2>
+          <p className="text-[11px] text-zinc-500">
+            Full session timeline — notes, checklist, and field actions.
+          </p>
+          <ObservingTimeline
+            events={missionEvents}
+            compact
+            emptyMessage="No observing events recorded."
+          />
         </section>
 
         <section
@@ -272,6 +304,7 @@ export function LoggingView({
                   success: "Success",
                   partial: "Partial",
                   failed: "Failed",
+                  skipped: "Skipped",
                 };
 
                 return (
@@ -302,6 +335,21 @@ export function LoggingView({
                       </button>
                     </div>
 
+                    <p className="text-[11px] tabular-nums text-zinc-500">
+                      Planned: {targetScheduleLabel(t)}
+                      {actualLabel({
+                        ...t,
+                        actualStartAt: logState?.actualStartAt,
+                        actualEndAt: logState?.actualEndAt,
+                      })
+                        ? ` · Actual: ${actualLabel({
+                            ...t,
+                            actualStartAt: logState?.actualStartAt,
+                            actualEndAt: logState?.actualEndAt,
+                          })}`
+                        : " · Actual: —"}
+                    </p>
+
                     {expanded && (
                       <div className="pt-2 border-t border-white/5 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -309,8 +357,14 @@ export function LoggingView({
                             Result
                           </span>
                           <div className="flex flex-wrap gap-1.5">
-                            {(["success", "partial", "failed"] as TargetResultStatus[]).map(
-                              (status) => {
+                            {(
+                              [
+                                "success",
+                                "partial",
+                                "failed",
+                                "skipped",
+                              ] as TargetResultStatus[]
+                            ).map((status) => {
                                 const isActive = logState?.status === status;
                                 return (
                                   <Button
@@ -329,12 +383,45 @@ export function LoggingView({
                                     {resultLabels[status]}
                                   </Button>
                                 );
-                              },
-                            )}
+                              })}
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 text-[11px]">
+                          <div className="space-y-1">
+                            <label className="text-zinc-400">Actual start</label>
+                            <input
+                              type="datetime-local"
+                              value={toDatetimeLocalValue(
+                                logState?.actualStartAt,
+                              )}
+                              onChange={(e) =>
+                                updateTargetState(t.targetId, {
+                                  actualStartAt: fromDatetimeLocalValue(
+                                    e.target.value,
+                                  ),
+                                })
+                              }
+                              className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-zinc-400">Actual end</label>
+                            <input
+                              type="datetime-local"
+                              value={toDatetimeLocalValue(
+                                logState?.actualEndAt,
+                              )}
+                              onChange={(e) =>
+                                updateTargetState(t.targetId, {
+                                  actualEndAt: fromDatetimeLocalValue(
+                                    e.target.value,
+                                  ),
+                                })
+                              }
+                              className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100"
+                            />
+                          </div>
                           <div className="space-y-1">
                             <label className="flex items-center justify-between text-zinc-400">
                               Frames captured
@@ -342,10 +429,14 @@ export function LoggingView({
                             <input
                               type="number"
                               min={0}
-                              value={logState?.framesCaptured ?? 0}
+                              value={logState?.framesCaptured ?? ""}
+                              placeholder="—"
                               onChange={(e) =>
                                 updateTargetState(t.targetId, {
-                                  framesCaptured: Number(e.target.value) || 0,
+                                  framesCaptured:
+                                    e.target.value === ""
+                                      ? null
+                                      : Math.max(0, Number(e.target.value) || 0),
                                 })
                               }
                               className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100"
@@ -354,15 +445,19 @@ export function LoggingView({
 
                           <div className="space-y-1">
                             <label className="flex items-center justify-between text-zinc-400">
-                              Sub length (s)
+                              Exposure length (s)
                             </label>
                             <input
                               type="number"
                               min={0}
-                              value={logState?.subLengthSeconds ?? t.subLength ?? 0}
+                              value={logState?.subLengthSeconds ?? ""}
+                              placeholder="—"
                               onChange={(e) =>
                                 updateTargetState(t.targetId, {
-                                  subLengthSeconds: Number(e.target.value) || 0,
+                                  subLengthSeconds:
+                                    e.target.value === ""
+                                      ? null
+                                      : Math.max(0, Number(e.target.value) || 0),
                                 })
                               }
                               className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100"
@@ -371,18 +466,49 @@ export function LoggingView({
 
                           <div className="space-y-1">
                             <label className="flex items-center justify-between text-zinc-400">
-                              ISO / Gain
+                              ISO
                             </label>
                             <input
                               type="number"
                               min={0}
-                              value={logState?.isoGain ?? ""}
+                              value={logState?.iso ?? ""}
                               onChange={(e) =>
                                 updateTargetState(t.targetId, {
-                                  isoGain: e.target.value === "" ? null : Number(e.target.value) || 0,
+                                  iso:
+                                    e.target.value === ""
+                                      ? null
+                                      : Number(e.target.value) || 0,
                                 })
                               }
-                              placeholder="e.g. 800"
+                              placeholder={
+                                t.proposedIso != null
+                                  ? String(t.proposedIso)
+                                  : "—"
+                              }
+                              className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100 placeholder:text-zinc-500"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="flex items-center justify-between text-zinc-400">
+                              Gain
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={logState?.gain ?? ""}
+                              onChange={(e) =>
+                                updateTargetState(t.targetId, {
+                                  gain:
+                                    e.target.value === ""
+                                      ? null
+                                      : Number(e.target.value) || 0,
+                                })
+                              }
+                              placeholder={
+                                t.proposedGain != null
+                                  ? String(t.proposedGain)
+                                  : "—"
+                              }
                               className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-100 placeholder:text-zinc-500"
                             />
                           </div>
@@ -392,7 +518,9 @@ export function LoggingView({
                               Integration time (min)
                             </label>
                             <div className="w-full rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[11px] text-zinc-100 tabular-nums">
-                              {integrationMinutes.toFixed(1)}
+                              {integrationMinutes == null
+                                ? "—"
+                                : integrationMinutes.toFixed(1)}
                             </div>
                           </div>
                         </div>
@@ -421,108 +549,25 @@ export function LoggingView({
           </div>
         </section>
 
-        {/* Right column: Conditions timeline (read-only) */}
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <div className="flex items-center justify-between">
-            <h2 className="mission-section-label mb-0">
-              Conditions Timeline Stamps
-            </h2>
-            <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300 border border-zinc-600/60">
-              Read-only
-            </span>
-          </div>
-
-          {/* Historical snapshot record (read-only) */}
-          <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 space-y-1 text-xs text-zinc-300">
-            <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Seeing</span>
-              <span className="font-mono tabular-nums">{conditions.seeing}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Transparency</span>
-              <span className="font-mono tabular-nums">
-                {conditions.transparency}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Cloud Cover</span>
-              <span className="font-mono tabular-nums">{conditions.clouds}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Wind</span>
-              <span className="font-mono tabular-nums">{conditions.wind}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-zinc-500">Moon Glare</span>
-              <span className="font-mono tabular-nums">
-                {conditions.moonGlare ? "Present" : "Low"}
-              </span>
-            </div>
-          </div>
-
-          {conditionsLog.length === 0 ? (
-            <p className="mt-1 text-xs text-zinc-500">
-              No condition stamps were recorded during capturing.
-            </p>
-          ) : (
-            <div className="mt-1 space-y-2 max-h-80 overflow-y-auto pr-1">
-              {conditionsLog.map((stamp) => (
-                <div
-                  key={stamp.id}
-                  className="rounded-md border border-white/10 bg-black/40 px-3 py-2 space-y-1.5 text-[11px]"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-zinc-300">
-                      {new Date(stamp.at).toLocaleTimeString(undefined, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wide">
-                      Stamp
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-zinc-300">
-                    <span>
-                      Seeing:{" "}
-                      <span className="text-zinc-100">{stamp.seeing} / 5</span>
-                    </span>
-                    <span>
-                      Transparency:{" "}
-                      <span className="text-zinc-100">
-                        {stamp.transparency} / 5
-                      </span>
-                    </span>
-                    <span>
-                      Clouds:{" "}
-                      <span className="text-zinc-100">{stamp.clouds} / 5</span>
-                    </span>
-                    <span>
-                      Wind:{" "}
-                      <span className="text-zinc-100">{stamp.wind}</span>
-                    </span>
-                    <span>
-                      Moon glare:{" "}
-                      <span className="text-zinc-100">
-                        {stamp.moonGlare ? "Present" : "Low"}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="pt-1">
-                    <label className="text-[10px] text-zinc-500">
-                      Notes (optional, read-only)
-                    </label>
-                    <textarea
-                      disabled
-                      placeholder="Captured during session (not editable in logging)…"
-                      className="mt-0.5 w-full min-h-[44px] rounded-md border border-white/5 bg-zinc-900/80 px-2 py-1 text-[11px] text-zinc-400 placeholder:text-zinc-600"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Right column: conditions + observing timeline */}
+        <div className="space-y-4">
+          <MissionConditionsPanel
+            lat={lat}
+            lon={lon}
+            dateTime={mission.dateTime}
+            sessionEndAt={mission.sessionEndAt}
+            siteTimezone={siteTimezone}
+            siteName={siteName}
+            conditions={conditions}
+            onConditionsChange={onConditionsChange}
+            conditionLogs={conditionLogs}
+            latestFieldReadingEventId={latestFieldReadingEventId}
+            onCommitReading={onCommitReading}
+            committing={committingReading}
+            commitError={readingError}
+            readOnly={false}
+          />
+        </div>
       </div>
 
       <div className="pt-3 flex flex-wrap items-center justify-between gap-3">
@@ -531,7 +576,8 @@ export function LoggingView({
           <select
             value={outcomeScore}
             onChange={(e) => setOutcomeScore(Number(e.target.value))}
-            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-zinc-100"
+            disabled={logFormLocked}
+            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-zinc-100 disabled:opacity-50"
           >
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
@@ -544,7 +590,7 @@ export function LoggingView({
           type="button"
           variant="cta"
           size="sm"
-          disabled={saving}
+          disabled={saving || logFormLocked}
           onClick={() =>
             onSaveLog({
               outcomeScore,
@@ -555,17 +601,30 @@ export function LoggingView({
                   catalogId: t.targetId,
                   targetName: t.targetName,
                   result: state?.status ?? null,
-                  framesCaptured: state?.framesCaptured ?? 0,
-                  exposureSeconds: state?.subLengthSeconds ?? 120,
-                  isoGain: state?.isoGain ?? null,
+                  framesCaptured: state?.framesCaptured ?? null,
+                  exposureSeconds: state?.subLengthSeconds ?? null,
+                  iso: state?.iso ?? null,
+                  gain: state?.gain ?? null,
                   notes: state?.notes ?? "",
+                  actualStartAt: state?.actualStartAt ?? null,
+                  actualEndAt: state?.actualEndAt ?? null,
+                  plannedFilter: t.proposedFilter ?? null,
+                  plannedSubLengthSeconds: t.proposedSubLengthSeconds ?? null,
+                  plannedIso: t.proposedIso ?? null,
+                  plannedGain: t.proposedGain ?? null,
+                  plannedIntegrationMinutes:
+                    t.proposedIntegrationMinutes ?? null,
+                  plannedFrames: derivedFrames(
+                    t.proposedIntegrationMinutes,
+                    t.proposedSubLengthSeconds,
+                  ),
                 };
               }),
             })
           }
           className="mission-page-cta"
         >
-          {saving ? "Saving…" : "Save Log"}
+          {saving ? "Saving…" : logFormLocked ? "Log saved" : "Save Log"}
         </Button>
       </div>
     </div>

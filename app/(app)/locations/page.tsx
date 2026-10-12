@@ -7,7 +7,7 @@ export default function LocationsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/settings");
+    router.replace("/settings?tab=locations");
   }, [router]);
 
   return null;

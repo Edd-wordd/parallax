@@ -26,13 +26,19 @@ export const MissionPhaseSchema = z.enum([
   "completed",
 ]);
 
-export const TargetResultSchema = z.enum(["success", "partial", "failed"]);
+export const TargetResultSchema = z.enum([
+  "success",
+  "partial",
+  "failed",
+  "skipped",
+]);
 
 export const MissionSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
   name: z.string().min(1),
   date_time: z.string().datetime(),
+  session_end_at: z.string().datetime(),
   location_id: z.string().uuid(),
   gear_id: z.string().uuid(),
   mission_type: MissionTypeSchema.nullable().optional(),
@@ -61,6 +67,8 @@ export const MissionTargetSchema = z.object({
   scheduled_start_at: z.string().datetime().nullable().optional(),
   scheduled_end_at: z.string().datetime().nullable().optional(),
   planned_imaging_minutes: z.number().int().nullable().optional(),
+  actual_start_at: z.string().datetime().nullable().optional(),
+  actual_end_at: z.string().datetime().nullable().optional(),
   score: z.number(),
   sequence_index: z.number().int().nullable().optional(),
   role_label: z.string().nullable().optional(),
@@ -71,6 +79,11 @@ export const MissionTargetSchema = z.object({
   frames: z.number().int().nullable().optional(),
   notes: z.string().nullable().optional(),
   planned_iso_gain: z.string().nullable().optional(),
+  proposed_filter: z.string().nullable().optional(),
+  proposed_sub_length_seconds: z.number().int().nullable().optional(),
+  proposed_iso: z.number().int().nullable().optional(),
+  proposed_gain: z.number().int().nullable().optional(),
+  proposed_integration_minutes: z.number().int().nullable().optional(),
   altitude_score: z.number().nullable().optional(),
   moon_separation_score: z.number().nullable().optional(),
   rig_framing_score: z.number().nullable().optional(),
@@ -82,6 +95,7 @@ export const MissionTargetSchema = z.object({
 export const MissionInsertSchema = z.object({
   name: z.string().min(1),
   date_time: z.string().datetime(),
+  session_end_at: z.string().datetime(),
   location_id: z.string().uuid(),
   gear_id: z.string().uuid(),
   mission_type: MissionTypeSchema.optional(),
@@ -90,6 +104,7 @@ export const MissionInsertSchema = z.object({
   phase: MissionPhaseSchema,
   current_target_catalog_id: CatalogIdSchema.optional(),
   notes: z.string().optional(),
+  log_locked: z.boolean().optional(),
   transition_minutes: z.number().int().nullable().optional(),
 });
 

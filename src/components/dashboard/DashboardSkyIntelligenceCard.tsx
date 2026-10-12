@@ -10,6 +10,7 @@ import {
 import type { ConditionMode } from "@/lib/mock/skyIntelligence";
 import { useSiteSessionForecast } from "@/lib/forecast/useSiteSessionForecast";
 import { computeSessionAstronomy } from "@/lib/sky/visibility";
+import { sessionIntervalFromDateTime } from "@/lib/recommendations/mapper";
 import { cn } from "@/lib/utils";
 
 interface DashboardSkyIntelligenceCardProps {
@@ -44,18 +45,10 @@ export function DashboardSkyIntelligenceCard({
 }: DashboardSkyIntelligenceCardProps) {
   const [mode, setMode] = useState<ConditionMode>("forecast");
 
-  const sessionInterval = useMemo(() => {
-    const start = new Date(dateTime);
-    if (Number.isNaN(start.getTime())) {
-      const now = new Date();
-      return { start: now, end: new Date(now.getTime() + 6 * 3_600_000) };
-    }
-    // Dashboard has no session end — use 6h window from store dateTime
-    return {
-      start,
-      end: new Date(start.getTime() + 6 * 3_600_000),
-    };
-  }, [dateTime]);
+  const sessionInterval = useMemo(
+    () => sessionIntervalFromDateTime(dateTime),
+    [dateTime],
+  );
 
   const moonInterference = useMemo(() => {
     if (lat == null || lon == null) return null;

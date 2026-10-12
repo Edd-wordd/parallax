@@ -47,20 +47,32 @@ export function ExposurePlannerCard({
       )}
     >
       <div className="px-3 py-2.5 border-b border-zinc-800/60 shrink-0">
-        <h2 className="dash-section-title text-zinc-400">Exposure Plan</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="dash-section-title text-zinc-400">Exposure Plan</h2>
+          {!isEmpty && (
+            <span className="text-[9px] uppercase tracking-wider text-amber-400/90">
+              Demo
+            </span>
+          )}
+        </div>
         <p className="text-[11px] text-zinc-500 mt-0.5">
           {isEmpty
             ? "Select a target for capture recommendations"
-            : `For ${targetName ?? "Target"} — ${plan.preset} preset`}
+            : `For ${targetName ?? "Target"} — ${plan.preset} preset (mock — not optimal exposure)`}
         </p>
       </div>
       {isEmpty ? (
         <ExposureEmptyState />
       ) : (
         <div className="p-3 space-y-4">
+          <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
+            Demo placeholder — not a calculated optimal exposure. Use the Capture
+            worksheet for editable proposed settings. Missing evidence typically
+            includes camera gain/ISO mode, filter, sky context, and tracking.
+          </p>
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-2">
-              Recommended exposure preset
+              Demo exposure preset
             </p>
             <ExposurePresetRow plan={plan} />
           </div>

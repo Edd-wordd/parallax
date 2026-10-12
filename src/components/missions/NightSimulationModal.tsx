@@ -106,11 +106,22 @@ export function NightSimulationModal({
           className="w-full max-w-2xl rounded-lg border border-zinc-700 bg-zinc-900 p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Night Simulation</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Night Simulation</h2>
+              <span className="text-[9px] uppercase tracking-wider text-amber-400/90 rounded border border-amber-500/30 px-1.5 py-0.5">
+                Demo
+              </span>
+            </div>
             <Button size="icon" variant="ghost" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
+
+          <p className="mb-3 text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
+            Mock sunset clock — not wired to this mission&apos;s session window or
+            Night Schedule. For real timing use the Mission Timeline and Capture
+            worksheet.
+          </p>
 
           <div className="space-y-4">
             <div className="flex items-center gap-2">

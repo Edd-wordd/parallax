@@ -4,4 +4,5 @@ export * from "./gear";
 export * from "./mission";
 export * from "./session";
 export * from "./conditionLog";
+export * from "./missionEvent";
 export * from "./userPreferences";

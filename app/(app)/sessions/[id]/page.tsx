@@ -6,21 +6,24 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ObservingTimeline } from "@/components/missions/ObservingTimeline";
 import { formatDate } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   getSessionById,
   type SessionWithTargets,
 } from "@/lib/supabase/queries/sessions";
+import { listMissionEventsForSession } from "@/lib/supabase/queries/missionEvents";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { outcomeScoreLabel } from "@/lib/outcomeLabel";
-import { integrationMinutes } from "@/lib/schemas";
+import { integrationMinutes, type MissionEventRow } from "@/lib/schemas";
 
 export default function SessionDetailPage() {
   const params = useParams();
   const id = params.id as string;
   const [session, setSession] = useState<SessionWithTargets | null>(null);
   const [locationName, setLocationName] = useState<string>("");
+  const [events, setEvents] = useState<MissionEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,12 +32,14 @@ export default function SessionDetailPage() {
     async function load() {
       try {
         const client = getSupabaseBrowserClient();
-        const [row, locations] = await Promise.all([
+        const [row, locations, sessionEvents] = await Promise.all([
           getSessionById(client, id),
           listLocations(client),
+          listMissionEventsForSession(client, id).catch(() => []),
         ]);
         if (cancelled) return;
         setSession(row);
+        setEvents(sessionEvents);
         if (row) {
           setLocationName(
             locations.find((l) => l.id === row.location_id)?.name ?? "Location",
@@ -129,20 +134,69 @@ export default function SessionDetailPage() {
               className="rounded-lg border border-zinc-800 px-3 py-2 text-sm"
             >
               <div className="font-medium text-zinc-100">{t.target_name}</div>
-              <div className="text-xs text-zinc-500 mt-1">
-                {t.frames_captured} × {t.exposure_seconds}s ·{" "}
+              {(t.planned_frames != null ||
+                t.planned_sub_length_seconds != null ||
+                t.planned_integration_minutes != null) && (
+                <div className="text-xs text-zinc-500 mt-1">
+                  Planned:{" "}
+                  {[
+                    t.planned_frames != null
+                      ? `${t.planned_frames} frames`
+                      : null,
+                    t.planned_sub_length_seconds != null
+                      ? `${t.planned_sub_length_seconds}s`
+                      : null,
+                    t.planned_integration_minutes != null
+                      ? `${t.planned_integration_minutes} min`
+                      : null,
+                    t.planned_filter ? `filter ${t.planned_filter}` : null,
+                    t.planned_iso != null ? `ISO ${t.planned_iso}` : null,
+                    t.planned_gain != null ? `gain ${t.planned_gain}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              )}
+              <div className="text-xs text-zinc-400 mt-0.5">
+                Actual: {t.frames_captured} × {t.exposure_seconds}s ·{" "}
                 {Math.round(
                   integrationMinutes(t.frames_captured, t.exposure_seconds) *
                     10,
                 ) / 10}{" "}
                 min
                 {t.iso != null ? ` · ISO ${t.iso}` : ""}
+                {t.gain != null ? ` · gain ${t.gain}` : ""}
+                {t.result ? ` · ${t.result}` : ""}
               </div>
+              {(t.actual_start_at || t.actual_end_at) && (
+                <div className="text-xs text-zinc-500 mt-0.5 tabular-nums">
+                  Window:{" "}
+                  {t.actual_start_at
+                    ? new Date(t.actual_start_at).toLocaleString()
+                    : "—"}{" "}
+                  –{" "}
+                  {t.actual_end_at
+                    ? new Date(t.actual_end_at).toLocaleString()
+                    : "—"}
+                </div>
+              )}
               {t.notes && (
                 <p className="text-xs text-zinc-400 mt-1">{t.notes}</p>
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-medium">Observing log</h2>
+        </CardHeader>
+        <CardContent>
+          <ObservingTimeline
+            events={events}
+            emptyMessage="No observing events were attached to this session."
+          />
         </CardContent>
       </Card>
     </motion.div>

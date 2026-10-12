@@ -23,12 +23,14 @@ import { useAppStore } from "@/lib/store";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { formatDate } from "@/lib/utils";
 import { Play, Trash2, ClipboardList, XCircle, Pencil } from "lucide-react";
 import { NightSimulationModal } from "@/components/missions/NightSimulationModal";
 import { AddTargetPicker } from "@/components/missions/AddTargetPicker";
 import { PlanningView } from "@/components/missions/views/PlanningView";
-import { SetupView } from "@/components/missions/views/SetupView";
+import {
+  SetupView,
+  type ChecklistTogglePayload,
+} from "@/components/missions/views/SetupView";
 import { CapturingView } from "@/components/missions/views/CapturingView";
 import { LoggingView } from "@/components/missions/views/LoggingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
@@ -42,9 +44,11 @@ import {
 } from "@/components/intelligence";
 import { RigSetupCard } from "@/components/missions/RigSetupCard";
 import { phaseFromStatus } from "@/lib/missions/phase";
+import { buildPlanSnapshot } from "@/lib/missions/planSnapshot";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { MissionPhase, MissionTarget, Mission } from "@/lib/types";
 import type { ActivePhase } from "@/lib/missionUIStore";
+import type { MissionEventKind } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { persistMissionToDb } from "@/lib/missions/persistMission";
@@ -56,8 +60,50 @@ import {
   getMissionWithTargets,
 } from "@/lib/supabase/queries/missions";
 import type { SessionLogPayload } from "@/components/missions/views/LoggingView";
+import { targetScheduleLabel } from "@/lib/schedule/display";
+import { DEFAULT_TRANSITION_MINUTES } from "@/lib/schedule/types";
+import {
+  formatObservingNightLabel,
+  scheduleOutsideWindow,
+  sessionWindowFromMission,
+} from "@/lib/time/sessionWindow";
+import {
+  attachConditionLogsToSession,
+  insertManualFieldReading,
+  latestManualReading,
+  listConditionLogsForMission,
+  type ManualFieldReadingPayload,
+} from "@/lib/supabase/queries/conditionLogs";
+import {
+  appendMissionEvent,
+  attachMissionEventsToSession,
+  listMissionEvents,
+} from "@/lib/supabase/queries/missionEvents";
+import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
 
 const PANEL_STYLE = "mission-panel";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+function latestFieldReadingEventId(
+  events: MissionEventRow[],
+): string | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i]!;
+    if (
+      ev.kind === "field_reading" ||
+      (ev.kind === "correction" && ev.payload?.seeing != null)
+    ) {
+      return ev.id;
+    }
+  }
+  return null;
+}
 
 function MissionDashboardContent() {
   const params = useParams();
@@ -71,7 +117,6 @@ function MissionDashboardContent() {
     state: uiState,
     setSelectedTarget,
     setConditions,
-    resetConditions,
     setSoftware,
     recalculate,
     phaseClick,
@@ -98,9 +143,18 @@ function MissionDashboardContent() {
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
   const [savingLog, setSavingLog] = useState(false);
   const [locationLabel, setLocationLabel] = useState("Site");
+  const [siteLat, setSiteLat] = useState<number | null>(null);
+  const [siteLon, setSiteLon] = useState<number | null>(null);
+  const [siteTimezone, setSiteTimezone] = useState<string | null>(null);
   const [gearLabel, setGearLabel] = useState("Rig");
   const [fetchingMission, setFetchingMission] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [conditionLogs, setConditionLogs] = useState<ConditionLogRow[]>([]);
+  const [missionEvents, setMissionEvents] = useState<MissionEventRow[]>([]);
+  const [committingReading, setCommittingReading] = useState(false);
+  const [readingError, setReadingError] = useState<string | null>(null);
+  /** True once this mission id is known to exist in `missions` (not just a client UUID). */
+  const missionRowReadyRef = useRef(false);
 
   useEffect(() => {
     let frame: number;
@@ -111,6 +165,10 @@ function MissionDashboardContent() {
       if (frame) cancelAnimationFrame(frame);
     };
   }, [mounted]);
+
+  useEffect(() => {
+    missionRowReadyRef.current = false;
+  }, [id]);
 
   /** Phase D.1: load from DB when store has no entry (refresh / new device). */
   useEffect(() => {
@@ -129,6 +187,7 @@ function MissionDashboardContent() {
         );
         if (cancelled) return;
         if (row) {
+          missionRowReadyRef.current = true;
           const existing = useMissionStore.getState().getMission(id);
           if (existing) replaceMission(id, row);
           else addMission(row);
@@ -149,6 +208,59 @@ function MissionDashboardContent() {
     };
   }, [mounted, mission, id, addMission, replaceMission]);
 
+  /**
+   * Observing events / condition_logs require a real `missions` row.
+   * Create Mission only stores a client UUID until Setup (or first event write).
+   */
+  const ensureMissionRowForEvents = async (): Promise<string | null> => {
+    const latest = getMission(id);
+    if (!latest) return null;
+
+    if (missionRowReadyRef.current && isUuid(latest.id)) {
+      return latest.id;
+    }
+
+    try {
+      const client = getSupabaseBrowserClient();
+      // Cheap existence check — avoids rewriting targets on every stamp.
+      if (isUuid(latest.id)) {
+        const existing = await getMissionWithTargets(client, latest.id);
+        if (existing) {
+          missionRowReadyRef.current = true;
+          return existing.id;
+        }
+      }
+
+      const persisted = await persistMissionToDb(client, {
+        ...latest,
+        phase: latest.phase ?? "planning",
+        status: latest.status === "draft" ? "ready" : latest.status,
+      });
+      if (persisted.id !== id) {
+        replaceMission(id, persisted);
+        router.replace(`/missions/${persisted.id}`);
+      }
+      missionRowReadyRef.current = true;
+      return persisted.id;
+    } catch (e) {
+      toast(
+        e instanceof Error
+          ? e.message
+          : "Could not save mission before logging",
+        "error",
+      );
+      return null;
+    }
+  };
+
+  const attachedSessionId = (): string | undefined => {
+    for (let i = missionEvents.length - 1; i >= 0; i--) {
+      const sid = missionEvents[i]?.session_id;
+      if (sid) return sid;
+    }
+    return undefined;
+  };
+
   useEffect(() => {
     if (!mission) return;
     let cancelled = false;
@@ -160,9 +272,11 @@ function MissionDashboardContent() {
           listGearProfiles(client),
         ]);
         if (cancelled) return;
-        setLocationLabel(
-          locations.find((l) => l.id === mission!.locationId)?.name ?? "Site",
-        );
+        const loc = locations.find((l) => l.id === mission!.locationId);
+        setLocationLabel(loc?.name ?? "Site");
+        setSiteLat(loc?.lat ?? null);
+        setSiteLon(loc?.lon ?? null);
+        setSiteTimezone(loc?.timezone ?? null);
         setGearLabel(
           gear.find((g) => g.id === mission!.gearId)?.name ?? "Rig",
         );
@@ -175,6 +289,84 @@ function MissionDashboardContent() {
       cancelled = true;
     };
   }, [mission?.locationId, mission?.gearId, mission]);
+
+  /** Load durable condition logs + observing events for this mission. */
+  useEffect(() => {
+    if (!mission || !isUuid(mission.id)) {
+      setConditionLogs([]);
+      setMissionEvents([]);
+      return;
+    }
+    let cancelled = false;
+    async function loadObservingHistory() {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [logs, events] = await Promise.all([
+          listConditionLogsForMission(client, mission!.id),
+          listMissionEvents(client, mission!.id),
+        ]);
+        if (cancelled) return;
+        setConditionLogs(logs);
+        setMissionEvents(events);
+        if (logs.length > 0 || events.length > 0) {
+          missionRowReadyRef.current = true;
+        }
+
+        const noteLogFromEvents = events
+          .filter((e) => e.kind === "note")
+          .map((e) => ({
+            at: e.recorded_at,
+            text:
+              typeof e.payload.text === "string"
+                ? e.payload.text
+                : typeof e.payload.quick_event === "string"
+                  ? `[Event] ${String(e.payload.quick_event)}`
+                  : e.summary,
+          }));
+        if (noteLogFromEvents.length > 0) {
+          const current = useMissionStore.getState().getMission(mission!.id);
+          if (current) {
+            updateMission(mission!.id, { noteLog: noteLogFromEvents });
+          }
+        }
+
+        const latestReading = latestManualReading(logs);
+        if (latestReading?.payload) {
+          const p = latestReading.payload;
+          setConditions({
+            seeing:
+              typeof p.seeing === "number"
+                ? p.seeing
+                : Number(p.seeing) || uiState.conditions.seeing,
+            transparency:
+              typeof p.transparency === "number"
+                ? p.transparency
+                : Number(p.transparency) || uiState.conditions.transparency,
+            clouds:
+              typeof p.cloudsPct === "number"
+                ? p.cloudsPct
+                : Number(p.cloudsPct) || uiState.conditions.clouds,
+            wind:
+              p.wind === "low" || p.wind === "med" || p.wind === "high"
+                ? p.wind
+                : uiState.conditions.wind,
+            moonGlare:
+              typeof p.moonGlare === "boolean"
+                ? p.moonGlare
+                : uiState.conditions.moonGlare,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          /* keep prior; toast only on write failures */
+        }
+      }
+    }
+    void loadObservingHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [mission?.id]);
 
   /** Deep-link from dashboard "Log Results" → logging phase (no separate /log route). */
   useEffect(() => {
@@ -226,18 +418,6 @@ function MissionDashboardContent() {
     elapsedHours > 0
       ? `Session: ${elapsedHours}h ${elapsedMinutesRemainder}m`
       : `Session: ${elapsedMinutesRemainder}m`;
-
-  const [conditionsLog, setConditionsLog] = useState<
-    {
-      id: string;
-      at: string;
-      seeing: number;
-      transparency: number;
-      clouds: number;
-      wind: string;
-      moonGlare: boolean;
-    }[]
-  >([]);
 
   if (!mounted || fetchingMission) {
     return (
@@ -298,6 +478,20 @@ function MissionDashboardContent() {
     ? (SESSION_SIMULATIONS_BY_TARGET[planTargetId] ?? null)
     : null;
 
+  const missionSessionWindow = sessionWindowFromMission({
+    dateTime: mission.dateTime,
+    sessionEndAt: mission.sessionEndAt,
+  });
+  const scheduleNeedsReview = scheduleOutsideWindow(
+    mission.targets,
+    missionSessionWindow,
+  );
+  const observingNightLabel = formatObservingNightLabel({
+    start: missionSessionWindow.start,
+    end: missionSessionWindow.end,
+    siteTimezone,
+  });
+
   const currentIndex = mission.targets.findIndex(
     (t) => t.targetId === currentTargetId,
   );
@@ -308,59 +502,165 @@ function MissionDashboardContent() {
 
   let nextTargetLabel: string | null = null;
   if (nextTarget) {
-    // Mocked countdown for demo: fixed label per product copy
-    nextTargetLabel = "M42 opens in 47 min";
+    const planned = nextTarget.scheduledStartAt
+      ? targetScheduleLabel(nextTarget)
+      : `${nextTarget.plannedWindowStart}–${nextTarget.plannedWindowEnd}`;
+    nextTargetLabel = `Next: ${nextTarget.targetName} · Planned ${planned}`;
   }
 
-  const handlePhaseClick = async (phase: ActivePhase) => {
-    updateMission(id, { phase });
+  const pushMissionEvent = async (
+    missionId: string,
+    input: {
+      kind: MissionEventKind;
+      source: "user" | "system";
+      summary: string;
+      payload: Record<string, unknown>;
+    },
+  ) => {
+    try {
+      const client = getSupabaseBrowserClient();
+      const ev = await appendMissionEvent(client, {
+        mission_id: missionId,
+        session_id: attachedSessionId(),
+        recorded_at: new Date().toISOString(),
+        kind: input.kind,
+        source: input.source,
+        summary: input.summary,
+        payload: input.payload,
+        client_event_id: crypto.randomUUID(),
+      });
+      setMissionEvents((prev) =>
+        prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+      );
+    } catch {
+      /* timeline stamp is secondary to phase persist */
+    }
+  };
+
+  const handlePhaseClick = async (
+    phase: ActivePhase,
+    options?: {
+      planEvent?: "plan_snapshot" | "mission_started";
+      planReason?: string;
+    },
+  ) => {
+    if (isReadOnlySession) return;
+    const before = getMission(id);
+    if (!before) return;
+
+    const prevPhase = before.phase ?? phaseFromStatus(before.status);
+    const started =
+      before.status === "in_progress" ||
+      prevPhase === "capturing" ||
+      prevPhase === "logging" ||
+      options?.planEvent === "mission_started";
+
+    if (phase === "capturing" && !started) {
+      toast("Start the mission from Setup to enter Capturing", "default");
+      return;
+    }
+    if (
+      phase === "logging" &&
+      prevPhase !== "logging" &&
+      activePhase !== "logging"
+    ) {
+      toast("End the session to open Logging", "default");
+      return;
+    }
+    if (prevPhase === phase && !options?.planEvent) return;
+
+    const status: Mission["status"] =
+      before.status === "in_progress" ||
+      phase === "capturing" ||
+      phase === "logging" ||
+      options?.planEvent === "mission_started"
+        ? "in_progress"
+        : before.status === "draft"
+          ? "ready"
+          : before.status;
+
+    updateMission(id, {
+      phase,
+      status,
+      ...(options?.planEvent === "mission_started" && firstTargetId
+        ? { currentTargetId: before.currentTargetId ?? firstTargetId }
+        : {}),
+    });
     phaseClick(phase, firstTargetId);
-    // Persist from Setup onward (planning cancels write nothing).
-    if (phase === "setup" || phase === "capturing" || phase === "logging") {
+
+    // Persist once the mission has left pure draft planning, or when going to Setup+.
+    const shouldPersist =
+      missionRowReadyRef.current ||
+      before.status !== "draft" ||
+      phase === "setup" ||
+      phase === "capturing" ||
+      phase === "logging" ||
+      !!options?.planEvent;
+
+    if (!shouldPersist) return;
+
+    try {
+      const client = getSupabaseBrowserClient();
       const latest = getMission(id);
       if (!latest) return;
-      try {
-        const client = getSupabaseBrowserClient();
-        const persisted = await persistMissionToDb(client, {
-          ...latest,
-          phase,
-          status:
-            phase === "capturing" || phase === "logging"
-              ? "in_progress"
-              : latest.status === "draft"
-                ? "ready"
-                : latest.status,
+      const persisted = await persistMissionToDb(client, {
+        ...latest,
+        phase,
+        status,
+      });
+      if (persisted.id !== id) {
+        replaceMission(id, persisted);
+        router.replace(`/missions/${persisted.id}`);
+      } else if (
+        persisted.locationId !== latest.locationId ||
+        persisted.gearId !== latest.gearId
+      ) {
+        updateMission(id, {
+          locationId: persisted.locationId,
+          gearId: persisted.gearId,
         });
-        if (persisted.id !== id) {
-          replaceMission(id, persisted);
-          router.replace(`/missions/${persisted.id}`);
-        } else if (
-          persisted.locationId !== latest.locationId ||
-          persisted.gearId !== latest.gearId
-        ) {
-          updateMission(id, {
-            locationId: persisted.locationId,
-            gearId: persisted.gearId,
-          });
-        }
-      } catch (e) {
-        toast(
-          e instanceof Error ? e.message : "Failed to save mission",
-          "error",
-        );
       }
+      missionRowReadyRef.current = true;
+
+      if (prevPhase !== phase && isUuid(persisted.id)) {
+        await pushMissionEvent(persisted.id, {
+          kind: "phase_change",
+          source: "user",
+          summary: `Phase → ${phase}`,
+          payload: { from: prevPhase, to: phase },
+        });
+      }
+
+      if (options?.planEvent && isUuid(persisted.id)) {
+        const snap = buildPlanSnapshot(
+          persisted,
+          options.planReason ??
+            (options.planEvent === "mission_started"
+              ? "Mission started"
+              : "Plan snapshot"),
+        );
+        await pushMissionEvent(persisted.id, {
+          kind: options.planEvent,
+          source: "system",
+          summary: snap.summary,
+          payload: snap.payload as unknown as Record<string, unknown>,
+        });
+      }
+    } catch (e) {
+      toast(
+        e instanceof Error ? e.message : "Failed to save mission",
+        "error",
+      );
     }
   };
 
   const handleStart = async () => {
-    updateMission(id, {
-      status: "in_progress",
-      phase: "capturing",
-      currentTargetId: firstTargetId,
-    });
     setActiveMission(id);
-    await handlePhaseClick("capturing");
-    toast("Mission started");
+    await handlePhaseClick("capturing", {
+      planEvent: "mission_started",
+      planReason: "Mission started",
+    });
+    toast("Mission started — plan saved to observing log");
   };
   const handleSetActive = () => {
     setActiveMission(id);
@@ -419,6 +719,10 @@ function MissionDashboardContent() {
   const handleSaveLog = async (payload: SessionLogPayload) => {
     const latest = getMission(id);
     if (!latest) return;
+    if (latest.logLocked) {
+      toast("Log already saved for this mission", "error");
+      return;
+    }
     setSavingLog(true);
     try {
       const client = getSupabaseBrowserClient();
@@ -433,36 +737,117 @@ function MissionDashboardContent() {
           return {
             ...t,
             result: logged.result ?? t.result,
-            frames: logged.framesCaptured,
-            subLength: logged.exposureSeconds,
+            frames:
+              logged.framesCaptured != null
+                ? logged.framesCaptured
+                : t.frames,
+            subLength:
+              logged.exposureSeconds != null
+                ? logged.exposureSeconds
+                : t.subLength,
             isoGain:
-              logged.isoGain != null ? String(logged.isoGain) : t.isoGain,
+              logged.iso != null
+                ? String(logged.iso)
+                : logged.gain != null
+                  ? String(logged.gain)
+                  : t.isoGain,
             notes: logged.notes || t.notes,
+            actualStartAt: logged.actualStartAt ?? t.actualStartAt ?? null,
+            actualEndAt: logged.actualEndAt ?? t.actualEndAt ?? null,
           };
         }),
       };
+
+      const actualStarts = completed.targets
+        .map((t) => t.actualStartAt)
+        .filter((v): v is string => Boolean(v))
+        .map((v) => new Date(v).getTime())
+        .filter((n) => !Number.isNaN(n));
+      const actualEnds = completed.targets
+        .map((t) => t.actualEndAt)
+        .filter((v): v is string => Boolean(v))
+        .map((v) => new Date(v).getTime())
+        .filter((n) => !Number.isNaN(n));
+      const sessionStartedAt =
+        actualStarts.length > 0
+          ? new Date(Math.min(...actualStarts)).toISOString()
+          : new Date(completed.dateTime).toISOString();
+      const sessionEndedAt =
+        actualEnds.length > 0
+          ? new Date(Math.max(...actualEnds)).toISOString()
+          : new Date().toISOString();
+
       const persisted = await persistMissionToDb(client, completed);
-      await upsertSessionFromLog(
+      missionRowReadyRef.current = true;
+      const sessionTargets = payload.targets
+        .filter(
+          (t) =>
+            t.exposureSeconds != null &&
+            t.exposureSeconds > 0 &&
+            t.result !== "skipped",
+        )
+        .map((t) => ({
+          catalog_id: t.catalogId,
+          target_name: t.targetName,
+          frames_captured: t.framesCaptured ?? 0,
+          exposure_seconds: t.exposureSeconds!,
+          iso: t.iso ?? undefined,
+          gain: t.gain ?? undefined,
+          notes: t.notes || undefined,
+          actual_start_at: t.actualStartAt,
+          actual_end_at: t.actualEndAt,
+          result: t.result,
+          planned_filter: t.plannedFilter ?? undefined,
+          planned_sub_length_seconds: t.plannedSubLengthSeconds ?? undefined,
+          planned_iso: t.plannedIso ?? undefined,
+          planned_gain: t.plannedGain ?? undefined,
+          planned_integration_minutes:
+            t.plannedIntegrationMinutes ?? undefined,
+          planned_frames: t.plannedFrames ?? undefined,
+        }));
+
+      const session = await upsertSessionFromLog(
         client,
         {
           mission_id: persisted.id,
           location_id: persisted.locationId,
-          started_at: new Date(persisted.dateTime).toISOString(),
-          ended_at: new Date().toISOString(),
+          started_at: sessionStartedAt,
+          ended_at: sessionEndedAt,
           outcome_score: payload.outcomeScore,
           what_i_learned: payload.whatILearned || undefined,
         },
-        payload.targets
-          .filter((t) => t.exposureSeconds > 0)
-          .map((t) => ({
-            catalog_id: t.catalogId,
-            target_name: t.targetName,
-            frames_captured: t.framesCaptured,
-            exposure_seconds: t.exposureSeconds,
-            iso: t.isoGain ?? undefined,
-            notes: t.notes || undefined,
-          })),
+        sessionTargets,
       );
+
+      await attachMissionEventsToSession(client, persisted.id, session.id);
+      await attachConditionLogsToSession(client, persisted.id, session.id);
+      const saveEv = await appendMissionEvent(client, {
+        mission_id: persisted.id,
+        session_id: session.id,
+        recorded_at: new Date().toISOString(),
+        kind: "save_log",
+        source: "user",
+        summary: "Session log saved",
+        payload: {
+          outcome_score: payload.outcomeScore,
+          session_id: session.id,
+        },
+        client_event_id: crypto.randomUUID(),
+      });
+      setMissionEvents((prev) => {
+        const attached = prev.map((e) =>
+          e.session_id ? e : { ...e, session_id: session.id },
+        );
+        return attached.some((e) => e.id === saveEv.id)
+          ? attached
+          : [...attached, saveEv];
+      });
+      setConditionLogs((prev) =>
+        prev.map((row) =>
+          row.session_id ? row : { ...row, session_id: session.id },
+        ),
+      );
+
       replaceMission(id, {
         ...persisted,
         status: "completed",
@@ -473,7 +858,7 @@ function MissionDashboardContent() {
       setActiveMission(null);
       clearPlan();
       toast("Session log saved", "success");
-      router.push("/sessions");
+      router.push(`/sessions/${session.id}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to save session", "error");
     } finally {
@@ -489,7 +874,69 @@ function MissionDashboardContent() {
       noteLog: [...noteLog, entry],
       notes: trimmed,
     });
-    toast("Note added");
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: entry.at,
+          kind: "note",
+          source: "user",
+          summary: trimmed.slice(0, 120),
+          payload: { text: trimmed },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+        toast("Note saved");
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Note not saved to observing log",
+          "error",
+        );
+      }
+    })();
+  };
+
+  const handleChecklistToggle = (item: ChecklistTogglePayload) => {
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const summary = item.checked
+          ? `Checklist · ${item.label}`
+          : `Checklist unchecked · ${item.label}`;
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: new Date().toISOString(),
+          kind: "checklist_item",
+          source: "user",
+          summary,
+          payload: {
+            sectionId: item.sectionId,
+            stepId: item.stepId,
+            label: item.label,
+            sectionLabel: item.sectionLabel,
+            checked: item.checked,
+          },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Checklist not saved to log",
+          "error",
+        );
+      }
+    })();
   };
 
   const handleQuickEventLog = (label: string) => {
@@ -497,31 +944,86 @@ function MissionDashboardContent() {
     updateMission(id, {
       noteLog: [...noteLog, entry],
     });
-    toast("Event logged");
-  };
-  const handleResetConditions = () => {
-    resetConditions();
-    toast("Conditions reset");
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: entry.at,
+          kind: "note",
+          source: "user",
+          summary: label,
+          payload: { quick_event: label },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+        toast("Event logged");
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Event not saved",
+          "error",
+        );
+      }
+    })();
   };
   const handleRecalculate = () => {
     recalculate();
     toast("Plan updated");
   };
-  const handleStampConditions = () => {
-    const nowIso = new Date().toISOString();
-    setConditionsLog((prev) => [
-      ...prev,
-      {
-        id: `stamp-${prev.length + 1}`,
-        at: nowIso,
-        seeing: uiState.conditions.seeing,
-        transparency: uiState.conditions.transparency,
-        clouds: uiState.conditions.clouds,
-        wind: uiState.conditions.wind,
-        moonGlare: uiState.conditions.moonGlare,
-      },
-    ]);
-    toast("Conditions stamped");
+
+  const handleCommitReading = async (reading: ManualFieldReadingPayload) => {
+    const mid = await ensureMissionRowForEvents();
+    if (!mid) {
+      setReadingError("Could not save mission before stamping reading.");
+      return;
+    }
+    setCommittingReading(true);
+    setReadingError(null);
+    const clientEventId = crypto.randomUUID();
+    const isCorrection = Boolean(reading.correctsEventId);
+    try {
+      const client = getSupabaseBrowserClient();
+      const log = await insertManualFieldReading(client, mid, reading);
+      const ev = await appendMissionEvent(client, {
+        mission_id: mid,
+        session_id: attachedSessionId(),
+        recorded_at: log.recorded_at,
+        kind: isCorrection ? "correction" : "field_reading",
+        source: "manual",
+        summary: isCorrection
+          ? `Corrected field reading · seeing ${reading.seeing} · clouds ${reading.cloudsPct}%`
+          : `Field reading · seeing ${reading.seeing} · clouds ${reading.cloudsPct}%`,
+        payload: {
+          seeing: reading.seeing,
+          transparency: reading.transparency,
+          cloudsPct: reading.cloudsPct,
+          wind: reading.wind,
+          moonGlare: reading.moonGlare,
+          notes: reading.notes ?? "",
+          condition_log_id: log.id,
+        },
+        corrects_event_id: reading.correctsEventId,
+        client_event_id: clientEventId,
+      });
+      setConditionLogs((prev) =>
+        prev.some((r) => r.id === log.id) ? prev : [...prev, log],
+      );
+      setMissionEvents((prev) =>
+        prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+      );
+      toast(isCorrection ? "Correction saved" : "Field reading saved", "success");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Not saved";
+      setReadingError(msg);
+      toast(msg, "error");
+    } finally {
+      setCommittingReading(false);
+    }
   };
 
   const handleTargetQueueClick = (t: MissionTarget) => {
@@ -535,11 +1037,36 @@ function MissionDashboardContent() {
   };
   const handleRemoveTarget = (targetId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    const removed = mission.targets.find((t) => t.targetId === targetId);
     const next = mission.targets.filter((t) => t.targetId !== targetId);
     updateMission(id, { targets: next });
     if (uiState.selectedTargetId === targetId)
       setSelectedTarget(next[0]?.targetId ?? null);
     toast("Target removed");
+    void (async () => {
+      if (!removed) return;
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: new Date().toISOString(),
+          kind: "target_removed",
+          source: "user",
+          catalog_id: targetId,
+          summary: `Removed ${removed.targetName}`,
+          payload: { catalog_id: targetId },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+      } catch {
+        /* non-blocking */
+      }
+    })();
   };
   const handleMoveTarget = (index: number, direction: "up" | "down") => {
     const targets = [...mission.targets];
@@ -554,6 +1081,30 @@ function MissionDashboardContent() {
     }));
     updateMission(id, { targets: resequenced });
     toast("Queue reordered");
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: new Date().toISOString(),
+          kind: "target_reordered",
+          source: "user",
+          summary: "Target queue reordered",
+          payload: {
+            order: resequenced.map((t) => t.targetId),
+          },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+      } catch {
+        /* non-blocking */
+      }
+    })();
   };
   const handleCaptureToggle = (targetId: string) => {
     updateMission(id, {
@@ -562,12 +1113,75 @@ function MissionDashboardContent() {
       ),
     });
   };
+  const handlePatchTarget = (targetId: string, patch: Partial<MissionTarget>) => {
+    if (!mission || mission.logLocked) return;
+    const targets = mission.targets.map((t) =>
+      t.targetId === targetId ? { ...t, ...patch } : t,
+    );
+    updateMission(id, { targets });
+    const touchesActuals =
+      "actualStartAt" in patch ||
+      "actualEndAt" in patch ||
+      "frames" in patch ||
+      "subLength" in patch ||
+      "notes" in patch;
+    const touchesSchedule =
+      "scheduledStartAt" in patch ||
+      "scheduledEndAt" in patch ||
+      "transitionMinutes" in patch;
+    const touchesCapturePlan =
+      "proposedFilter" in patch ||
+      "proposedSubLengthSeconds" in patch ||
+      "proposedIso" in patch ||
+      "proposedGain" in patch ||
+      "proposedIntegrationMinutes" in patch;
+    if (!touchesActuals && !touchesSchedule && !touchesCapturePlan) return;
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const t = targets.find((x) => x.targetId === targetId);
+        const kind = touchesSchedule
+          ? "schedule_changed"
+          : touchesCapturePlan
+            ? "capture_plan_updated"
+            : "actuals_updated";
+        const summary = touchesSchedule
+          ? `Schedule updated · ${t?.targetName ?? targetId}`
+          : touchesCapturePlan
+            ? `Capture plan updated · ${t?.targetName ?? targetId}`
+            : `Actuals updated · ${t?.targetName ?? targetId}`;
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: new Date().toISOString(),
+          kind,
+          source: "user",
+          catalog_id: targetId,
+          summary,
+          payload: { ...patch },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Update not saved to observing log",
+          "error",
+        );
+      }
+    })();
+  };
+
   const handleMarkTargetComplete = () => {
-    if (!currentTargetId) return;
+    if (!currentTargetId || !mission) return;
     const idx = mission.targets.findIndex(
       (t) => t.targetId === currentTargetId,
     );
     if (idx === -1) return;
+    const completedTarget = mission.targets[idx]!;
     const updatedTargets = mission.targets.map((t, i) =>
       i === idx ? { ...t, captured: true } : t,
     );
@@ -577,6 +1191,45 @@ function MissionDashboardContent() {
       targets: updatedTargets,
       currentTargetId: next?.targetId ?? currentTargetId,
     });
+    // Persist actuals already entered (Setup+ SoT) — never invent frames
+    const phase = mission.phase ?? "planning";
+    if (phase === "setup" || phase === "capturing" || phase === "logging") {
+      void (async () => {
+        try {
+          const client = getSupabaseBrowserClient();
+          const latest = getMission(id);
+          if (!latest) return;
+          const persisted = await persistMissionToDb(client, {
+            ...latest,
+            targets: updatedTargets,
+            currentTargetId: next?.targetId ?? currentTargetId,
+            transitionMinutes:
+              latest.transitionMinutes ?? DEFAULT_TRANSITION_MINUTES,
+          });
+          replaceMission(id, persisted);
+          missionRowReadyRef.current = true;
+          const ev = await appendMissionEvent(client, {
+            mission_id: persisted.id,
+            session_id: attachedSessionId(),
+            recorded_at: new Date().toISOString(),
+            kind: "target_completed",
+            source: "user",
+            catalog_id: completedTarget.targetId,
+            summary: `Completed ${completedTarget.targetName}`,
+            payload: { catalog_id: completedTarget.targetId },
+            client_event_id: crypto.randomUUID(),
+          });
+          setMissionEvents((prev) =>
+            prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+          );
+        } catch (e) {
+          toast(
+            e instanceof Error ? e.message : "Complete not fully saved",
+            "error",
+          );
+        }
+      })();
+    }
     if (next) {
       setSelectedTarget(next.targetId);
       toast("Target marked complete — advanced to next");
@@ -608,6 +1261,29 @@ function MissionDashboardContent() {
     setSelectedTarget(opt.targetId);
     setAddTargetPickerOpen(false);
     toast("Target added");
+    void (async () => {
+      const mid = await ensureMissionRowForEvents();
+      if (!mid) return;
+      try {
+        const client = getSupabaseBrowserClient();
+        const ev = await appendMissionEvent(client, {
+          mission_id: mid,
+          session_id: attachedSessionId(),
+          recorded_at: new Date().toISOString(),
+          kind: "target_added",
+          source: "user",
+          catalog_id: opt.targetId,
+          summary: `Added ${opt.targetName}`,
+          payload: { catalog_id: opt.targetId },
+          client_event_id: crypto.randomUUID(),
+        });
+        setMissionEvents((prev) =>
+          prev.some((e) => e.id === ev.id) ? prev : [...prev, ev],
+        );
+      } catch {
+        /* non-blocking */
+      }
+    })();
   };
 
   const isPlanningStatus = status === "PLANNING";
@@ -676,7 +1352,39 @@ function MissionDashboardContent() {
                   <PhaseTabs
                     activePhase={activePhase}
                     loggingLocked={!!mission.logLocked}
+                    navigationLocked={isReadOnlySession}
+                    canOpenCapturing={
+                      mission.status === "in_progress" ||
+                      activePhase === "capturing" ||
+                      activePhase === "logging"
+                    }
+                    canOpenLogging={
+                      activePhase === "logging" ||
+                      mission.phase === "logging"
+                    }
+                    onPhaseSelect={(phase) => {
+                      void handlePhaseClick(phase);
+                    }}
                   />
+                  {isCapturing && (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-300"
+                      title="Mission is live — capturing in progress"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-400" />
+                      </span>
+                      Live
+                    </span>
+                  )}
+                  {mission.status === "in_progress" &&
+                    !isCapturing &&
+                    !isLoggingStatus && (
+                      <span className="inline-flex items-center rounded-md border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-300">
+                        In progress
+                      </span>
+                    )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* PLANNING STATE */}
@@ -686,7 +1394,12 @@ function MissionDashboardContent() {
                         <Button
                           variant="cta"
                           size="sm"
-                          onClick={() => handlePhaseClick("setup")}
+                          onClick={() =>
+                            void handlePhaseClick("setup", {
+                              planEvent: "plan_snapshot",
+                              planReason: "Planning complete",
+                            })
+                          }
                           className="mission-page-cta"
                         >
                           Planning Complete
@@ -704,15 +1417,41 @@ function MissionDashboardContent() {
                             Start Mission
                           </Button>
                         )}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleClearPlan}
-                        className="border-white/10 bg-white/5"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Reset Plan
-                      </Button>
+                      {activePhase === "setup" &&
+                        mission.status === "in_progress" && (
+                          <Button
+                            variant="cta"
+                            size="sm"
+                            onClick={() => void handlePhaseClick("capturing")}
+                            className="mission-page-cta"
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Resume Capturing
+                          </Button>
+                        )}
+                      {activePhase === "planning" &&
+                        mission.status === "in_progress" && (
+                          <Button
+                            variant="cta"
+                            size="sm"
+                            onClick={() => void handlePhaseClick("capturing")}
+                            className="mission-page-cta"
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Resume Capturing
+                          </Button>
+                        )}
+                      {mission.status !== "in_progress" && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleClearPlan}
+                          className="border-white/10 bg-white/5"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Reset Plan
+                        </Button>
+                      )}
                       <Button
                         variant="secondary"
                         size="sm"
@@ -780,9 +1519,14 @@ function MissionDashboardContent() {
                     )}
                 </div>
               </div>
-              <p className="mt-1 flex items-center gap-2 text-xs text-white/45 tracking-wide">
-                {locationLabel} · {gearLabel} · {formatDate(mission.dateTime)}
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/45 tracking-wide">
+                {locationLabel} · {gearLabel} · {observingNightLabel}
                 <span className="text-zinc-500">· {sessionElapsedLabel}</span>
+                {isCapturing && (
+                  <span className="font-semibold uppercase tracking-wider text-rose-400">
+                    · Live session
+                  </span>
+                )}
                 <span className="text-emerald-400/90">
                   {uiState.connectivity.status === "online"
                     ? uiState.connectivity.isCached
@@ -793,6 +1537,31 @@ function MissionDashboardContent() {
               </p>
             </div>
           </header>
+
+          {scheduleNeedsReview && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm text-amber-200">
+                Accepted schedule times fall outside the mission session window.
+                Review and accept a new schedule — times are not changed
+                automatically.
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => {
+                  void handlePhaseClick("planning");
+                  toast(
+                    "Open Night Schedule from Planning to review segments",
+                    "default",
+                  );
+                }}
+              >
+                Review schedule
+              </Button>
+            </div>
+          )}
 
           {uiState.planStale && activePhase !== "planning" && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
@@ -806,7 +1575,6 @@ function MissionDashboardContent() {
           {isPlanningStatus ? (
             <PlanningView
               mission={mission as Mission}
-              noteLog={noteLog}
               isReadOnlySession={isReadOnlySession}
               isFieldMode={isFieldMode}
               currentTarget={currentTarget ?? null}
@@ -832,20 +1600,42 @@ function MissionDashboardContent() {
               }}
               canEditTargets={!isReadOnlySession}
               onOpenAddTarget={() => setAddTargetPickerOpen(true)}
+              onPatchTarget={handlePatchTarget}
+              cameraName={gearLabel !== "Rig" ? gearLabel : null}
+              lat={siteLat}
+              lon={siteLon}
+              missionEvents={missionEvents}
             />
           ) : isSetupStatus ? (
             <SetupView
-              noteLog={noteLog}
               isReadOnlySession={isReadOnlySession}
               onAddNote={handleAddNoteFromView}
               onQuickEvent={handleQuickEventLog}
+              onChecklistToggle={handleChecklistToggle}
               onStartMission={handleStart}
               onCancelMission={() => setCancelOpen(true)}
+              lat={siteLat}
+              lon={siteLon}
+              dateTime={mission.dateTime}
+              sessionEndAt={mission.sessionEndAt}
+              siteTimezone={siteTimezone}
+              siteName={locationLabel}
+              conditions={uiState.conditions}
+              onConditionsChange={(c) =>
+                setConditions({ ...uiState.conditions, ...c })
+              }
+              conditionLogs={conditionLogs}
+              missionEvents={missionEvents}
+              latestFieldReadingEventId={latestFieldReadingEventId(
+                missionEvents,
+              )}
+              onCommitReading={handleCommitReading}
+              committingReading={committingReading}
+              readingError={readingError}
             />
           ) : isCapturing ? (
             <CapturingView
               mission={mission as Mission}
-              noteLog={noteLog}
               isReadOnlySession={isReadOnlySession}
               isFieldMode={isFieldMode}
               currentTarget={currentTarget ?? null}
@@ -855,24 +1645,49 @@ function MissionDashboardContent() {
               nextTargetLabel={nextTargetLabel}
               selectedTargetId={uiState.selectedTargetId ?? null}
               conditions={uiState.conditions}
-              conditionsLog={conditionsLog}
+              conditionLogs={conditionLogs}
+              missionEvents={missionEvents}
+              latestFieldReadingEventId={latestFieldReadingEventId(
+                missionEvents,
+              )}
+              lat={siteLat}
+              lon={siteLon}
+              siteTimezone={siteTimezone}
+              siteName={locationLabel}
               isOffline={isOffline}
               onAddNote={handleAddNoteFromView}
               onQuickEvent={handleQuickEventLog}
               onMarkTargetComplete={handleMarkTargetComplete}
-              onStampConditions={handleStampConditions}
+              onPatchTarget={handlePatchTarget}
               onConditionsChange={(c) =>
                 setConditions({ ...uiState.conditions, ...c })
               }
-              onResetConditions={handleResetConditions}
+              onCommitReading={handleCommitReading}
+              committingReading={committingReading}
+              readingError={readingError}
               onUpdatePlan={handleRecalculate}
+              cameraName={gearLabel !== "Rig" ? gearLabel : null}
             />
           ) : isLoggingStatus ? (
             <LoggingView
               mission={mission as Mission}
-              noteLog={noteLog}
               conditions={uiState.conditions}
-              conditionsLog={conditionsLog}
+              conditionLogs={conditionLogs}
+              missionEvents={missionEvents}
+              latestFieldReadingEventId={latestFieldReadingEventId(
+                missionEvents,
+              )}
+              lat={siteLat}
+              lon={siteLon}
+              siteTimezone={siteTimezone}
+              siteName={locationLabel}
+              onConditionsChange={(c) =>
+                setConditions({ ...uiState.conditions, ...c })
+              }
+              onCommitReading={handleCommitReading}
+              committingReading={committingReading}
+              readingError={readingError}
+              logFormLocked={!!mission.logLocked}
               onSaveLog={handleSaveLog}
               saving={savingLog}
             />

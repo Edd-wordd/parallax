@@ -70,6 +70,15 @@ export async function upsertSessionFromLog(
           iso: t.iso ?? null,
           gain: t.gain ?? null,
           notes: t.notes ?? null,
+          actual_start_at: t.actual_start_at ?? null,
+          actual_end_at: t.actual_end_at ?? null,
+          result: t.result ?? null,
+          planned_filter: t.planned_filter ?? null,
+          planned_sub_length_seconds: t.planned_sub_length_seconds ?? null,
+          planned_iso: t.planned_iso ?? null,
+          planned_gain: t.planned_gain ?? null,
+          planned_integration_minutes: t.planned_integration_minutes ?? null,
+          planned_frames: t.planned_frames ?? null,
         })),
       )
       .select("*");
@@ -157,6 +166,9 @@ function normalizeTarget(row: Record<string, unknown>) {
     ...row,
     created_at: toIso(row.created_at),
     updated_at: toIso(row.updated_at),
+    actual_start_at:
+      row.actual_start_at == null ? null : toIso(row.actual_start_at),
+    actual_end_at: row.actual_end_at == null ? null : toIso(row.actual_end_at),
   };
 }
 

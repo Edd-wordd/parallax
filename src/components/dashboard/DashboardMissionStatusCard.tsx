@@ -78,20 +78,42 @@ export function DashboardMissionStatusCard({
     <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
       <div className="px-3 py-2 border-b border-zinc-800/60 shrink-0 flex items-center justify-between gap-2">
         <h2 className="dash-section-title">Mission Control</h2>
-        <span
-          className={cn(
-            "shrink-0 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide",
-            showPlanningState
-              ? "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15"
-              : missionStatus === "NONE" || missionStatus === "COMPLETED"
-                ? "bg-zinc-700/40 text-zinc-400"
-                : missionStatus === "CAPTURING" || missionStatus === "LOGGING"
-                  ? "bg-indigo-500/15 text-indigo-400/90 border border-indigo-500/20"
-                  : "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15",
+        <div className="flex items-center gap-1.5 shrink-0">
+          {missionStatus === "CAPTURING" && (
+            <span
+              className="inline-flex items-center gap-1 rounded border border-rose-500/50 bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-rose-300"
+              title="Mission is live"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" />
+              </span>
+              Live
+            </span>
           )}
-        >
-          {showPlanningState ? "Planning" : STATUS_LABELS[missionStatus]}
-        </span>
+          {(missionStatus === "SETUP" || missionStatus === "PLANNING") &&
+            mission?.status === "in_progress" && (
+              <span className="rounded border border-violet-500/40 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+                In progress
+              </span>
+            )}
+          <span
+            className={cn(
+              "px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide",
+              showPlanningState
+                ? "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15"
+                : missionStatus === "NONE" || missionStatus === "COMPLETED"
+                  ? "bg-zinc-700/40 text-zinc-400"
+                  : missionStatus === "CAPTURING"
+                    ? "bg-rose-500/15 text-rose-300/90 border border-rose-500/25"
+                    : missionStatus === "LOGGING"
+                      ? "bg-indigo-500/15 text-indigo-400/90 border border-indigo-500/20"
+                      : "bg-indigo-500/10 text-indigo-400/80 border border-indigo-500/15",
+            )}
+          >
+            {showPlanningState ? "Planning" : STATUS_LABELS[missionStatus]}
+          </span>
+        </div>
       </div>
       <div className="p-3 flex flex-col gap-3 min-h-0">
         <div>
@@ -263,9 +285,11 @@ export function DashboardMissionStatusCard({
             <>
               <Link href={`/missions/${activeMission!.id}`}>
                 <Button variant="cta" size="sm" className="text-xs">
-                  {missionStatus === "CAPTURING" || missionStatus === "LOGGING"
-                    ? "Resume Mission"
-                    : "View Plan"}
+                  {missionStatus === "CAPTURING"
+                    ? "Resume Live Mission"
+                    : missionStatus === "LOGGING"
+                      ? "Resume Mission"
+                      : "View Plan"}
                 </Button>
               </Link>
               {missionStatus === "PLANNING" && onClearMission && (

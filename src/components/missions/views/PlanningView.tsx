@@ -105,13 +105,10 @@ export function PlanningView({
           size="sm"
           onClick={onSimulateNight}
           className="border-white/10 bg-white/5"
-          title="Demo preview — mock sunset clock"
+          title="Scrub this mission session window and schedule"
         >
           <Moon className="h-4 w-4 mr-1" />
           Simulate Night
-          <span className="ml-1.5 text-[9px] uppercase tracking-wider text-amber-400/90">
-            Demo
-          </span>
         </Button>
       </div>
 

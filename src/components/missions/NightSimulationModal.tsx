@@ -1,40 +1,27 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { mapTimeToWindow, getMoonAtTime } from "@/lib/sim";
-import { MOCK_NIGHT } from "@/lib/mock/night";
+import {
+  activeSegmentsAt,
+  buildNightSimModel,
+  formatSimClock,
+  pctAlongSession,
+} from "@/lib/missions/nightSimulation";
+import { moonAtSite } from "@/lib/missions/simMoon";
 import type { MissionTarget } from "@/lib/types";
-
-const parseTime = (t: string): number => {
-  const [h, m] = t.split(":").map(Number);
-  return h + m / 60;
-};
-
-const NIGHT_START = 18;
-const NIGHT_END = 30;
-const SUNSET_MIN = 18 * 60 + 45;
-const SUNRISE_NEXT = 24 * 60 + 6 * 60 + 12;
-const NIGHT_LENGTH = SUNRISE_NEXT - SUNSET_MIN;
-
-function hourToPct(h: number): number {
-  const hNorm = h < 12 ? h + 24 : h;
-  return ((hNorm - NIGHT_START) / (NIGHT_END - NIGHT_START)) * 100;
-}
-
-function minutesToTime(min: number): string {
-  const total = SUNSET_MIN + min;
-  const h = Math.floor(total / 60) % 24;
-  const m = Math.floor(total % 60);
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-}
 
 interface NightSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
   targets: MissionTarget[];
+  dateTime: string;
+  sessionEndAt?: string | null;
+  siteTimezone?: string | null;
+  lat?: number | null;
+  lon?: number | null;
 }
 
 const SPEEDS = [1, 5, 15];
@@ -43,6 +30,11 @@ export function NightSimulationModal({
   isOpen,
   onClose,
   targets,
+  dateTime,
+  sessionEndAt = null,
+  siteTimezone = null,
+  lat = null,
+  lon = null,
 }: NightSimulationModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -50,12 +42,24 @@ export function NightSimulationModal({
   const rafRef = useRef<number>(0);
   const lastRef = useRef<number>(0);
 
-  const totalNightMinutes = NIGHT_LENGTH;
-  const activeWindows = mapTimeToWindow(currentTimeMinutes, targets, SUNSET_MIN);
-  const bestTarget = activeWindows.length > 0
-    ? activeWindows.reduce((a, b) => (a.score > b.score ? a : b))
-    : null;
-  const moon = getMoonAtTime(currentTimeMinutes, totalNightMinutes);
+  const model = useMemo(
+    () =>
+      buildNightSimModel({
+        dateTime,
+        sessionEndAt,
+        targets,
+      }),
+    [dateTime, sessionEndAt, targets],
+  );
+
+  const totalNightMinutes = model.durationMinutes;
+
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentTimeMinutes(0);
+      setIsPlaying(false);
+    }
+  }, [isOpen, dateTime, sessionEndAt]);
 
   const tick = useCallback(
     (now: number) => {
@@ -67,7 +71,7 @@ export function NightSimulationModal({
       });
       rafRef.current = requestAnimationFrame(tick);
     },
-    [speed, totalNightMinutes]
+    [speed, totalNightMinutes],
   );
 
   useEffect(() => {
@@ -88,6 +92,18 @@ export function NightSimulationModal({
   if (!isOpen) return null;
 
   const nowPct = (currentTimeMinutes / totalNightMinutes) * 100;
+  const active = activeSegmentsAt(model, currentTimeMinutes);
+  const bestTarget =
+    active.length > 0
+      ? active.reduce((a, b) => (a.score > b.score ? a : b))
+      : null;
+  const clock = formatSimClock(model, currentTimeMinutes, siteTimezone);
+  const when = new Date(
+    model.sessionStart.getTime() + currentTimeMinutes * 60_000,
+  );
+  const moon = moonAtSite(when, lat, lon);
+  const startLabel = formatSimClock(model, 0, siteTimezone);
+  const endLabel = formatSimClock(model, totalNightMinutes, siteTimezone);
 
   return (
     <AnimatePresence>
@@ -106,30 +122,27 @@ export function NightSimulationModal({
           className="w-full max-w-2xl rounded-lg border border-zinc-700 bg-zinc-900 p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Night Simulation</h2>
-              <span className="text-[9px] uppercase tracking-wider text-amber-400/90 rounded border border-amber-500/30 px-1.5 py-0.5">
-                Demo
-              </span>
-            </div>
+            <h2 className="text-lg font-semibold">Night Simulation</h2>
             <Button size="icon" variant="ghost" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          <p className="mb-3 text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
-            Mock sunset clock — not wired to this mission&apos;s session window or
-            Night Schedule. For real timing use the Mission Timeline and Capture
-            worksheet.
+          <p className="mb-3 text-[11px] text-zinc-400 leading-snug">
+            Scrubs this mission&apos;s session window
+            {siteTimezone ? ` (${siteTimezone})` : ""}. Target bars use Night
+            Schedule times when set, otherwise planned windows. Moon from
+            Astronomy Engine when the site has coordinates.
           </p>
 
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => setIsPlaying(!isPlaying)}
-              >
-                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              <Button size="sm" onClick={() => setIsPlaying(!isPlaying)}>
+                {isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
               </Button>
               <div className="flex gap-1">
                 {SPEEDS.map((s) => (
@@ -159,22 +172,29 @@ export function NightSimulationModal({
                 style={{ left: `${nowPct}%` }}
               />
               <div className="absolute inset-0 flex justify-between items-center px-2 text-[10px] text-zinc-500 pointer-events-none">
-                <span>Sunset {MOCK_NIGHT.sunset}</span>
-                <span>Sunrise {MOCK_NIGHT.sunrise}</span>
+                <span>Start {startLabel}</span>
+                <span>End {endLabel}</span>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div className="rounded border border-zinc-700 p-2">
                 <div className="text-zinc-500 text-xs">Time</div>
-                <div className="font-mono">{minutesToTime(currentTimeMinutes)}</div>
+                <div className="font-mono tabular-nums">{clock}</div>
               </div>
               <div className="rounded border border-zinc-700 p-2">
                 <div className="text-zinc-500 text-xs">Moon</div>
-                <div>{moon.moonPercent}% · {moon.moonAltitude}°</div>
+                <div className="tabular-nums">
+                  {moon.phasePct != null ? `${moon.phasePct}%` : "—"}
+                  {moon.altitudeDeg != null
+                    ? ` · ${moon.altitudeDeg}°`
+                    : lat == null
+                      ? " · add site"
+                      : ""}
+                </div>
               </div>
               <div className="rounded border border-zinc-700 p-2">
-                <div className="text-zinc-500 text-xs">Best Target</div>
+                <div className="text-zinc-500 text-xs">Active</div>
                 <div className="text-cyan-400 truncate">
                   {bestTarget?.targetName ?? "—"}
                 </div>
@@ -182,44 +202,58 @@ export function NightSimulationModal({
             </div>
 
             <div className="space-y-1.5">
-              {targets.map((t) => {
-                const startH = parseTime(t.plannedWindowStart);
-                const endH = parseTime(t.plannedWindowEnd);
-                const endNorm = endH < 6 ? endH + 24 : endH;
-                const left = hourToPct(startH);
-                const endPct = hourToPct(endNorm);
-                const width = Math.max(5, endPct - left);
-                const currentHour = (SUNSET_MIN + currentTimeMinutes) / 60;
-                const currentHourNorm = currentHour < 6 ? currentHour + 24 : currentHour;
-                const startNorm = startH < 6 ? startH + 24 : startH;
-                const isActive = currentHourNorm >= startNorm && currentHourNorm <= endNorm;
-                const isPast = currentHourNorm > endNorm;
+              {model.segments.length === 0 ? (
+                <p className="text-xs text-zinc-500">
+                  No scheduled or planned windows to plot. Accept a Night
+                  Schedule or set planned windows on targets.
+                </p>
+              ) : (
+                model.segments.map((seg) => {
+                  const left = pctAlongSession(model, seg.start);
+                  const right = pctAlongSession(model, seg.end);
+                  const width = Math.max(2, right - left);
+                  const isActive = active.some(
+                    (a) => a.targetId === seg.targetId,
+                  );
+                  const isPast =
+                    currentTimeMinutes >
+                    (seg.end.getTime() - model.sessionStart.getTime()) /
+                      60_000;
 
-                return (
-                  <div
-                    key={t.targetId}
-                    className={`flex items-center gap-3 py-0.5 ${
-                      isActive ? "opacity-100" : isPast ? "opacity-40" : "opacity-60"
-                    }`}
-                  >
-                    <span
-                      className={`w-16 shrink-0 text-xs font-mono ${
-                        isActive ? "text-cyan-400" : "text-zinc-400"
+                  return (
+                    <div
+                      key={`${seg.targetId}-${seg.start.toISOString()}`}
+                      className={`flex items-center gap-3 py-0.5 ${
+                        isActive
+                          ? "opacity-100"
+                          : isPast
+                            ? "opacity-40"
+                            : "opacity-60"
                       }`}
                     >
-                      {t.targetName.split(" ")[0]}
-                    </span>
-                    <div className="relative flex-1 h-5 rounded bg-zinc-800 overflow-hidden">
-                      <div
-                        className={`absolute inset-y-0 rounded transition-colors ${
-                          isActive ? "bg-cyan-500" : "bg-cyan-500/50"
+                      <span
+                        className={`w-20 shrink-0 text-xs font-mono truncate ${
+                          isActive ? "text-cyan-400" : "text-zinc-400"
                         }`}
-                        style={{ left: `${left}%`, width: `${width}%` }}
-                      />
+                        title={seg.targetName}
+                      >
+                        {seg.targetName.split(" ")[0]}
+                      </span>
+                      <div className="relative flex-1 h-5 rounded bg-zinc-800 overflow-hidden">
+                        <div
+                          className={`absolute inset-y-0 rounded transition-colors ${
+                            isActive ? "bg-cyan-500" : "bg-cyan-500/50"
+                          }`}
+                          style={{ left: `${left}%`, width: `${width}%` }}
+                        />
+                      </div>
+                      <span className="w-16 shrink-0 text-[10px] text-zinc-600 uppercase">
+                        {seg.source === "scheduled" ? "Sched" : "Window"}
+                      </span>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </motion.div>

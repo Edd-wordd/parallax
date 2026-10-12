@@ -1750,6 +1750,11 @@ function MissionDashboardContent() {
         isOpen={simOpen}
         onClose={() => setSimOpen(false)}
         targets={mission.targets}
+        dateTime={mission.dateTime}
+        sessionEndAt={mission.sessionEndAt}
+        siteTimezone={siteTimezone}
+        lat={siteLat}
+        lon={siteLon}
       />
       <AddTargetPicker
         isOpen={addTargetPickerOpen}

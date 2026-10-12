@@ -338,85 +338,92 @@ export function SetupView({
         </section>
       </div>
 
-      {/* Optimize suggestions (Demo) */}
-      <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="mission-section-label mb-0">
-            Optimize Tonight&apos;s Plan
-          </h3>
-          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
-            Demo
-          </span>
-        </div>
-        <p className="text-xs text-zinc-400">
-          Demo suggestions only — not connected to live AI or equipment.
-        </p>
-        <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
-          {OPTIMIZE_RECOMMENDATIONS.slice(0, 3).map((rec) => (
-            <div
-              key={rec.id}
-              className="rounded-lg border border-white/10 bg-black/40 p-3 flex flex-col gap-2"
-            >
-              <span className="text-sm font-medium text-zinc-100">
-                {rec.title}
-              </span>
-              <p className="text-[11px] text-zinc-400 flex-1">{rec.why}</p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-fit text-[11px]"
-                type="button"
-                onClick={() => handleApplyOptimize(rec.id)}
-              >
-                Apply
-              </Button>
-            </div>
-          ))}
-        </div>
-        {optimizeNote && (
-          <p className="text-[11px] text-zinc-500">
-            Logged: <span className="text-zinc-300">{optimizeNote}</span>
-          </p>
-        )}
+      <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
+        <SessionObservingLog
+          events={missionEvents}
+          isReadOnly={isReadOnlySession}
+          onAddNote={onAddNote}
+          onQuickEvent={onQuickEvent}
+          quickEventLabels={[
+            "Clouds moving in",
+            "Guiding lost",
+            "Meridian flip",
+            "Conditions changed",
+          ]}
+        />
       </section>
 
-      {/* Live sky monitor (Demo) + Notes */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
-        <section className={cn(PANEL_STYLE, "p-4 space-y-3")}>
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="mission-section-label mb-0">Live Sky Monitor</h3>
+      {/* Demo surfaces — collapsed so Setup stays field-focused */}
+      <details className={cn(PANEL_STYLE, "group p-0 overflow-hidden")}>
+        <summary className="cursor-pointer list-none px-4 py-3 flex items-center justify-between gap-2">
+          <span className="mission-section-label mb-0">Demo previews</span>
+          <span className="flex items-center gap-2">
             <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
               Demo
             </span>
-          </div>
+            <span className="text-[11px] text-zinc-500 group-open:hidden">
+              Show
+            </span>
+            <span className="text-[11px] text-zinc-500 hidden group-open:inline">
+              Hide
+            </span>
+          </span>
+        </summary>
+        <div className="space-y-4 border-t border-white/10 px-4 py-3">
           <p className="text-[11px] text-zinc-500">
-            Mock feed — not connected equipment telemetry.
+            Not used for Go/No-Go or Save Log — expand only if you want to poke
+            at placeholders.
           </p>
-          <LiveSkyMonitorCard
-            cloudCover={18}
-            starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? null}
-            skyBrightness={21.2}
-            missionConfidence={78}
-            status={MOCK_LIVE_STATE.status}
-            events={MOCK_LIVE_EVENTS}
-          />
-        </section>
-
-        <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
-          <SessionObservingLog
-            events={missionEvents}
-            isReadOnly={isReadOnlySession}
-            onAddNote={onAddNote}
-            onQuickEvent={onQuickEvent}
-            quickEventLabels={[
-              "Clouds moving in",
-              "Guiding lost",
-              "Meridian flip",
-              "Conditions changed",
-            ]}
-          />
-        </section>
-      </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              Optimize Tonight&apos;s Plan
+            </h3>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {OPTIMIZE_RECOMMENDATIONS.slice(0, 3).map((rec) => (
+                <div
+                  key={rec.id}
+                  className="rounded-lg border border-white/10 bg-black/40 p-3 flex flex-col gap-2"
+                >
+                  <span className="text-sm font-medium text-zinc-100">
+                    {rec.title}
+                  </span>
+                  <p className="text-[11px] text-zinc-400 flex-1">{rec.why}</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-fit text-[11px]"
+                    type="button"
+                    onClick={() => handleApplyOptimize(rec.id)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {optimizeNote && (
+              <p className="mt-2 text-[11px] text-zinc-500">
+                Logged: <span className="text-zinc-300">{optimizeNote}</span>
+              </p>
+            )}
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              Live Sky Monitor
+            </h3>
+            <p className="mb-2 text-[11px] text-zinc-500">
+              Mock feed — not connected equipment telemetry.
+            </p>
+            <LiveSkyMonitorCard
+              cloudCover={18}
+              starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? null}
+              skyBrightness={21.2}
+              missionConfidence={78}
+              status={MOCK_LIVE_STATE.status}
+              events={MOCK_LIVE_EVENTS}
+            />
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { MissionFit } from "@/lib/mock/exposurePlans";
+import type { MissionFit } from "@/lib/capture/exposurePlan";
 
 interface MissionFitSummaryProps {
   missionFit: MissionFit;

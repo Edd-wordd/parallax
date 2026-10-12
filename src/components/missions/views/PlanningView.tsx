@@ -9,7 +9,6 @@ import { CaptureWorksheet } from "@/components/missions/CaptureWorksheet";
 import { GoNoGoBanner } from "@/components/missions/GoNoGoBanner";
 import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
 import type { Mission, MissionTarget } from "@/lib/types";
-import type { ExposurePlan } from "@/lib/mock/exposurePlans";
 import type { MissionEventRow } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
@@ -29,9 +28,8 @@ export interface PlanningViewProps {
   currentTarget: MissionTarget | null;
   currentTargetId: string | null;
   selectedTarget: MissionTarget | null;
-  primaryTargetName: string | null;
-  exposurePlan: ExposurePlan | null;
   nextTargetLabel: string | null;
+  hasGuiding?: boolean;
   /** ID of the target currently selected in UI (for highlighting in queue) */
   selectedTargetId: string | null;
   onSimulateNight: () => void;
@@ -60,9 +58,8 @@ export function PlanningView({
   currentTarget,
   currentTargetId,
   selectedTarget,
-  primaryTargetName,
-  exposurePlan,
   nextTargetLabel,
+  hasGuiding = false,
   selectedTargetId,
   onSimulateNight,
   onAddNote,
@@ -352,7 +349,14 @@ export function PlanningView({
 
       {/* Exposure Plan + Session Simulator */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
-        <ExposurePlannerCard targetName={primaryTargetName} plan={exposurePlan} />
+        <ExposurePlannerCard
+          mission={mission}
+          target={selectedTarget ?? currentTarget}
+          lat={lat}
+          lon={lon}
+          cameraName={cameraName}
+          hasGuiding={hasGuiding}
+        />
         <SessionSimulatorCard
           mission={mission}
           lat={lat}

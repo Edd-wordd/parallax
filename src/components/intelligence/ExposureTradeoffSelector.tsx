@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { ExposureOption } from "@/lib/mock/exposurePlans";
+import type { ExposureOption } from "@/lib/capture/exposurePlan";
 
 interface ExposureTradeoffSelectorProps {
   options: ExposureOption[];

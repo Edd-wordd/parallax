@@ -35,7 +35,6 @@ import { CapturingView } from "@/components/missions/views/CapturingView";
 import { LoggingView } from "@/components/missions/views/LoggingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
-import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import {
   ExposurePlannerCard,
@@ -146,6 +145,8 @@ function MissionDashboardContent() {
   const [siteLon, setSiteLon] = useState<number | null>(null);
   const [siteTimezone, setSiteTimezone] = useState<string | null>(null);
   const [gearLabel, setGearLabel] = useState("Rig");
+  const [gearCameraName, setGearCameraName] = useState<string | null>(null);
+  const [gearHasGuiding, setGearHasGuiding] = useState(false);
   const [fetchingMission, setFetchingMission] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [conditionLogs, setConditionLogs] = useState<ConditionLogRow[]>([]);
@@ -276,9 +277,10 @@ function MissionDashboardContent() {
         setSiteLat(loc?.lat ?? null);
         setSiteLon(loc?.lon ?? null);
         setSiteTimezone(loc?.timezone ?? null);
-        setGearLabel(
-          gear.find((g) => g.id === mission!.gearId)?.name ?? "Rig",
-        );
+        const g = gear.find((row) => row.id === mission!.gearId);
+        setGearLabel(g?.name ?? "Rig");
+        setGearCameraName(g?.camera_name ?? null);
+        setGearHasGuiding(!!g?.guiding);
       } catch {
         /* labels are display-only */
       }
@@ -465,14 +467,6 @@ function MissionDashboardContent() {
     ? (mission.targets.find((t) => t.targetId === uiState.selectedTargetId) ??
       null)
     : (currentTarget ?? null);
-
-  const planTarget =
-    selectedTarget ?? currentTarget ?? mission.targets[0] ?? null;
-  const planTargetId = planTarget?.targetId ?? firstTargetId ?? null;
-  const primaryTargetName = planTarget?.targetName ?? null;
-  const exposurePlan = planTargetId
-    ? (EXPOSURE_PLANS_BY_TARGET[planTargetId] ?? null)
-    : null;
 
   const missionSessionWindow = sessionWindowFromMission({
     dateTime: mission.dateTime,
@@ -1576,9 +1570,8 @@ function MissionDashboardContent() {
               currentTarget={currentTarget ?? null}
               currentTargetId={currentTargetId ?? null}
               selectedTarget={selectedTarget}
-              primaryTargetName={primaryTargetName}
-              exposurePlan={exposurePlan ?? null}
               nextTargetLabel={nextTargetLabel}
+              hasGuiding={gearHasGuiding}
               selectedTargetId={uiState.selectedTargetId ?? null}
               onSimulateNight={() => setSimOpen(true)}
               onAddNote={handleAddNoteFromView}
@@ -1596,7 +1589,7 @@ function MissionDashboardContent() {
               canEditTargets={!isReadOnlySession}
               onOpenAddTarget={() => setAddTargetPickerOpen(true)}
               onPatchTarget={handlePatchTarget}
-              cameraName={gearLabel !== "Rig" ? gearLabel : null}
+              cameraName={gearCameraName}
               lat={siteLat}
               lon={siteLon}
               siteTimezone={siteTimezone}
@@ -1662,7 +1655,7 @@ function MissionDashboardContent() {
               committingReading={committingReading}
               readingError={readingError}
               onUpdatePlan={handleRecalculate}
-              cameraName={gearLabel !== "Rig" ? gearLabel : null}
+              cameraName={gearCameraName}
             />
           ) : isLoggingStatus ? (
             <LoggingView
@@ -1728,8 +1721,12 @@ function MissionDashboardContent() {
               {activePhase === "planning" && (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <ExposurePlannerCard
-                    targetName={primaryTargetName}
-                    plan={exposurePlan}
+                    mission={mission as Mission}
+                    target={selectedTarget ?? currentTarget ?? null}
+                    lat={siteLat}
+                    lon={siteLon}
+                    cameraName={gearCameraName}
+                    hasGuiding={gearHasGuiding}
                   />
                   <SessionSimulatorCard
                     mission={mission as Mission}

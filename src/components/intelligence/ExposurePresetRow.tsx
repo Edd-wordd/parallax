@@ -1,10 +1,13 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { ExposurePlan } from "@/lib/mock/exposurePlans";
+import type { RealExposurePlan } from "@/lib/capture/exposurePlan";
 
 interface ExposurePresetRowProps {
-  plan: ExposurePlan;
+  plan: Pick<
+    RealExposurePlan,
+    "exposure" | "iso" | "subs" | "integration" | "filter" | "capturePriority"
+  >;
   className?: string;
 }
 
@@ -43,7 +46,7 @@ export function ExposurePresetRow({ plan, className }: ExposurePresetRowProps) {
           Subs
         </span>
         <span className="font-mono font-medium tabular-nums text-zinc-200">
-          {plan.subs}
+          {plan.subs != null ? plan.subs : "—"}
         </span>
       </div>
       <div>

@@ -10,7 +10,6 @@ import { GoNoGoBanner } from "@/components/missions/GoNoGoBanner";
 import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
 import type { Mission, MissionTarget } from "@/lib/types";
 import type { ExposurePlan } from "@/lib/mock/exposurePlans";
-import type { SessionSimulation } from "@/lib/mock/sessionSimulations";
 import type { MissionEventRow } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
@@ -32,7 +31,6 @@ export interface PlanningViewProps {
   selectedTarget: MissionTarget | null;
   primaryTargetName: string | null;
   exposurePlan: ExposurePlan | null;
-  sessionSimulation: SessionSimulation | null;
   nextTargetLabel: string | null;
   /** ID of the target currently selected in UI (for highlighting in queue) */
   selectedTargetId: string | null;
@@ -51,6 +49,7 @@ export interface PlanningViewProps {
   cameraName?: string | null;
   lat?: number | null;
   lon?: number | null;
+  siteTimezone?: string | null;
   missionEvents?: MissionEventRow[];
 }
 
@@ -63,7 +62,6 @@ export function PlanningView({
   selectedTarget,
   primaryTargetName,
   exposurePlan,
-  sessionSimulation,
   nextTargetLabel,
   selectedTargetId,
   onSimulateNight,
@@ -81,6 +79,7 @@ export function PlanningView({
   cameraName = null,
   lat = null,
   lon = null,
+  siteTimezone = null,
   missionEvents = [],
 }: PlanningViewProps) {
   const sessionWindow = sessionWindowFromMission({
@@ -355,8 +354,10 @@ export function PlanningView({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
         <ExposurePlannerCard targetName={primaryTargetName} plan={exposurePlan} />
         <SessionSimulatorCard
-          targetName={primaryTargetName}
-          simulation={sessionSimulation}
+          mission={mission}
+          lat={lat}
+          lon={lon}
+          siteTimezone={siteTimezone}
         />
       </div>
     </>

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { SessionRisk } from "@/lib/mock/sessionSimulations";
+import type { SessionSimRisk } from "@/lib/missions/sessionSimulation";
 
 interface SessionRiskListProps {
-  risks: SessionRisk[];
+  risks: SessionSimRisk[];
   className?: string;
 }
 
@@ -16,7 +16,7 @@ const LEVEL_STYLES: Record<string, string> = {
   High: "text-zinc-400 bg-zinc-600/50 border-zinc-500/40",
 };
 
-function RiskRow({ risk }: { risk: SessionRisk }) {
+function RiskRow({ risk }: { risk: SessionSimRisk }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div

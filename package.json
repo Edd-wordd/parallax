@@ -22,6 +22,7 @@
     "test:plan-snapshot": "tsx --tsconfig tsconfig.json scripts/verify-plan-snapshot.ts",
     "test:checklist-events": "tsx --tsconfig tsconfig.json scripts/verify-checklist-events.ts",
     "test:night-simulation": "tsx --tsconfig tsconfig.json scripts/verify-night-simulation.ts",
+    "test:session-simulation": "tsx --tsconfig tsconfig.json scripts/verify-session-simulation.ts",
     "catalog:build": "tsx --tsconfig tsconfig.json scripts/import-openngc.ts"
   },
   "dependencies": {

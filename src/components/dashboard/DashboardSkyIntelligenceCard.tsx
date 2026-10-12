@@ -151,13 +151,16 @@ export function DashboardSkyIntelligenceCard({
             type="button"
             onClick={() => setMode("live")}
             className={cn(
-              "rounded px-2 py-1 text-xs font-medium transition-colors",
+              "rounded px-2 py-1 text-xs font-medium transition-colors inline-flex items-center gap-1",
               mode === "live"
                 ? "bg-indigo-500/15 text-indigo-400/90"
                 : "text-zinc-500 hover:text-zinc-400",
             )}
           >
             Live Site
+            <span className="text-[9px] uppercase tracking-wider text-amber-400/90">
+              Demo
+            </span>
           </button>
         </div>
       </div>
@@ -255,13 +258,17 @@ export function DashboardSkyIntelligenceCard({
         )}
 
         {mode === "live" && (
-          <>
+          <div className="flex flex-col gap-2 py-1">
+            <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
+              Demo — equipment telemetry is not connected. Forecast tab uses
+              real Open-Meteo / 7Timer + Astronomy Engine moon.
+            </p>
             {isLiveConnected && liveState.live ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
                   <MissionConfidenceCard
                     confidence={liveState.liveConfidence ?? coverage ?? 0}
-                    label="Live Confidence"
+                    label="Demo confidence"
                     size="sm"
                   />
                   <SkyMetricPill
@@ -295,20 +302,20 @@ export function DashboardSkyIntelligenceCard({
                   />
                 </div>
                 <p className="text-xs text-zinc-500 leading-snug line-clamp-2">
-                  {liveState.status}
+                  {liveState.status} (mock)
                 </p>
               </>
             ) : (
-              <div className="flex flex-col gap-1.5 py-2">
+              <div className="flex flex-col gap-1.5 py-1">
                 <p className="text-sm text-zinc-500 font-medium">
                   Live telemetry unavailable
                 </p>
                 <p className="text-xs text-zinc-600 leading-snug">
-                  Connect your rig or field controller to view live site data
+                  Not a measured feed — placeholder until rig telemetry ships.
                 </p>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

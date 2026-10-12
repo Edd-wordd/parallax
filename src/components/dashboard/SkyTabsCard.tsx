@@ -102,7 +102,7 @@ export function SkyTabsCard({
             onClick={() => setView("live")}
             aria-pressed={view === "live"}
             className={cn(
-              "rounded-md px-3 py-2 text-xs font-medium transition-colors",
+              "rounded-md px-3 py-2 text-xs font-medium transition-colors inline-flex items-center gap-1.5",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900",
               view === "live"
                 ? "bg-indigo-500/20 text-indigo-400 shadow-sm"
@@ -110,6 +110,9 @@ export function SkyTabsCard({
             )}
           >
             Live Sky View
+            <span className="text-[9px] uppercase tracking-wider text-amber-400/90">
+              Demo
+            </span>
           </button>
         </div>
       </div>

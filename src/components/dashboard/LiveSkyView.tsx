@@ -183,11 +183,26 @@ export const LiveSkyView = React.memo(function LiveSkyView({
         compact && !embedded && "p-3"
       )}
     >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2",
+          embedded ? "px-2 pt-2" : "px-4 pt-3",
+        )}
+      >
+        <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 flex-1">
+          Demo sky globe — mock moon % / site fallback. Catalog star field is
+          illustrative, not a live all-sky feed.
+        </p>
+        <span className="shrink-0 text-[9px] uppercase tracking-wider text-amber-400/90 rounded border border-amber-500/30 px-1.5 py-0.5">
+          Demo
+        </span>
+      </div>
+
       {/* Header - minimal when embedded (HUD takes over) */}
       <div
         className={cn(
           "flex items-start justify-between gap-2 pb-2",
-          embedded ? "px-2 pt-2" : "px-4 pt-4"
+          embedded ? "px-2 pt-2" : "px-4 pt-3"
         )}
       >
         {!embedded && (
@@ -195,7 +210,7 @@ export const LiveSkyView = React.memo(function LiveSkyView({
             <div>
               <h2 className="text-sm font-semibold text-white">Live Sky View</h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Real-time sky orientation and target positions
+                Demo orientation preview — not live telemetry
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={handleRecenter} className="h-7 px-2 text-xs">
@@ -285,7 +300,7 @@ export const LiveSkyView = React.memo(function LiveSkyView({
                     {skyModel.meta.localTimeString}
                   </div>
                   <div className="font-mono text-[10px] text-neutral-500">
-                    Bortle {bortle} · Moon {moonPercent}%
+                    Bortle {bortle} · Moon {moonPercent}% (Demo)
                   </div>
                 </div>
               </div>

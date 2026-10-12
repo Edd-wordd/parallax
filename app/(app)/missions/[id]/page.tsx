@@ -36,7 +36,6 @@ import { LoggingView } from "@/components/missions/views/LoggingView";
 import { PhaseTabs } from "@/components/missions/PhaseTabs";
 import { getAvailableTargetsForAdd } from "@/lib/mock/availableTargetsForMission";
 import { EXPOSURE_PLANS_BY_TARGET } from "@/lib/mock/exposurePlans";
-import { SESSION_SIMULATIONS_BY_TARGET } from "@/lib/mock/sessionSimulations";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import {
   ExposurePlannerCard,
@@ -473,9 +472,6 @@ function MissionDashboardContent() {
   const primaryTargetName = planTarget?.targetName ?? null;
   const exposurePlan = planTargetId
     ? (EXPOSURE_PLANS_BY_TARGET[planTargetId] ?? null)
-    : null;
-  const sessionSimulation = planTargetId
-    ? (SESSION_SIMULATIONS_BY_TARGET[planTargetId] ?? null)
     : null;
 
   const missionSessionWindow = sessionWindowFromMission({
@@ -1582,7 +1578,6 @@ function MissionDashboardContent() {
               selectedTarget={selectedTarget}
               primaryTargetName={primaryTargetName}
               exposurePlan={exposurePlan ?? null}
-              sessionSimulation={sessionSimulation ?? null}
               nextTargetLabel={nextTargetLabel}
               selectedTargetId={uiState.selectedTargetId ?? null}
               onSimulateNight={() => setSimOpen(true)}
@@ -1604,6 +1599,7 @@ function MissionDashboardContent() {
               cameraName={gearLabel !== "Rig" ? gearLabel : null}
               lat={siteLat}
               lon={siteLon}
+              siteTimezone={siteTimezone}
               missionEvents={missionEvents}
             />
           ) : isSetupStatus ? (
@@ -1736,8 +1732,10 @@ function MissionDashboardContent() {
                     plan={exposurePlan}
                   />
                   <SessionSimulatorCard
-                    targetName={primaryTargetName}
-                    simulation={sessionSimulation}
+                    mission={mission as Mission}
+                    lat={siteLat}
+                    lon={siteLon}
+                    siteTimezone={siteTimezone}
                   />
                 </div>
               )}

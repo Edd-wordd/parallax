@@ -12,6 +12,8 @@ interface RecommendedTargetCardProps {
   selected?: boolean;
   isActive?: boolean;
   inPlan?: boolean;
+  /** Single-target Create shortcut only when the mission plan is empty */
+  showCreateMission?: boolean;
   onSelect?: () => void;
   onCreateMissionPlan?: () => void;
   onAddToPlan?: () => void;
@@ -134,6 +136,7 @@ export function RecommendedTargetCard({
   selected,
   isActive,
   inPlan,
+  showCreateMission = false,
   onSelect,
   onCreateMissionPlan,
   onAddToPlan,
@@ -261,17 +264,6 @@ export function RecommendedTargetCard({
             size="sm"
             variant="cta"
             className="h-7 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCreateMissionPlan?.();
-            }}
-          >
-            Create Mission Plan
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="h-7 text-xs"
             disabled={inPlan}
             onClick={(e) => {
               e.stopPropagation();
@@ -280,6 +272,19 @@ export function RecommendedTargetCard({
           >
             {inPlan ? "Added" : "Add to Plan"}
           </Button>
+          {showCreateMission && onCreateMissionPlan && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateMissionPlan();
+              }}
+            >
+              Create Mission
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

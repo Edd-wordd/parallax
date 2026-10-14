@@ -8,12 +8,11 @@ import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { getMissionStatus } from "@/lib/missionStatus";
 import type { GearProfile, Location, MissionTarget } from "@/lib/types";
 import { SkyTabsCard } from "@/components/dashboard/SkyTabsCard";
-import { SessionHistoryCard } from "@/components/sessions/SessionHistoryCard";
+import { SessionContextCard } from "@/components/dashboard/SessionContextCard";
 import { DashboardMissionStatusCard } from "@/components/dashboard/DashboardMissionStatusCard";
 import { DashboardSkyIntelligenceCard } from "@/components/dashboard/DashboardSkyIntelligenceCard";
 import {
   TonightRecommendationsSection,
-  NotSuitableSessionPanel,
   MissionDecisionDrawer,
   NightScheduleReview,
   type DrawerTarget,
@@ -46,6 +45,10 @@ import {
   DEFAULT_TRANSITION_MINUTES,
   type NightScheduleResult,
 } from "@/lib/schedule/types";
+import {
+  formatObservingNightLabel,
+  sessionWindowFromMission,
+} from "@/lib/time/sessionWindow";
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -512,118 +515,228 @@ export default function DashboardPage() {
     setDrawerTarget(null);
   }, []);
 
+  const missionSiteTimezone = useMemo(() => {
+    const locId =
+      activeMission?.locationId ?? displayMission?.locationId ?? activeLocationId;
+    return (
+      dbLocations.find((l) => l.id === locId)?.timezone ??
+      activeLoc?.timezone ??
+      null
+    );
+  }, [
+    activeMission?.locationId,
+    displayMission?.locationId,
+    activeLocationId,
+    dbLocations,
+    activeLoc?.timezone,
+  ]);
+
+  const observingNightLabel = useMemo(() => {
+    const m = activeMission ?? displayMission;
+    if (!m?.dateTime) return null;
+    const win = sessionWindowFromMission({
+      dateTime: m.dateTime,
+      sessionEndAt: m.sessionEndAt,
+    });
+    return formatObservingNightLabel({
+      start: win.start,
+      end: win.end,
+      siteTimezone: missionSiteTimezone,
+    });
+  }, [activeMission, displayMission, missionSiteTimezone]);
+
+  const showMissionHero = hasActiveMission && !!activeMission;
+  const conditionsDateTime =
+    activeMission?.dateTime ?? displayMission?.dateTime ?? dateTime;
+
+  const conditionsLoc = useMemo(() => {
+    const locId =
+      (showMissionHero
+        ? activeMission?.locationId
+        : displayMission?.locationId) ?? activeLocationId;
+    return (
+      dbLocations.find((l) => l.id === locId) ??
+      (activeLoc && activeLoc.id === locId ? activeLoc : null) ??
+      activeLoc ??
+      null
+    );
+  }, [
+    showMissionHero,
+    activeMission?.locationId,
+    displayMission?.locationId,
+    activeLocationId,
+    dbLocations,
+    activeLoc,
+  ]);
+
+  const canPropose =
+    !showMissionHero &&
+    (missionStatus === "NONE" || missionStatus === "COMPLETED") &&
+    recResult.recommendations.length > 0;
+
+  const missionCard = (
+    <DashboardMissionStatusCard
+      mission={displayMission}
+      missionStatus={missionStatus}
+      variant={showMissionHero ? "hero" : "default"}
+      observingNightLabel={observingNightLabel}
+      siteName={
+        (() => {
+          const locId =
+            displayMission?.locationId ??
+            activeMission?.locationId ??
+            activeLocationId;
+          return (
+            dbLocations.find((l) => l.id === locId)?.name ??
+            activeLoc?.name ??
+            null
+          );
+        })()
+      }
+      rigName={
+        (() => {
+          const gearId =
+            displayMission?.gearId ??
+            activeMission?.gearId ??
+            activeGearId;
+          return (
+            dbGear.find((g) => g.id === gearId)?.name ??
+            activeGear?.name ??
+            null
+          );
+        })()
+      }
+      contextDateTime={dateTime}
+      canCreateMission={canCreateMission}
+      createMissionHelperText={createMissionHelperText}
+      onClearMission={handleClearMission}
+      activeMission={
+        hasActiveMission && activeMission ? activeMission : null
+      }
+      plannedTargets={plannedTargetsResolved.map((t) => ({
+        id: t.id,
+        name: t.name,
+        desiredMinutes: plannedDurations[t.id],
+      }))}
+      plannedTargetNames={plannedTargetsResolved.map((t) => t.name)}
+      onStartPlannedMission={
+        plannedTargetsResolved.length > 0
+          ? handleReviewSchedule
+          : undefined
+      }
+      onProposeSchedule={canPropose ? handleProposeSchedule : undefined}
+      onRemoveFromPlan={canPropose ? removeFromPlan : undefined}
+      onClearPlan={canPropose ? clearPlan : undefined}
+      canProposeSchedule={canPropose}
+      noTargetsMessage={
+        hasActiveMission && activeMission?.targets.length === 0
+          ? "No recommended targets available for automatic mission setup."
+          : undefined
+      }
+      missionInitializedFromRecommendation={
+        !!(
+          hasActiveMission &&
+          activeMission?.targets.length === 1 &&
+          topRecommendedTarget &&
+          activeMission.targets[0]?.targetId === topRecommendedTarget.id
+        )
+      }
+    />
+  );
+
+  const sessionContextCard = (
+    <SessionContextCard
+      rejected={recResult.rejected}
+      onOpenRejected={openRejected}
+      showRejected={!showMissionHero}
+      className="h-full"
+    />
+  );
+
+  const conditionsCard = (
+    <DashboardSkyIntelligenceCard
+      activeLocationId={conditionsLoc?.id ?? activeLocationId}
+      dateTime={showMissionHero ? conditionsDateTime : dateTime}
+      locationName={conditionsLoc?.name ?? activeLoc?.name}
+      lat={conditionsLoc?.lat ?? activeLoc?.lat}
+      lon={conditionsLoc?.lon ?? activeLoc?.lon}
+      bortle={conditionsLoc?.bortle ?? activeLoc?.bortle}
+      isLiveConnected={isLiveConnected}
+      minAltitudeDeg={minAltitude}
+      moonToleranceDeg={moonTolerance}
+    />
+  );
+
+  const tonightSkyCard = (
+    <SkyTabsCard
+      activeLocationId={conditionsLoc?.id ?? activeLocationId}
+      dateTime={showMissionHero ? conditionsDateTime : dateTime}
+      lat={conditionsLoc?.lat ?? activeLoc?.lat}
+      lon={conditionsLoc?.lon ?? activeLoc?.lon}
+      bortle={conditionsLoc?.bortle ?? activeLoc?.bortle}
+      minAltitudeDeg={minAltitude}
+      moonToleranceDeg={moonTolerance}
+    />
+  );
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <DashboardMissionStatusCard
-          mission={displayMission}
-          missionStatus={missionStatus}
-          siteName={
-            (() => {
-              const locId =
-                displayMission?.locationId ??
-                activeMission?.locationId ??
-                activeLocationId;
-              return (
-                dbLocations.find((l) => l.id === locId)?.name ??
-                activeLoc?.name ??
-                null
-              );
-            })()
-          }
-          rigName={
-            (() => {
-              const gearId =
-                displayMission?.gearId ??
-                activeMission?.gearId ??
-                activeGearId;
-              return (
-                dbGear.find((g) => g.id === gearId)?.name ??
-                activeGear?.name ??
-                null
-              );
-            })()
-          }
-          contextDateTime={dateTime}
-          canCreateMission={canCreateMission}
-          createMissionHelperText={createMissionHelperText}
-          onClearMission={handleClearMission}
-          activeMission={
-            hasActiveMission && activeMission ? activeMission : null
-          }
-          plannedTargets={plannedTargetsResolved}
-          plannedTargetNames={plannedTargetsResolved.map((t) => t.name)}
-          onStartPlannedMission={
-            plannedTargetsResolved.length > 0
-              ? handleReviewSchedule
-              : undefined
-          }
-          noTargetsMessage={
-            hasActiveMission && activeMission?.targets.length === 0
-              ? "No recommended targets available for automatic mission setup."
-              : undefined
-          }
-          missionInitializedFromRecommendation={
-            !!(
-              hasActiveMission &&
-              activeMission?.targets.length === 1 &&
-              topRecommendedTarget &&
-              activeMission.targets[0]?.targetId === topRecommendedTarget.id
-            )
-          }
-        />
-        <DashboardSkyIntelligenceCard
-          activeLocationId={activeLocationId}
-          dateTime={dateTime}
-          locationName={activeLoc?.name}
-          lat={activeLoc?.lat}
-          lon={activeLoc?.lon}
-          isLiveConnected={isLiveConnected}
-          minAltitudeDeg={minAltitude}
-          moonToleranceDeg={moonTolerance}
-        />
-        <SessionHistoryCard compact />
-      </div>
-
-      {(missionStatus === "NONE" || missionStatus === "COMPLETED") && (
+      {showMissionHero ? (
         <>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
-            <SkyTabsCard
-              activeLocationId={activeLocationId}
-              dateTime={dateTime}
-              lat={activeLoc?.lat}
-              lon={activeLoc?.lon}
-              bortle={activeLoc?.bortle}
-              minAltitudeDeg={minAltitude}
-              moonToleranceDeg={moonTolerance}
-            />
-            <NotSuitableSessionPanel
-              rejected={recResult.rejected}
-              onOpen={openRejected}
-              className="h-full"
-            />
+          {missionCard}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {conditionsCard}
+            {sessionContextCard}
           </div>
-          <TonightRecommendationsSection
-            sectionTitle={recResult.sectionTitle}
-            recommendations={recResult.recommendations}
-            emptyMessage={recResult.emptyMessage}
-            selectedTargetId={selectedTargetId}
-            onSelectTarget={setSelectedTargetId}
-            activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
-            plannedTargets={plannedTargetsResolved}
-            plannedDurations={plannedDurations}
-            onCreateMissionPlan={handleCreateMissionPlan}
-            onAddToPlan={handleAddToPlan}
-            onProposeSchedule={handleProposeSchedule}
-            onRemoveFromPlan={removeFromPlan}
-            onClearPlan={clearPlan}
-            onReviewSchedule={
-              plannedTargetsResolved.length > 0
-                ? handleReviewSchedule
-                : undefined
-            }
-            onOpenEvidence={openEvidence}
-          />
+          <details className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 group">
+            <summary className="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Tonight&apos;s Sky (secondary)
+              </span>
+              <span className="text-[11px] text-zinc-500 group-open:hidden">
+                Show
+              </span>
+              <span className="text-[11px] text-zinc-500 hidden group-open:inline">
+                Hide
+              </span>
+            </summary>
+            <div className="border-t border-zinc-800/60 p-3 space-y-3">
+              <p className="text-[11px] text-zinc-500">
+                Mission Control above is the field path. Tonight&apos;s Sky stays
+                available here; Live Sky View is under Observing Conditions →
+                Live Site.
+              </p>
+              {tonightSkyCard}
+            </div>
+          </details>
+        </>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:items-stretch auto-rows-fr">
+            <div className="min-h-[280px] h-full">{missionCard}</div>
+            <div className="min-h-[280px] h-full">{conditionsCard}</div>
+            <div className="min-h-[280px] h-full sm:col-span-2 lg:col-span-1">
+              {sessionContextCard}
+            </div>
+          </div>
+
+          {(missionStatus === "NONE" || missionStatus === "COMPLETED") && (
+            <>
+              {tonightSkyCard}
+              <TonightRecommendationsSection
+                sectionTitle={recResult.sectionTitle}
+                recommendations={recResult.recommendations}
+                emptyMessage={recResult.emptyMessage}
+                selectedTargetId={selectedTargetId}
+                onSelectTarget={setSelectedTargetId}
+                activeMissionTargetId={plannedTargetsResolved[0]?.id ?? null}
+                plannedTargets={plannedTargetsResolved}
+                onCreateMissionPlan={handleCreateMissionPlan}
+                onAddToPlan={handleAddToPlan}
+                onOpenEvidence={openEvidence}
+              />
+            </>
+          )}
         </>
       )}
 

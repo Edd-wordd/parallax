@@ -51,6 +51,21 @@ export async function listConditionLogsForMission(
   );
 }
 
+export async function listConditionLogsForSession(
+  client: SupabaseClient,
+  sessionId: string,
+): Promise<ConditionLogRow[]> {
+  const { data, error } = await client
+    .from("condition_logs")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("recorded_at", { ascending: true });
+  assertNoError(error, "listConditionLogsForSession");
+  return (data ?? []).map((row) =>
+    ConditionLogSchema.parse(normalize(row as Record<string, unknown>)),
+  );
+}
+
 export async function insertConditionLog(
   client: SupabaseClient,
   input: ConditionLogInsert,

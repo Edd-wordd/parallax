@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { MissionConfidenceCard } from "@/components/sky-intelligence/MissionConfidenceCard";
 import { SkyMetricPill } from "@/components/sky-intelligence/SkyMetricPill";
 import {
@@ -13,6 +14,11 @@ import { computeSessionAstronomy } from "@/lib/sky/visibility";
 import { sessionIntervalFromDateTime } from "@/lib/recommendations/mapper";
 import { cn } from "@/lib/utils";
 
+const LiveSkyView = dynamic(
+  () => import("./LiveSkyView").then((m) => m.LiveSkyView),
+  { ssr: false },
+);
+
 interface DashboardSkyIntelligenceCardProps {
   /** WGS84 latitude of active site (Supabase location preferred) */
   lat?: number | null;
@@ -20,6 +26,7 @@ interface DashboardSkyIntelligenceCardProps {
   dateTime: string;
   locationName?: string;
   activeLocationId?: string;
+  bortle?: number | null;
   /** When false, Live Site tab shows "unavailable" state. */
   isLiveConnected?: boolean;
   /** Match recommendation / Tonight's Sky altitude floor */
@@ -39,6 +46,7 @@ export function DashboardSkyIntelligenceCard({
   dateTime,
   locationName: fallbackName,
   activeLocationId = "",
+  bortle = null,
   isLiveConnected = false,
   minAltitudeDeg = 30,
   moonToleranceDeg = 15,
@@ -128,7 +136,7 @@ export function DashboardSkyIntelligenceCard({
   })();
 
   return (
-    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px]">
+    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden flex flex-col min-h-[140px] h-full">
       <div className="px-3 py-2 border-b border-zinc-800/60 flex items-center justify-between gap-2 shrink-0">
         <h2 className="dash-section-title">Observing Conditions</h2>
         <div
@@ -164,7 +172,7 @@ export function DashboardSkyIntelligenceCard({
           </button>
         </div>
       </div>
-      <div className="p-3 space-y-3 min-h-0">
+      <div className="p-3 space-y-3 min-h-0 flex-1">
         <div className="flex flex-col gap-0.5">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
             <span className="text-zinc-500">Location</span>
@@ -260,9 +268,15 @@ export function DashboardSkyIntelligenceCard({
         {mode === "live" && (
           <div className="flex flex-col gap-2 py-1">
             <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5">
-              Demo — equipment telemetry is not connected. Forecast tab uses
-              real Open-Meteo / 7Timer + Astronomy Engine moon.
+              Demo — Live Sky View and equipment telemetry are not measured
+              feeds. Forecast tab uses real Open-Meteo / 7Timer + Astronomy
+              Engine moon.
             </p>
+            <LiveSkyView
+              compact
+              embedded
+              locationBortle={bortle ?? undefined}
+            />
             {isLiveConnected && liveState.live ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
@@ -306,14 +320,9 @@ export function DashboardSkyIntelligenceCard({
                 </p>
               </>
             ) : (
-              <div className="flex flex-col gap-1.5 py-1">
-                <p className="text-sm text-zinc-500 font-medium">
-                  Live telemetry unavailable
-                </p>
-                <p className="text-xs text-zinc-600 leading-snug">
-                  Not a measured feed — placeholder until rig telemetry ships.
-                </p>
-              </div>
+              <p className="text-[11px] text-zinc-600 leading-snug">
+                Rig telemetry unavailable — placeholder until a live feed ships.
+              </p>
             )}
           </div>
         )}

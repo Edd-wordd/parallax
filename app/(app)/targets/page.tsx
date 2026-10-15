@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { TargetGrid } from "@/components/TargetGrid";
 import { TargetFilters } from "@/components/TargetFilters";
 import { useAppStore } from "@/lib/store";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { isUuid } from "@/lib/missions/resolveMissionRefs";
@@ -13,6 +12,8 @@ import type { Location } from "@/lib/types";
 import { buildExplorerVisibility } from "@/lib/catalog/explorerVisibility";
 import { isBrightAndLarge } from "@/lib/catalog";
 import type { ExplorerTargetRow } from "@/lib/catalog";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function TargetsPage() {
   const {
@@ -25,6 +26,7 @@ export default function TargetsPage() {
     driveRadius,
   } = useAppStore();
   const [dbLocations, setDbLocations] = useState<Location[]>([]);
+  const [locsLoaded, setLocsLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [types, setTypes] = useState<Record<string, boolean>>({});
   const [visibleOnly, setVisibleOnly] = useState(false);
@@ -44,12 +46,15 @@ export default function TargetsPage() {
               lat: r.lat,
               lon: r.lon,
               bortle: r.bortle,
+              timezone: r.timezone ?? null,
               notes: r.notes ?? undefined,
             })),
           );
         }
       } catch {
-        /* mock fallback */
+        /* empty — no mock site fallback */
+      } finally {
+        if (!cancelled) setLocsLoaded(true);
       }
     })();
     return () => {
@@ -57,16 +62,13 @@ export default function TargetsPage() {
     };
   }, []);
 
+  /** Supabase locations only — never invent a mock site for visibility. */
   const activeLoc = useMemo(() => {
     if (isUuid(activeLocationId)) {
       const fromDb = dbLocations.find((l) => l.id === activeLocationId);
       if (fromDb) return fromDb;
     }
-    return (
-      MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ??
-      dbLocations[0] ??
-      MOCK_LOCATIONS[0]
-    );
+    return dbLocations[0] ?? null;
   }, [activeLocationId, dbLocations]);
 
   const constraints = useMemo(
@@ -140,14 +142,32 @@ export default function TargetsPage() {
       <div>
         <h1 className="page-heading">Target Explorer</h1>
         <p className="mt-1 text-xs text-zinc-500">
-          Deep-sky catalog with calculated visibility for your site and session.
-          Outside the top recommendations can still be visible.
+          Curated deep-sky catalog with calculated visibility for your active
+          Supabase site and session (same path as Tonight). Outside the top
+          recommendations can still be visible.
         </p>
+        {activeLoc && (
+          <p className="mt-1 text-[11px] text-zinc-600">
+            Site · {activeLoc.name}
+            {activeLoc.bortle != null ? ` · Bortle ${activeLoc.bortle}` : ""}
+          </p>
+        )}
       </div>
-      {!visibility ? (
-        <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
-          Select a location with coordinates to calculate visibility.
+      {!locsLoaded ? (
+        <p className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-500">
+          Loading locations…
         </p>
+      ) : !visibility ? (
+        <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-center">
+          <p className="text-sm text-zinc-400">
+            Select a location with coordinates to calculate visibility.
+          </p>
+          <Link href="/settings?tab=locations" className="inline-block mt-3">
+            <Button variant="secondary" size="sm">
+              Open locations
+            </Button>
+          </Link>
+        </div>
       ) : (
         <>
           <TargetFilters

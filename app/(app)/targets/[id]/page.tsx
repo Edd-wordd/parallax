@@ -18,8 +18,6 @@ import { formatAngularSize } from "@/lib/utils";
 import { useDashboardRecommendationStore } from "@/lib/dashboardRecommendationStore";
 import { useToast } from "@/components/ui/toast";
 import { useAppStore } from "@/lib/store";
-import { MOCK_LOCATIONS } from "@/lib/mock/locations";
-import { MOCK_GEAR } from "@/lib/mock/gear";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { listLocations } from "@/lib/supabase/queries/locations";
 import { listGearProfiles } from "@/lib/supabase/queries/gear";
@@ -66,6 +64,7 @@ export default function TargetDetailPage() {
 
   const [dbLocations, setDbLocations] = useState<Location[]>([]);
   const [dbGear, setDbGear] = useState<GearProfile[]>([]);
+  const [contextLoaded, setContextLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +83,7 @@ export default function TargetDetailPage() {
             lat: r.lat,
             lon: r.lon,
             bortle: r.bortle,
+            timezone: r.timezone ?? null,
             notes: r.notes ?? undefined,
           })),
         );
@@ -106,7 +106,9 @@ export default function TargetDetailPage() {
           })),
         );
       } catch {
-        /* fallback mocks */
+        /* empty — no mock site/rig fallback */
+      } finally {
+        if (!cancelled) setContextLoaded(true);
       }
     })();
     return () => {
@@ -114,29 +116,22 @@ export default function TargetDetailPage() {
     };
   }, []);
 
+  /** Supabase locations only — never invent mock site coords. */
   const activeLoc = useMemo(() => {
     if (isUuid(activeLocationId)) {
       const fromDb = dbLocations.find((l) => l.id === activeLocationId);
       if (fromDb) return fromDb;
     }
-    return (
-      MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ??
-      dbLocations[0] ??
-      MOCK_LOCATIONS[0]
-    );
+    return dbLocations[0] ?? null;
   }, [activeLocationId, dbLocations]);
 
+  /** Supabase gear only — framing stays unknown until a real rig is selected. */
   const activeGear = useMemo(() => {
     if (isUuid(activeGearId)) {
       const fromDb = dbGear.find((g) => g.id === activeGearId);
       if (fromDb) return fromDb;
     }
-    return (
-      MOCK_GEAR.find((g) => g.id === activeGearId) ??
-      dbGear.find((g) => g.active) ??
-      dbGear[0] ??
-      MOCK_GEAR[0]
-    );
+    return dbGear.find((g) => g.active) ?? dbGear[0] ?? null;
   }, [activeGearId, dbGear]);
 
   const constraints = useMemo(
@@ -305,6 +300,15 @@ export default function TargetDetailPage() {
                 : ""}
             </p>
           )}
+          <p className="mt-1 text-[11px] text-zinc-600">
+            {contextLoaded
+              ? activeLoc
+                ? `Site · ${activeLoc.name}${
+                    activeGear ? ` · Rig · ${activeGear.name}` : " · Rig —"
+                  }`
+                : "No Supabase site selected — visibility not calculated"
+              : "Loading site / rig…"}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -314,8 +318,8 @@ export default function TargetDetailPage() {
           >
             {isInPlan ? "In Tonight Plan" : "Add to Tonight Plan"}
           </Button>
-          <Link href={`/sessions/new?target=${catalog.id}`}>
-            <Button variant="outline">Log this target</Button>
+          <Link href="/missions/new">
+            <Button variant="outline">Create mission</Button>
           </Link>
         </div>
       </div>
@@ -336,9 +340,14 @@ export default function TargetDetailPage() {
       </div>
 
       {!hasSite ? (
-        <p className="text-sm text-zinc-500">
-          Select a location to calculate visibility for this session.
-        </p>
+        <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
+          <p>Select a location with coordinates to calculate visibility.</p>
+          <Link href="/settings?tab=locations" className="inline-block mt-3">
+            <Button variant="secondary" size="sm">
+              Open locations
+            </Button>
+          </Link>
+        </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
@@ -441,10 +450,10 @@ export default function TargetDetailPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-medium">
-            Session notes{" "}
-            <span className="font-normal text-amber-400/80">(Demo)</span>
-          </h2>
+          <h2 className="text-sm font-medium">Session summary</h2>
+          <p className="text-[11px] text-zinc-600">
+            From Astronomy Engine + your site constraints — not AI copy.
+          </p>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-zinc-400">

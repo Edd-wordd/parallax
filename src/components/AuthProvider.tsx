@@ -83,10 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setActiveLocation(locationId);
         setActiveGear(gearId);
 
-        if (userChanged) {
-          clearMissions();
-          setMissionsLoaded(false);
-          setMissionsLoadedUi(false);
+        // Load missions when the user changes, or when a prior bootstrap was
+        // superseded after clearing the loaded flag (getSession + onAuthStateChange race).
+        const needMissions =
+          userChanged || !useMissionStore.getState().missionsLoaded;
+        if (needMissions) {
+          if (userChanged) {
+            clearMissions();
+            setMissionsLoaded(false);
+            setMissionsLoadedUi(false);
+          }
           const missions = await listMissions(client);
           if (gen !== bootstrapGenRef.current) return;
           setMissions(missions);
@@ -97,10 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null);
       } catch (e) {
         if (gen !== bootstrapGenRef.current) return;
-        if (userChanged) {
-          setMissionsLoaded(true);
-          setMissionsLoadedUi(true);
-        }
+        // Never leave signed-in users stuck with missionsLoaded=false.
+        setMissionsLoaded(true);
+        setMissionsLoadedUi(true);
         setError(e instanceof Error ? e.message : "Failed to load account data");
       } finally {
         if (gen === bootstrapGenRef.current) setReady(true);

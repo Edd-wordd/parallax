@@ -1305,6 +1305,20 @@ function MissionDashboardContent() {
           {/* ========== HEADER ========== */}
           <header className="mission-page-header">
             <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                  href="/missions"
+                  className="text-[11px] text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+                >
+                  ← Missions
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="text-[11px] text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+                >
+                  Tonight
+                </Link>
+              </div>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2">
                   {isEditingTitle ? (
@@ -1331,7 +1345,7 @@ function MissionDashboardContent() {
                               titleInputRef.current?.focus();
                             });
                           }}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800/60 bg-zinc-900/50 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
                           aria-label="Edit mission title"
                         >
                           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -1358,7 +1372,7 @@ function MissionDashboardContent() {
                   />
                   {isCapturing && (
                     <span
-                      className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-300"
+                      className="inline-flex items-center gap-1.5 rounded border border-rose-500/50 bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-300"
                       title="Mission is live — capturing in progress"
                     >
                       <span className="relative flex h-2 w-2">
@@ -1371,7 +1385,7 @@ function MissionDashboardContent() {
                   {mission.status === "in_progress" &&
                     !isCapturing &&
                     !isLoggingStatus && (
-                      <span className="inline-flex items-center rounded-md border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-300">
+                      <span className="inline-flex items-center rounded border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-300">
                         In progress
                       </span>
                     )}
@@ -1436,7 +1450,7 @@ function MissionDashboardContent() {
                           variant="secondary"
                           size="sm"
                           onClick={handleClearPlan}
-                          className="border-white/10 bg-white/5"
+                          className="border-zinc-800/60 bg-zinc-900/40"
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
                           Reset Plan
@@ -1502,7 +1516,7 @@ function MissionDashboardContent() {
                         variant="secondary"
                         size="sm"
                         onClick={handleSetActive}
-                        className="border-white/10 bg-white/5"
+                        className="border-zinc-800/60 bg-zinc-900/40"
                       >
                         Set Active
                       </Button>

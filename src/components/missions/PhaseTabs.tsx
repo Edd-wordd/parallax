@@ -23,7 +23,7 @@ interface PhaseTabsProps {
   onPhaseSelect?: (phase: ActivePhase) => void;
 }
 
-/** Mission phase tabs — clickable to revisit Planning / Setup / Capturing when unlocked. */
+/** Mission phase tabs — Tonight zinc/indigo chrome (matches Mission Control). */
 export function PhaseTabs({
   activePhase,
   loggingLocked,
@@ -34,7 +34,7 @@ export function PhaseTabs({
 }: PhaseTabsProps) {
   if (loggingLocked && activePhase === "logging") {
     return (
-      <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400">
+      <span className="rounded border border-zinc-700/60 bg-zinc-800/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
         Session Ended
       </span>
     );
@@ -42,7 +42,7 @@ export function PhaseTabs({
 
   return (
     <div
-      className="inline-flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-black/30 p-0.5"
+      className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-0.5"
       role="tablist"
       aria-label="Mission phase"
     >
@@ -55,13 +55,11 @@ export function PhaseTabs({
         }
 
         const activeClass =
-          id === "planning"
-            ? "bg-zinc-600 text-zinc-100"
-            : id === "setup"
-              ? "bg-amber-500/25 text-amber-300"
-              : id === "capturing"
-                ? "bg-violet-500/25 text-violet-300"
-                : "bg-sky-500/25 text-sky-300";
+          id === "capturing"
+            ? "bg-rose-500/15 text-rose-300 border border-rose-500/25"
+            : id === "logging"
+              ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/20"
+              : "bg-indigo-500/15 text-indigo-300 border border-indigo-500/20";
 
         return (
           <button
@@ -84,12 +82,12 @@ export function PhaseTabs({
               onPhaseSelect(id);
             }}
             className={cn(
-              "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+              "rounded-md px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide transition-colors",
               isActive
                 ? activeClass
                 : enabled
-                  ? "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                  : "cursor-not-allowed text-zinc-600",
+                  ? "border border-transparent text-zinc-500 hover:bg-zinc-800/60 hover:text-zinc-300"
+                  : "cursor-not-allowed border border-transparent text-zinc-700",
             )}
           >
             {label}

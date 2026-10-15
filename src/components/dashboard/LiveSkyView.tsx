@@ -44,20 +44,44 @@ function getTonightBase(): Date {
   return evening;
 }
 
+export interface LiveSkyTargetInput {
+  id: string;
+  name: string;
+  raHours: number;
+  decDeg: number;
+  type?: string;
+}
+
 export interface LiveSkyViewProps {
   compact?: boolean;
   embedded?: boolean;
   /** Bortle class from active location (overrides mock default) */
   locationBortle?: number;
+  /** Prefer Supabase / caller site over mock catalog fallback */
+  locationName?: string | null;
+  latDeg?: number | null;
+  lonDeg?: number | null;
+  /** Session/plan instant (ISO) — scrubber centers here instead of “tonight 20:00” */
+  baseDateTime?: string | null;
+  /** Catalog markers (RA/Dec). When omitted, first curated targets are used. */
+  skyTargets?: LiveSkyTargetInput[] | null;
+  /** Illuminated fraction 0–1 from Astronomy Engine (when known) */
+  moonPhaseFraction?: number | null;
 }
 
 export const LiveSkyView = React.memo(function LiveSkyView({
   compact,
   embedded,
   locationBortle,
+  locationName = null,
+  latDeg = null,
+  lonDeg = null,
+  baseDateTime = null,
+  skyTargets = null,
+  moonPhaseFraction = null,
 }: LiveSkyViewProps) {
   const { activeLocationId } = useAppStore();
-  const activeLoc =
+  const mockLoc =
     MOCK_LOCATIONS.find((l) => l.id === activeLocationId) ?? MOCK_LOCATIONS[0];
 
   const [showConstellations, setShowConstellations] = useState(true);
@@ -67,7 +91,13 @@ export const LiveSkyView = React.memo(function LiveSkyView({
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const [orbitKey, setOrbitKey] = useState(0);
 
-  const tonightBase = useMemo(() => getTonightBase(), []);
+  const tonightBase = useMemo(() => {
+    if (baseDateTime) {
+      const d = new Date(baseDateTime);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    return getTonightBase();
+  }, [baseDateTime]);
   const [timeOffsetHours, setTimeOffsetHours] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -77,26 +107,38 @@ export const LiveSkyView = React.memo(function LiveSkyView({
     return d;
   }, [tonightBase, timeOffsetHours]);
 
+  const hasRealSite = latDeg != null && lonDeg != null;
+
   const observer = useMemo(
     () => ({
-      name: activeLoc.name,
-      lat: activeLoc.lat,
-      lon: activeLoc.lon,
+      name: locationName ?? mockLoc.name,
+      lat: hasRealSite ? latDeg! : mockLoc.lat,
+      lon: hasRealSite ? lonDeg! : mockLoc.lon,
     }),
-    [activeLoc.name, activeLoc.lat, activeLoc.lon]
+    [locationName, hasRealSite, latDeg, lonDeg, mockLoc.name, mockLoc.lat, mockLoc.lon],
   );
 
-  const targetsForSky = useMemo(
-    () =>
-      listDeepSkyCatalog().slice(0, 8).map((t) => ({
-        id: t.id,
-        name: t.name,
-        ra: t.raHours,
-        dec: t.decDeg,
-        color: TARGET_COLORS[t.type] ?? "#22d3ee",
-      })),
-    []
-  );
+  const targetsForSky = useMemo(() => {
+    const source =
+      skyTargets && skyTargets.length > 0
+        ? skyTargets
+        : listDeepSkyCatalog()
+            .slice(0, 8)
+            .map((t) => ({
+              id: t.id,
+              name: t.name,
+              raHours: t.raHours,
+              decDeg: t.decDeg,
+              type: t.type,
+            }));
+    return source.map((t) => ({
+      id: t.id,
+      name: t.name,
+      ra: t.raHours,
+      dec: t.decDeg,
+      color: TARGET_COLORS[t.type ?? ""] ?? "#22d3ee",
+    }));
+  }, [skyTargets]);
 
   const skyModel = useSkyModel({
     observer,
@@ -111,8 +153,13 @@ export const LiveSkyView = React.memo(function LiveSkyView({
     targets: targetsForSky,
   });
 
-  const bortle = locationBortle ?? activeLoc.bortle ?? MOCK_NIGHT.bortle;
-  const moonPercent = MOCK_NIGHT.moonPhasePercent;
+  const bortle = locationBortle ?? mockLoc.bortle ?? MOCK_NIGHT.bortle;
+  const moonFromAstro =
+    moonPhaseFraction != null && Number.isFinite(moonPhaseFraction)
+      ? Math.round(Math.min(1, Math.max(0, moonPhaseFraction)) * 100)
+      : null;
+  const moonPercent = moonFromAstro ?? MOCK_NIGHT.moonPhasePercent;
+  const moonIsDemo = moonFromAstro == null;
 
   const handleRecenter = useCallback(() => {
     setOrbitKey((k) => k + 1);
@@ -190,8 +237,9 @@ export const LiveSkyView = React.memo(function LiveSkyView({
         )}
       >
         <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 flex-1">
-          Demo sky globe — mock moon % / site fallback. Catalog star field is
-          illustrative, not a live all-sky feed.
+          Demo sky globe — star field / constellation lines are illustrative.
+          Target alt/az use Astronomy Engine for the selected site and time
+          {!hasRealSite ? " · site coords are a mock fallback" : ""}.
         </p>
         <span className="shrink-0 text-[9px] uppercase tracking-wider text-amber-400/90 rounded border border-amber-500/30 px-1.5 py-0.5">
           Demo
@@ -300,7 +348,8 @@ export const LiveSkyView = React.memo(function LiveSkyView({
                     {skyModel.meta.localTimeString}
                   </div>
                   <div className="font-mono text-[10px] text-neutral-500">
-                    Bortle {bortle} · Moon {moonPercent}% (Demo)
+                    Bortle {bortle} · Moon {moonPercent}%
+                    {moonIsDemo ? " (Demo)" : ""}
                   </div>
                 </div>
               </div>

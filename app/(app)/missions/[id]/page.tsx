@@ -1523,15 +1523,29 @@ function MissionDashboardContent() {
                     )}
                 </div>
               </div>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/45 tracking-wide">
-                {locationLabel} · {gearLabel} · {observingNightLabel}
-                <span className="text-zinc-500">· {sessionElapsedLabel}</span>
+              <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                <span>
+                  <span className="font-medium text-zinc-500">Site</span>
+                  <span className="text-zinc-600 mx-1.5">·</span>
+                  <span className="text-zinc-300">{locationLabel}</span>
+                </span>
+                <span>
+                  <span className="font-medium text-zinc-500">Rig</span>
+                  <span className="text-zinc-600 mx-1.5">·</span>
+                  <span className="text-zinc-300">{gearLabel}</span>
+                </span>
+                <span className="tabular-nums text-zinc-300">
+                  {observingNightLabel}
+                </span>
+                <span className="tabular-nums text-zinc-600">
+                  {sessionElapsedLabel}
+                </span>
                 {isCapturing && (
-                  <span className="font-semibold uppercase tracking-wider text-rose-400">
-                    · Live session
+                  <span className="font-semibold uppercase tracking-wider text-rose-400/90">
+                    Live session
                   </span>
                 )}
-                <span className="text-emerald-400/90">
+                <span className="text-zinc-600">
                   {uiState.connectivity.status === "online"
                     ? uiState.connectivity.isCached
                       ? "Offline ready"
@@ -1780,7 +1794,7 @@ function MissionDashboardContent() {
             aria-hidden
           />
           <div className="relative w-full max-w-md mission-panel p-4">
-            <h3 className="text-base font-semibold text-white mb-2">
+            <h3 className="text-base font-semibold text-zinc-100 mb-2">
               Cancel Mission
             </h3>
             <p className="text-sm text-zinc-400 mb-4">
@@ -1791,7 +1805,7 @@ function MissionDashboardContent() {
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="e.g. Changed plans, wrong date..."
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
+              className="w-full rounded-lg border border-zinc-800/60 bg-zinc-900/50 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
             />
             <div className="flex justify-end gap-2">
               <Button
@@ -1801,7 +1815,7 @@ function MissionDashboardContent() {
                   setCancelOpen(false);
                   setCancelReason("");
                 }}
-                className="border-white/10 bg-white/5"
+                className="border-zinc-800/60 bg-zinc-900/40"
               >
                 Keep Mission
               </Button>
@@ -1826,7 +1840,7 @@ function MissionDashboardContent() {
             aria-hidden
           />
           <div className="relative w-full max-w-md mission-panel p-4">
-            <h3 className="text-base font-semibold text-white mb-2">
+            <h3 className="text-base font-semibold text-zinc-100 mb-2">
               Abort Mission
             </h3>
             <p className="text-sm text-zinc-400 mb-4">
@@ -1837,7 +1851,7 @@ function MissionDashboardContent() {
               value={abortReason}
               onChange={(e) => setAbortReason(e.target.value)}
               placeholder="e.g. Clouds rolled in, equipment issue..."
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
+              className="w-full rounded-lg border border-zinc-800/60 bg-zinc-900/50 px-3 py-2 text-sm min-h-[80px] placeholder:text-zinc-500 mb-4"
             />
             <div className="flex justify-end gap-2">
               <Button
@@ -1847,7 +1861,7 @@ function MissionDashboardContent() {
                   setAbortOpen(false);
                   setAbortReason("");
                 }}
-                className="border-white/10 bg-white/5"
+                className="border-zinc-800/60 bg-zinc-900/40"
               >
                 Keep Going
               </Button>

@@ -286,7 +286,7 @@ export function LocationsSection() {
                 size="sm"
                 onClick={() => setDarkerSitesOpen(true)}
               >
-                Find darker sites nearby
+                Find darker sites nearby (Demo)
               </Button>
               <Button size="sm" onClick={openAdd}>
                 Add location

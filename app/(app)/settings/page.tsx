@@ -20,6 +20,14 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "General" },
 ];
 
+function DemoBadge() {
+  return (
+    <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300/90">
+      Demo
+    </span>
+  );
+}
+
 function tabFromParam(value: string | null): SettingsTab {
   if (
     value === "gear" ||
@@ -99,7 +107,10 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm text-zinc-400">Units</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-zinc-400">Units</label>
+                  <DemoBadge />
+                </div>
                 <Select
                   options={[
                     { value: "imperial", label: "Imperial" },
@@ -109,6 +120,9 @@ export default function SettingsPage() {
                   onValueChange={setUnits}
                   className="mt-1 w-40"
                 />
+                <p className="mt-1.5 text-xs text-zinc-500">
+                  UI only — not saved to your account yet
+                </p>
               </div>
               <div>
                 <label className="text-sm text-zinc-400">Default min altitude</label>
@@ -146,46 +160,50 @@ export default function SettingsPage() {
         <div className="pt-2 space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-medium">Offline mode</h2>
-            </CardHeader>
-            <CardContent>
-              <label className="flex items-center gap-2">
-                <Checkbox checked={offline} onCheckedChange={setOffline} />
-                Enable offline mode (UI only)
-              </label>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-sm font-medium">AI mode</h2>
-            </CardHeader>
-            <CardContent>
-              <Select
-                options={[
-                  { value: "cloud", label: "Cloud" },
-                  { value: "local", label: "Local" },
-                ]}
-                value={aiMode}
-                onValueChange={setAiMode}
-                className="w-40"
-              />
-              <p className="mt-2 text-xs text-zinc-500">UI only — no real AI backend</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-sm font-medium">Telemetry</h2>
-            </CardHeader>
-            <CardContent>
-              <label className="flex items-center gap-2">
-                <Checkbox checked={telemetry} onCheckedChange={setTelemetry} />
-                Enable Sentry error reporting
-              </label>
-              <p className="mt-2 text-xs text-zinc-500">
-                When enabled and DSN is set, errors are sent to Sentry. No DSN required for app to run.
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-medium">Prototype controls</h2>
+                <DemoBadge />
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">
+                Local UI state only — none of these change app behavior yet.
               </p>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Offline mode
+                </h3>
+                <label className="mt-2 flex items-center gap-2 text-sm">
+                  <Checkbox checked={offline} onCheckedChange={setOffline} />
+                  Enable offline mode
+                </label>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  AI mode
+                </h3>
+                <Select
+                  options={[
+                    { value: "cloud", label: "Cloud" },
+                    { value: "local", label: "Local" },
+                  ]}
+                  value={aiMode}
+                  onValueChange={setAiMode}
+                  className="mt-2 w-40"
+                />
+              </div>
+              <div>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Telemetry
+                </h3>
+                <label className="mt-2 flex items-center gap-2 text-sm">
+                  <Checkbox checked={telemetry} onCheckedChange={setTelemetry} />
+                  Enable error reporting
+                </label>
+                <p className="mt-1.5 text-xs text-zinc-500">
+                  Toggle is not wired — Sentry still follows env DSN only.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

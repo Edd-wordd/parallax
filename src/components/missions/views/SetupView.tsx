@@ -21,6 +21,7 @@ import {
 import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
 import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
 import { checklistStateFromEvents } from "@/lib/missions/checklistFromEvents";
+import { formatSkyBrightnessFromBortle } from "@/lib/sky/bortleSkyBrightness";
 
 export type ChecklistTogglePayload = {
   sectionId: string;
@@ -43,6 +44,12 @@ const SOFTWARE_NAME_TO_PROFILE: Record<string, SoftwareProfile> = {
   Other: "other",
 };
 
+/**
+ * Field Setup checklist — night-of steps.
+ * Rig geometry / libraries live in Settings → Gear.
+ * Advanced later (not form fields yet): backfocus mm, guide-scope geometry,
+ * filter-wheel slot map, mount PE — see docs/gear-form-v2-plan.md.
+ */
 const EQUIPMENT_SECTIONS = [
   {
     id: "power-connections",
@@ -50,14 +57,21 @@ const EQUIPMENT_SECTIONS = [
     steps: [
       { id: "power-on", label: "Power on equipment" },
       { id: "cables", label: "Verify cables & connections" },
-      { id: "dew-heater", label: "Dew heater set" },
+      {
+        id: "dew-heater",
+        label: "Dew heater / shield on (if you tagged dew control on the rig)",
+      },
     ],
   },
   {
     id: "mount-alignment",
     title: "Mount & Alignment",
     steps: [
-      { id: "polar-align", label: "Polar alignment within tolerance", critical: true },
+      {
+        id: "polar-align",
+        label: "Polar alignment within tolerance (EQ / custom EQ builds)",
+        critical: true,
+      },
       { id: "level", label: "Level mount" },
       { id: "balance", label: "Balance RA & Dec" },
     ],
@@ -66,15 +80,21 @@ const EQUIPMENT_SECTIONS = [
     id: "focus",
     title: "Focus",
     steps: [
+      {
+        id: "focus-mask",
+        label:
+          "Focus mask / Bahtinov on if owned (mesh mask — not for polar align)",
+      },
       { id: "focus-routine", label: "Focus routine complete", critical: true },
     ],
   },
   {
     id: "guiding",
     title: "Guiding",
+    note: "Skip if rig tracking is None or Motorized only. Guide-cam geometry is Advanced later.",
     steps: [
-      { id: "calibrate", label: "Calibrate guiding" },
-      { id: "enable", label: "Enable guiding" },
+      { id: "calibrate", label: "Calibrate guiding (if autoguided)" },
+      { id: "enable", label: "Enable guiding (if autoguided)" },
     ],
   },
 ] as const;
@@ -98,6 +118,8 @@ interface SetupViewProps {
   sessionEndAt?: string | null;
   siteTimezone?: string | null;
   siteName?: string | null;
+  /** Stored site class. Sky brightness is estimated from this, not measured. */
+  bortle?: number | null;
   minAltitudeDeg?: number;
   moonToleranceDeg?: number;
   conditions: ConditionsState;
@@ -124,6 +146,7 @@ export function SetupView({
   sessionEndAt = null,
   siteTimezone = null,
   siteName = null,
+  bortle = null,
   minAltitudeDeg = 30,
   moonToleranceDeg = 15,
   conditions,
@@ -255,7 +278,9 @@ export function SetupView({
           <h3 className="mission-section-label mb-1">Equipment Checklist</h3>
           <p className="text-xs text-zinc-400">
             Checkoffs are written to the observing log. Expand any item for
-            software-specific how-to.
+            software-specific how-to. Rig libraries and accessory tags live in
+            Settings → Gear. Advanced inventory (backfocus, guide-cam geometry,
+            filter-wheel map) is deferred — see gear form v2 plan.
           </p>
           <div className="mt-2 space-y-3 max-h-80 overflow-y-auto pr-1">
             {EQUIPMENT_SECTIONS.map((section) => (
@@ -263,6 +288,11 @@ export function SetupView({
                 <h4 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                   {section.title}
                 </h4>
+                {"note" in section && section.note ? (
+                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                    {section.note}
+                  </p>
+                ) : null}
                 <div className="space-y-1.5">
                   {section.steps.map((step) => {
                     const key = `${section.id}-${step.id}`;
@@ -411,12 +441,14 @@ export function SetupView({
               Live Sky Monitor
             </h3>
             <p className="mb-2 text-[11px] text-zinc-500">
-              Mock feed — not connected equipment telemetry.
+              Mock feed — not connected equipment telemetry. Sky brightness
+              below is estimated from the site Bortle class, separate from
+              that feed.
             </p>
             <LiveSkyMonitorCard
               cloudCover={18}
               starsDetected={MOCK_LIVE_STATE.live?.starsDetected ?? null}
-              skyBrightness={21.2}
+              skyBrightness={formatSkyBrightnessFromBortle(bortle)}
               missionConfidence={78}
               status={MOCK_LIVE_STATE.status}
               events={MOCK_LIVE_EVENTS}

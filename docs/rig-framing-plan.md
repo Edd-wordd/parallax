@@ -30,5 +30,4 @@ Geometry tests, catalog identity checks, typecheck, visibility/recommendations t
 
 Change ranking or exclude targets based on framing once geometry + catalog are validated.
 
-**Apply migration before relying on sensor columns in production:**
-`supabase/migrations/20261004220000_gear_sensor_dims.sql`
+**Sensor migration:** `20261004220000_gear_sensor_dims.sql` is applied locally (verified 2026-10-18). Hosted Parallax project is paused — unpause and `supabase db push` before relying on sensor columns in production.

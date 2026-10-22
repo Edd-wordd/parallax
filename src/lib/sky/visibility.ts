@@ -555,6 +555,35 @@ function computeMoonInfo(
   };
 }
 
+const ASTRONOMY_CACHE_LIMIT = 6;
+const astronomyCache = new Map<string, SessionAstronomyResult>();
+
+function astronomyCacheKey(input: SessionAstronomyInput): string {
+  return [
+    input.site.latDeg,
+    input.site.lonDeg,
+    input.site.heightMeters ?? 0,
+    input.sessionStart.toISOString(),
+    input.sessionEnd.toISOString(),
+    input.minAltitudeDeg,
+    input.moonToleranceDeg,
+    input.sampleStepMinutes ?? 5,
+    input.targets.map((t) => t.id).join(","),
+  ].join("|");
+}
+
+function rememberAstronomy(
+  key: string,
+  result: SessionAstronomyResult,
+): SessionAstronomyResult {
+  if (astronomyCache.size >= ASTRONOMY_CACHE_LIMIT) {
+    const oldest = astronomyCache.keys().next().value;
+    if (oldest) astronomyCache.delete(oldest);
+  }
+  astronomyCache.set(key, result);
+  return result;
+}
+
 export function formatMoonRiseSet(moon: MoonInfo): string {
   const parts: string[] = [];
   if (moon.riseAt) parts.push(`Rises ${formatLocalHm(moon.riseAt)}`);
@@ -591,6 +620,10 @@ export function computeSessionAstronomy(
     };
   }
 
+  const cacheKey = astronomyCacheKey(input);
+  const cached = astronomyCache.get(cacheKey);
+  if (cached) return cached;
+
   const observer = makeObserver(input.site);
   const darkWindow = computeDarkWindow(
     observer,
@@ -602,7 +635,7 @@ export function computeSessionAstronomy(
   const sampleStepMinutes = input.sampleStepMinutes ?? 5;
 
   if (!effectiveDark) {
-    return {
+    return rememberAstronomy(cacheKey, {
       valid: true,
       session,
       darkWindow,
@@ -624,7 +657,7 @@ export function computeSessionAstronomy(
         whyIncluded: null,
       })),
       emptyReason: "no_astronomical_darkness",
-    };
+    });
   }
 
   const targets = input.targets.map((t) =>
@@ -641,7 +674,7 @@ export function computeSessionAstronomy(
 
   const anyOk = targets.some((t) => t.recommendedWindow && t.score != null);
 
-  return {
+  return rememberAstronomy(cacheKey, {
     valid: true,
     session,
     darkWindow,
@@ -649,5 +682,5 @@ export function computeSessionAstronomy(
     moon,
     targets,
     emptyReason: anyOk ? null : "never_above_min_altitude",
-  };
+  });
 }

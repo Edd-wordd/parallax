@@ -59,6 +59,7 @@ export function SessionObservingLog({
       <ObservingTimeline
         events={events}
         compact={compact}
+        className={compact ? undefined : "max-h-96 overflow-y-auto pr-1"}
         emptyMessage="Nothing logged yet — notes and checklist items appear here."
       />
 

@@ -11,6 +11,14 @@ import {
   DEFAULT_TRANSITION_MINUTES,
 } from "../src/lib/schedule/types";
 import { formatWindowLabel } from "../src/lib/sky/visibility";
+import {
+  instantOnSession,
+  sessionClockBars,
+} from "../src/lib/schedule/sessionClock";
+import {
+  missionNameFromSession,
+  missionNameTaken,
+} from "../src/lib/missions/missionName";
 
 let failed = 0;
 
@@ -295,6 +303,41 @@ function atLocal(
 {
   assert(DEFAULT_IMAGING_MINUTES === 90, "default imaging 90");
   assert(DEFAULT_TRANSITION_MINUTES === 15, "default transition 15");
+}
+
+{
+  const start = atLocal(2026, 10, 22, 21, 0);
+  const end = atLocal(2026, 10, 23, 3, 0);
+  const placed = instantOnSession("01:10", start, end);
+  assert(placed != null && placed.getDate() === 23, "overnight clock rolls to the next day");
+  const bars = sessionClockBars({
+    sessionStart: start,
+    sessionEnd: end,
+    targets: [
+      {
+        targetId: "saturn",
+        targetName: "Saturn",
+        targetType: "planet",
+        plannedWindowStart: "21:20",
+        plannedWindowEnd: "01:00",
+        score: 70,
+      },
+    ],
+  });
+  assert(bars.length === 1, "session clock places Saturn");
+  assert(bars[0]!.startPct >= 0 && bars[0]!.widthPct > 0, "bar sits on the session axis");
+  assert(
+    missionNameFromSession(start, end).includes("–"),
+    "overnight mission name spans two dates",
+  );
+  assert(
+    missionNameTaken("Oct night", [{ id: "a", name: "oct night" }], "b"),
+    "duplicate names ignore case",
+  );
+  assert(
+    !missionNameTaken("Oct night", [{ id: "a", name: "oct night" }], "a"),
+    "a mission does not collide with itself",
+  );
 }
 
 if (failed > 0) {

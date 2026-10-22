@@ -14,6 +14,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   ensureDefaultLocationAndGear,
+  getUserPreferences,
   listMissions,
 } from "@/lib/supabase/queries";
 import { useAppStore } from "@/lib/store";
@@ -52,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const bootstrapGenRef = useRef(0);
   const setActiveLocation = useAppStore((s) => s.setActiveLocation);
   const setActiveGear = useAppStore((s) => s.setActiveGear);
+  const applyUserPreferences = useAppStore((s) => s.applyUserPreferences);
+  const resetUserPreferences = useAppStore((s) => s.resetUserPreferences);
   const clearMissions = useMissionStore((s) => s.clearMissions);
   const setMissions = useMissionStore((s) => s.setMissions);
   const setMissionsLoaded = useMissionStore((s) => s.setMissionsLoaded);
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!uid) {
         lastUserIdRef.current = null;
         clearMissions();
+        resetUserPreferences();
         setMissionsLoaded(true);
         setMissionsLoadedUi(true);
         setUser(null);
@@ -74,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userChanged = lastUserIdRef.current !== uid;
       lastUserIdRef.current = uid;
       setUser(session!.user);
+      // Paint the shell before missions and preferences finish loading.
+      setReady(true);
 
       try {
         const client = getSupabaseBrowserClient();
@@ -82,6 +88,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (gen !== bootstrapGenRef.current) return;
         setActiveLocation(locationId);
         setActiveGear(gearId);
+
+        try {
+          const prefs = await getUserPreferences(client);
+          if (gen !== bootstrapGenRef.current) return;
+          if (prefs) {
+            applyUserPreferences({
+              minAltitude: prefs.default_min_altitude,
+              moonTolerance: prefs.default_moon_tolerance,
+              units: prefs.units,
+            });
+          } else if (userChanged) {
+            resetUserPreferences();
+          }
+        } catch {
+          // Prefs are non-fatal — keep store defaults / prior values.
+          if (userChanged) resetUserPreferences();
+        }
 
         // Load missions when the user changes, or when a prior bootstrap was
         // superseded after clearing the loaded flag (getSession + onAuthStateChange race).
@@ -117,6 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMissionsLoaded,
       setActiveLocation,
       setActiveGear,
+      applyUserPreferences,
+      resetUserPreferences,
     ],
   );
 
@@ -157,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     clearMissions();
+    resetUserPreferences();
     setMissionsLoaded(true);
     setMissionsLoadedUi(true);
     lastUserIdRef.current = null;
@@ -165,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     router.replace("/auth/sign-in");
     router.refresh();
-  }, [router, clearMissions, setMissionsLoaded]);
+  }, [router, clearMissions, resetUserPreferences, setMissionsLoaded]);
 
   const value = useMemo(
     () => ({

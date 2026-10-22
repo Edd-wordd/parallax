@@ -16,6 +16,10 @@ import {
 } from "astronomy-engine";
 import { CURATED_DEEP_SKY_TARGETS } from "../src/lib/sky/curatedTargets";
 import { generateDeepSkyPlan } from "../src/lib/sky/generateDeepSkyPlan";
+import { generatePlanetaryPlan } from "../src/lib/sky/generatePlanetaryPlan";
+import { PLANET_TARGETS } from "../src/lib/sky/planets";
+import { skyBrightnessFromBortle } from "../src/lib/sky/bortleSkyBrightness";
+import { darkerSitesNearby, distanceKm } from "../src/lib/locations/darkSites";
 import {
   computeDarkWindow,
   computeSessionAstronomy,
@@ -247,6 +251,92 @@ check("reference: M42 altitude via Horizon is finite near winter evening", () =>
   console.log(
     `       (info) M42 alt at ${formatLocalHm(t)} local Denver: ${hor.altitude.toFixed(1)}°`,
   );
+});
+
+check("Bortle class maps to a cited brightness range", () => {
+  const dark = skyBrightnessFromBortle(1);
+  const city = skyBrightnessFromBortle(9);
+  assert.ok(dark);
+  assert.equal(dark!.display, "21.99–22.0");
+  assert.ok(city);
+  assert.equal(city!.display, "< 18.4");
+  assert.equal(skyBrightnessFromBortle(null), null);
+  assert.equal(skyBrightnessFromBortle(4.5), null);
+  assert.equal(skyBrightnessFromBortle(0), null);
+});
+
+check("planetary plan uses altitude and Moon scores, not a fixed window", () => {
+  const sessionStart = new Date(2026, 2, 15, 21, 0, 0);
+  const sessionEnd = new Date(2026, 2, 16, 3, 0, 0);
+  const constraints = {
+    minAltitude: -90,
+    moonTolerance: 0,
+    targetTypes: [] as string[],
+    driveToDarker: false,
+    driveRadius: 50,
+    objective: "quick_session" as const,
+  };
+  const { targets, excluded } = generatePlanetaryPlan({
+    latDeg: DENVER.latDeg,
+    lonDeg: DENVER.lonDeg,
+    sessionStart,
+    sessionEnd,
+    constraints,
+    planetNames: PLANET_TARGETS.map((p) => p.name),
+  });
+  assert.equal(excluded.length, 0);
+  assert.equal(targets.length, PLANET_TARGETS.length);
+  const catalogIds = new Set(CURATED_DEEP_SKY_TARGETS.map((t) => t.id));
+  for (const t of targets) {
+    assert.ok(!catalogIds.has(t.targetId));
+    assert.ok(t.altitudeScore != null && t.altitudeScore >= 1 && t.altitudeScore <= 10);
+    assert.ok(t.score >= 0 && t.score <= 100);
+    assert.notEqual(t.plannedWindowStart, "22:00");
+    assert.match(t.whyIncluded ?? "", /not calculated/);
+    assert.equal(t.targetType === "moon" || t.targetType === "planet", true);
+  }
+  const moon = targets.find((t) => t.targetId === "moon");
+  assert.ok(moon);
+  assert.equal(moon!.moonSeparationScore, undefined);
+  const jupiter = targets.find((t) => t.targetId === "jupiter");
+  assert.ok(jupiter?.moonSeparationScore != null);
+});
+
+check("strict altitude excludes planets instead of inventing a window", () => {
+  const { targets } = generatePlanetaryPlan({
+    latDeg: DENVER.latDeg,
+    lonDeg: DENVER.lonDeg,
+    sessionStart: new Date(2026, 2, 15, 21, 0, 0),
+    sessionEnd: new Date(2026, 2, 16, 3, 0, 0),
+    constraints: {
+      minAltitude: 89,
+      moonTolerance: 0,
+      targetTypes: [],
+      driveToDarker: false,
+      driveRadius: 50,
+    },
+    planetNames: ["Jupiter", "Saturn"],
+  });
+  assert.equal(targets.length, 0);
+});
+
+check("darker-site catalog filters by distance and class", () => {
+  assert.ok(distanceKm(39.74, -104.99, 39.74, -104.99) < 0.01);
+  const nearCherry = darkerSitesNearby({
+    lat: 41.6658,
+    lon: -77.8236,
+    originBortle: 9,
+    radiusKm: 30,
+  });
+  assert.ok(nearCherry.some((s) => s.id === "cherry-springs"));
+  assert.ok(nearCherry.every((s) => s.bortle < 9));
+  const alreadyDark = darkerSitesNearby({
+    lat: 33.4786,
+    lon: -108.9222,
+    originBortle: 1,
+    radiusKm: 5000,
+  });
+  assert.equal(alreadyDark.length, 0);
 });
 
 console.log(`\n${passed} checks passed`);

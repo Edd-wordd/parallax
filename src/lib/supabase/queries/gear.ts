@@ -81,9 +81,42 @@ export async function setActiveGearProfile(
   assertNoError(setErr, "setActiveGearProfile.set");
 }
 
+const ACCESSORY_SET = new Set([
+  "focus_mask",
+  "flattener_coma",
+  "dew_control",
+  "filters_owned",
+]);
+
 function normalizeTimestamps(row: Record<string, unknown>) {
+  const accessoriesRaw = row.accessories;
+  const accessories = Array.isArray(accessoriesRaw)
+    ? accessoriesRaw.filter(
+        (a): a is string => typeof a === "string" && ACCESSORY_SET.has(a),
+      )
+    : [];
   return {
     ...row,
+    mount_class:
+      row.mount_class === "custom_diy" ||
+      row.mount_class === "star_tracker" ||
+      row.mount_class === "stock"
+        ? row.mount_class
+        : "stock",
+    tracking:
+      row.tracking === "motorized" ||
+      row.tracking === "guided" ||
+      row.tracking === "none"
+        ? row.tracking
+        : row.guiding === true
+          ? "guided"
+          : "none",
+    camera_cooled: row.camera_cooled === true,
+    accessories,
+    mount_notes:
+      row.mount_notes == null || row.mount_notes === ""
+        ? null
+        : String(row.mount_notes),
     created_at: toIso(row.created_at),
     updated_at: toIso(row.updated_at),
     deleted_at: row.deleted_at == null ? null : toIso(row.deleted_at),

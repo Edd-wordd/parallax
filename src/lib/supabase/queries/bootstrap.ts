@@ -58,7 +58,7 @@ async function ensureOnce(client: SupabaseClient): Promise<{
   if (!gearId) {
     const profile = await createGearProfile(client, {
       name: "Main Rig",
-      telescope_name: "Sky-Watcher 72ED",
+      telescope_name: "Sky-Watcher Evostar 72ED",
       focal_length: 420,
       aperture: 72,
       camera_name: "ZWO ASI533MC",
@@ -67,7 +67,11 @@ async function ensureOnce(client: SupabaseClient): Promise<{
       sensor_height_mm: 11.31,
       pixel_size: 3.76,
       mount_type: "equatorial",
+      mount_class: "stock",
+      tracking: "guided",
       guiding: true,
+      camera_cooled: true,
+      accessories: [],
       is_active: true,
     });
     gearId = profile.id;

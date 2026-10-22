@@ -19,6 +19,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
+import { missionNameTaken } from "@/lib/missions/missionName";
 import { useAppStore } from "@/lib/store";
 import { MissionUIProvider, useMissionUI } from "@/lib/missionUIStore";
 import { Button } from "@/components/ui/button";
@@ -137,11 +138,13 @@ function MissionDashboardContent() {
   const [abortReason, setAbortReason] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const titleBeforeEditRef = useRef("");
   const [mounted, setMounted] = useState(false);
   const [addTargetPickerOpen, setAddTargetPickerOpen] = useState(false);
   const [savingLog, setSavingLog] = useState(false);
   const [locationLabel, setLocationLabel] = useState("Site");
   const [siteLat, setSiteLat] = useState<number | null>(null);
+  const [siteBortle, setSiteBortle] = useState<number | null>(null);
   const [siteLon, setSiteLon] = useState<number | null>(null);
   const [siteTimezone, setSiteTimezone] = useState<string | null>(null);
   const [gearLabel, setGearLabel] = useState("Rig");
@@ -276,6 +279,7 @@ function MissionDashboardContent() {
         setLocationLabel(loc?.name ?? "Site");
         setSiteLat(loc?.lat ?? null);
         setSiteLon(loc?.lon ?? null);
+        setSiteBortle(loc?.bortle ?? null);
         setSiteTimezone(loc?.timezone ?? null);
         const g = gear.find((row) => row.id === mission!.gearId);
         setGearLabel(g?.name ?? "Rig");
@@ -645,6 +649,21 @@ function MissionDashboardContent() {
   };
 
   const handleStart = async () => {
+    const current = getMission(id);
+    if (!current?.name.trim()) {
+      toast("Name the mission before starting", "error");
+      return;
+    }
+    if (
+      missionNameTaken(
+        current.name,
+        useMissionStore.getState().missions,
+        id,
+      )
+    ) {
+      toast("A mission already uses that name", "error");
+      return;
+    }
     setActiveMission(id);
     await handlePhaseClick("capturing", {
       planEvent: "mission_started",
@@ -1328,7 +1347,23 @@ function MissionDashboardContent() {
                       onChange={(e) =>
                         updateMission(id, { name: e.target.value })
                       }
-                      onBlur={() => setIsEditingTitle(false)}
+                      onBlur={() => {
+                        const current = getMission(id);
+                        const nextName = current?.name ?? "";
+                        if (
+                          missionNameTaken(
+                            nextName,
+                            useMissionStore.getState().missions,
+                            id,
+                          )
+                        ) {
+                          updateMission(id, {
+                            name: titleBeforeEditRef.current || nextName,
+                          });
+                          toast("A mission already uses that name", "error");
+                        }
+                        setIsEditingTitle(false);
+                      }}
                       className="page-heading bg-transparent border-b border-transparent focus:border-indigo-500 focus:outline-none"
                     />
                   ) : (
@@ -1340,6 +1375,7 @@ function MissionDashboardContent() {
                         <button
                           type="button"
                           onClick={() => {
+                            titleBeforeEditRef.current = mission.name;
                             setIsEditingTitle(true);
                             requestAnimationFrame(() => {
                               titleInputRef.current?.focus();
@@ -1637,6 +1673,7 @@ function MissionDashboardContent() {
               sessionEndAt={mission.sessionEndAt}
               siteTimezone={siteTimezone}
               siteName={locationLabel}
+              bortle={siteBortle}
               conditions={uiState.conditions}
               onConditionsChange={(c) =>
                 setConditions({ ...uiState.conditions, ...c })

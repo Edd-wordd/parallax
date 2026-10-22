@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import {
+  missionNameFromSession,
+  missionNameTaken,
+} from "@/lib/missions/missionName";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
 import { useAppStore } from "@/lib/store";
-import { generateMockPlan, type GenerateMockPlanOptions } from "@/lib/mock/missions";
+import { formatSkyBrightnessFromBortle } from "@/lib/sky/bortleSkyBrightness";
 import { generateDeepSkyPlan } from "@/lib/sky/generateDeepSkyPlan";
+import { generatePlanetaryPlan } from "@/lib/sky/generatePlanetaryPlan";
 import {
   computeSessionAstronomy,
   formatLocalWindow,
@@ -89,7 +94,11 @@ export default function MissionWizardPage() {
   } = useAppStore();
 
   const [step, setStep] = useState(1);
-  const [name, setName] = useState("Tonight's Mission");
+  const [nameEdited, setNameEdited] = useState(false);
+  const [name, setName] = useState(() => {
+    const { start, end } = defaultUpcomingSession();
+    return missionNameFromSession(start, end);
+  });
   const [locations, setLocations] = useState<Location[]>([]);
   const [gearProfiles, setGearProfiles] = useState<GearProfile[]>([]);
   const [locationId, setLocationId] = useState(
@@ -137,6 +146,13 @@ export default function MissionWizardPage() {
     const end = new Date(sessionEndTime);
     return { start, end };
   }, [dateTime, sessionEndTime]);
+
+  const startMs = sessionInterval.start.getTime();
+  const endMs = sessionInterval.end.getTime();
+  useEffect(() => {
+    if (nameEdited || Number.isNaN(startMs) || Number.isNaN(endMs)) return;
+    setName(missionNameFromSession(new Date(startMs), new Date(endMs)));
+  }, [nameEdited, startMs, endMs]);
 
   const sessionOrderValid = isValidSessionOrder(
     sessionInterval.start,
@@ -284,27 +300,6 @@ export default function MissionWizardPage() {
   }, [dateTime, setStoreDateTime]);
 
   const handleGeneratePlan = () => {
-    if (missionType === "planetary") {
-      const options: GenerateMockPlanOptions = {
-        missionType: "planetary",
-        planetaryTargets: Array.from(selectedPlanetaryTargets),
-      };
-      const plan = generateMockPlan(
-        locationId,
-        gearId,
-        dateTime,
-        constraints,
-        options,
-      );
-      setTargets(plan);
-      setTargetOrder(plan.map((t) => t.targetId));
-      setSelectedIds(new Set(plan.map((t) => t.targetId)));
-      setGenerated(true);
-      setStep(3);
-      toast("Plan generated (demo — planetary)", "success");
-      return;
-    }
-
     if (!location) {
       toast("Select a location before generating a plan", "error");
       return;
@@ -318,13 +313,20 @@ export default function MissionWizardPage() {
       return;
     }
 
-    const { targets: plan, astronomy } = generateDeepSkyPlan({
+    const planInput = {
       latDeg: location.lat,
       lonDeg: location.lon,
       sessionStart: sessionInterval.start,
       sessionEnd: sessionInterval.end,
       constraints,
-    });
+    };
+    const { targets: plan, astronomy } =
+      missionType === "planetary"
+        ? generatePlanetaryPlan({
+            ...planInput,
+            planetNames: Array.from(selectedPlanetaryTargets),
+          })
+        : generateDeepSkyPlan(planInput);
 
     setTargets(plan);
     setTargetOrder(plan.map((t) => t.targetId));
@@ -332,15 +334,16 @@ export default function MissionWizardPage() {
     setGenerated(true);
     setStep(3);
 
+    const kind = missionType === "planetary" ? "planets" : "deep-sky targets";
     if (!astronomy.effectiveDark) {
       toast("No astronomical darkness during this session", "error");
     } else if (plan.length === 0) {
-      toast(
-        "No deep-sky targets meet altitude and Moon constraints",
-        "error",
-      );
+      toast(`No ${kind} meet altitude and Moon constraints`, "error");
     } else {
-      toast(`Plan generated — ${plan.length} target${plan.length === 1 ? "" : "s"}`, "success");
+      toast(
+        `Plan generated — ${plan.length} target${plan.length === 1 ? "" : "s"}`,
+        "success",
+      );
     }
   };
 
@@ -429,16 +432,13 @@ export default function MissionWizardPage() {
     const v = t[key];
     return v != null ? v : null;
   };
-  const overallScore = (t: MissionTarget) => {
+  const overallScore = (t: MissionTarget): number | null => {
     const parts = [
       scoreValue(t, "altitudeScore"),
       scoreValue(t, "moonSeparationScore"),
     ].filter((n): n is number => n != null);
-    if (parts.length > 0) {
-      return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
-    }
-    // Planetary demo plans only expose aggregate score
-    return Math.min(10, Math.max(1, Math.round((t.score || 0) / 10)));
+    if (parts.length === 0) return null;
+    return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
   };
 
   const handleSave = () => {
@@ -448,6 +448,14 @@ export default function MissionWizardPage() {
     }
     if (!sessionOrderValid) {
       toast("End must be after start", "error");
+      return;
+    }
+    if (!name.trim()) {
+      toast("Name the mission", "error");
+      return;
+    }
+    if (missionNameTaken(name, useMissionStore.getState().missions)) {
+      toast("A mission already uses that name", "error");
       return;
     }
     const finalTargets = orderedTargets;
@@ -480,18 +488,24 @@ export default function MissionWizardPage() {
         {/* Header: Create Mission | Cancel */}
         <header className="mission-page-header !mb-0 !pb-4">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h1 className="page-heading">Create Mission</h1>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="page-heading">Create Mission</h1>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Plan stays local until Setup. Site, gear, and constraints feed
+                  Astronomy Engine + forecasts.
+                </p>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 text-white/55 hover:text-white/90 hover:bg-white/5"
+                className="h-9 shrink-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/40"
                 onClick={() => setShowCancelModal(true)}
               >
                 Cancel Mission
               </Button>
             </div>
-            <p className="text-xs text-white/45 tracking-wide">
+            <p className="text-xs text-zinc-500 tracking-wide">
               Step {step} of 3 · {STEP_NAMES[step - 1]}
             </p>
             <div className="mission-page-progress w-full">
@@ -517,21 +531,24 @@ export default function MissionWizardPage() {
                   >
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       <div className="md:col-span-2">
-                        <p className="mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">
+                        <p className="dash-section-title mb-2 text-zinc-500">
                           Mission Details
                         </p>
-                        <label className="mb-1 block text-xs text-white/60">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           Mission name
                         </label>
                         <Input
                           value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="Tonight's Mission"
+                          onChange={(e) => {
+                            setNameEdited(true);
+                            setName(e.target.value);
+                          }}
+                          placeholder="Oct 22–23"
                           className="h-9"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-white/60">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           Location
                         </label>
                         <LocationPicker
@@ -541,7 +558,7 @@ export default function MissionWizardPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-white/60">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           Gear
                         </label>
                         <GearPicker
@@ -551,7 +568,7 @@ export default function MissionWizardPage() {
                         />
                       </div>
                       <div className="relative z-[100]">
-                        <label className="mb-1 block text-xs text-white/60">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           Start ({displayTz.abbreviation})
                         </label>
                         <Input
@@ -575,7 +592,7 @@ export default function MissionWizardPage() {
                         />
                       </div>
                       <div className="relative z-[100]">
-                        <label className="mb-1 block text-xs text-white/60">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           End ({displayTz.abbreviation})
                         </label>
                         <Input
@@ -596,7 +613,7 @@ export default function MissionWizardPage() {
                         />
                       </div>
                       <div className="md:col-span-2 space-y-2">
-                        <p className="text-[11px] text-white/55">
+                        <p className="text-[11px] text-zinc-400">
                           Times use {displayTz.sourceLabel}
                           {siteTimezone ? ` (${siteTimezone})` : ""}.
                         </p>
@@ -658,26 +675,26 @@ export default function MissionWizardPage() {
                           </div>
                         )}
                         {sessionOrderValid && startInPast && keepPastStart && (
-                          <p className="text-[11px] text-white/50">
+                          <p className="text-[11px] text-zinc-500">
                             Keeping past start to log an earlier session.
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <p className="mt-6 mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">
+                    <p className="mt-6 mb-2 dash-section-title text-zinc-500">
                       Tonight&apos;s Conditions
                     </p>
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                      <p className="mt-0 text-xs text-white/50">
+                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-4">
+                      <p className="mt-0 text-xs text-zinc-500">
                         Astronomy from site coordinates and session times.
                         Weather from Open-Meteo; seeing/transparency from
                         7Timer when available.
                       </p>
                       <dl className="mt-3 space-y-2 text-xs">
                         <div>
-                          <dt className="text-white/50">Forecast coverage</dt>
-                          <dd className="text-white/90">
+                          <dt className="text-zinc-500">Forecast coverage</dt>
+                          <dd className="text-zinc-100">
                             {weatherDisplay(
                               forecast?.weather?.coveragePct,
                               "%",
@@ -686,8 +703,8 @@ export default function MissionWizardPage() {
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">Cloud:</dt>{" "}
-                            <dd className="inline text-white/90">
+                            <dt className="text-zinc-500 inline">Cloud:</dt>{" "}
+                            <dd className="inline text-zinc-100">
                               {weatherDisplay(
                                 forecast?.weather?.cloudCoverPct,
                                 "%",
@@ -695,8 +712,8 @@ export default function MissionWizardPage() {
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">Humidity:</dt>{" "}
-                            <dd className="inline text-white/90">
+                            <dt className="text-zinc-500 inline">Humidity:</dt>{" "}
+                            <dd className="inline text-zinc-100">
                               {weatherDisplay(
                                 forecast?.weather?.humidityPct,
                                 "%",
@@ -704,8 +721,8 @@ export default function MissionWizardPage() {
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">Wind:</dt>{" "}
-                            <dd className="inline text-white/90">
+                            <dt className="text-zinc-500 inline">Wind:</dt>{" "}
+                            <dd className="inline text-zinc-100">
                               {weatherDisplay(
                                 forecast?.weather?.windMph,
                                 " mph",
@@ -715,9 +732,9 @@ export default function MissionWizardPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                           <span className="flex items-center gap-1.5">
-                            <Moon className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                            <span className="text-white/50">Moon:</span>
-                            <span className="text-white/90">
+                            <Moon className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                            <span className="text-zinc-500">Moon:</span>
+                            <span className="text-zinc-100">
                               {!location
                                 ? "Select a site"
                                 : sessionAstronomy?.moon
@@ -726,9 +743,9 @@ export default function MissionWizardPage() {
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Clock className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                            <span className="text-white/50">Dark window:</span>
-                            <span className="text-white/90">
+                            <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                            <span className="text-zinc-500">Dark window:</span>
+                            <span className="text-zinc-100">
                               {!location
                                 ? "Select a site"
                                 : !sessionAstronomy?.valid
@@ -741,29 +758,29 @@ export default function MissionWizardPage() {
                             </span>
                           </span>
                           <span className="flex items-center gap-1.5">
-                            <Gauge className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                            <span className="text-white/50">Sky / Bortle:</span>
-                            <span className="text-white/90">
-                              <span className="text-amber-400/80">(Demo)</span>{" "}
-                              {MOCK_CONDITIONS_SOURCE.skyBrightness} mag/arcsec²
-                              · Bortle {location?.bortle ?? "—"}
+                            <Gauge className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                            <span className="text-zinc-500">Sky / Bortle:</span>
+                            <span className="text-zinc-100">
+                              {!location
+                                ? "Select a site"
+                                : formatSkyBrightnessFromBortle(location.bortle)}
                             </span>
                           </span>
                         </div>
                         <div className="flex gap-4">
                           <span>
-                            <dt className="text-white/50 inline">Seeing:</dt>{" "}
-                            <dd className="inline text-white/90">
+                            <dt className="text-zinc-500 inline">Seeing:</dt>{" "}
+                            <dd className="inline text-zinc-100">
                               {seeingTransparencyDisplay(
                                 forecast?.astroWx?.seeingUi1to5,
                               )}
                             </dd>
                           </span>
                           <span>
-                            <dt className="text-white/50 inline">
+                            <dt className="text-zinc-500 inline">
                               Transparency:
                             </dt>{" "}
-                            <dd className="inline text-white/90">
+                            <dd className="inline text-zinc-100">
                               {seeingTransparencyDisplay(
                                 forecast?.astroWx?.transparencyUi1to5,
                               )}
@@ -771,13 +788,13 @@ export default function MissionWizardPage() {
                           </span>
                         </div>
                       </dl>
-                      <p className="mt-3 text-[10px] text-white/40">
+                      <p className="mt-3 text-[10px] text-zinc-500">
                         Weather data by{" "}
                         <a
                           href="https://open-meteo.com/"
                           target="_blank"
                           rel="noreferrer"
-                          className="underline hover:text-white/60"
+                          className="underline hover:text-zinc-400"
                         >
                           Open-Meteo.com
                         </a>
@@ -787,15 +804,15 @@ export default function MissionWizardPage() {
                           href="https://www.7timer.info/doc.php"
                           target="_blank"
                           rel="noreferrer"
-                          className="underline hover:text-white/60"
+                          className="underline hover:text-zinc-400"
                         >
                           7Timer!
                         </a>
                       </p>
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-white/10 border-l-2 border-l-indigo-500/50 bg-white/5 pl-4 pr-4 py-4">
-                      <p className="text-sm font-medium text-white/85">
+                    <div className="mt-4 rounded-lg border border-zinc-800/60 border-l-2 border-l-indigo-500/50 bg-zinc-900/50 pl-4 pr-4 py-4">
+                      <p className="text-sm font-medium text-zinc-200">
                         Recommendations{" "}
                         <span className="text-xs font-normal text-amber-400/80">
                           (Demo)
@@ -805,16 +822,16 @@ export default function MissionWizardPage() {
                         {MOCK_CONDITIONS_SOURCE.recommendations.map((r, i) => (
                           <div
                             key={i}
-                            className="flex items-start gap-2.5 text-[13px] leading-snug text-white/75"
+                            className="flex items-start gap-2.5 text-[13px] leading-snug text-zinc-300"
                           >
-                            <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/45" />
+                            <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />
                             <span>{r}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <p className="mt-6 mb-2 text-[11px] font-normal uppercase tracking-widest text-white/45">
+                    <p className="mt-6 mb-2 dash-section-title text-zinc-500">
                       Mission Type
                     </p>
                     <div>
@@ -825,7 +842,7 @@ export default function MissionWizardPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             missionType === "deep_sky"
                               ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
-                              : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                              : "border-zinc-800/60 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"
                           }`}
                         >
                           Deep Sky
@@ -836,7 +853,7 @@ export default function MissionWizardPage() {
                           className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             missionType === "planetary"
                               ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
-                              : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                              : "border-zinc-800/60 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"
                           }`}
                         >
                           Planetary
@@ -853,14 +870,12 @@ export default function MissionWizardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 10 }}
                   >
-                    {missionType === "deep_sky" && (
-                      <>
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
-                            <label className="mb-1 block text-xs text-white/60">
+                            <label className="mb-1 block text-xs text-zinc-400">
                               Min altitude
                             </label>
-                            <p className="mb-1.5 text-xs text-white/50">
+                            <p className="mb-1.5 text-xs text-zinc-500">
                               Ignore targets below this altitude.
                             </p>
                             <Slider
@@ -874,7 +889,7 @@ export default function MissionWizardPage() {
                                 }))
                               }
                             />
-                            <span className="text-xs text-white/50">
+                            <span className="text-xs text-zinc-500">
                               {constraints.minAltitude}°
                             </span>
                             {constraints.minAltitude < 30 && (
@@ -884,10 +899,10 @@ export default function MissionWizardPage() {
                             )}
                           </div>
                           <div>
-                            <label className="mb-1 block text-xs text-white/60">
+                            <label className="mb-1 block text-xs text-zinc-400">
                               Moon tolerance
                             </label>
-                            <p className="mb-1.5 text-xs text-white/50">
+                            <p className="mb-1.5 text-xs text-zinc-500">
                               How close to the moon is acceptable (degrees).
                             </p>
                             <Slider
@@ -901,16 +916,17 @@ export default function MissionWizardPage() {
                                 }))
                               }
                             />
-                            <span className="text-xs text-white/50">
+                            <span className="text-xs text-zinc-500">
                               {constraints.moonTolerance}°
                             </span>
                           </div>
                         </div>
+                        {missionType === "deep_sky" && (
                         <div className="mt-4">
-                          <label className="mb-1 block text-xs text-white/60">
+                          <label className="mb-1 block text-xs text-zinc-400">
                             Objective
                           </label>
-                          <p className="mb-2 text-xs text-white/50">
+                          <p className="mb-2 text-xs text-zinc-500">
                             Select the planning strategy.
                           </p>
                           <select
@@ -922,7 +938,7 @@ export default function MissionWizardPage() {
                                   .value as MissionConstraint["objective"],
                               }))
                             }
-                            className="flex h-9 w-full max-w-xs rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-zinc-100 focus:border-blue-400/40 focus:outline-none focus:ring-2 focus:ring-blue-400/30"
+                            className="flex h-9 w-full max-w-xs rounded-lg border border-zinc-800/60 bg-zinc-900/50 px-3 text-sm text-zinc-100 focus:border-blue-400/40 focus:outline-none focus:ring-2 focus:ring-blue-400/30"
                           >
                             {DEEP_SKY_OBJECTIVES.map((o) => (
                               <option key={o.value} value={o.value}>
@@ -931,19 +947,21 @@ export default function MissionWizardPage() {
                             ))}
                           </select>
                         </div>
-                      </>
-                    )}
+                        )}
                     {missionType === "planetary" && (
-                      <div>
-                        <label className="mb-1 block text-xs text-white/60">
+                      <div className="mt-4">
+                        <label className="mb-1 block text-xs text-zinc-400">
                           Planetary targets
                         </label>
-                        <p className="mb-2 text-xs text-white/50">
-                          Select one or more targets. At least one required.
+                        <p className="mb-2 text-xs text-zinc-500">
+                          Select one or more. Windows use the altitude and Moon
+                          rules above. Surface detail and exposure advice are
+                          not calculated. Planets stay off the deep-sky Explorer
+                          list.
                         </p>
                         <div className="space-y-4">
                           <div>
-                            <p className="mb-2 text-[11px] font-medium uppercase tracking-widest text-white/45">
+                            <p className="mb-2 dash-section-title text-zinc-500">
                               Recommended
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -964,7 +982,7 @@ export default function MissionWizardPage() {
                                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                                       selected
                                         ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
-                                        : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                                        : "border-zinc-800/60 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"
                                     }`}
                                   >
                                     {t}
@@ -974,7 +992,7 @@ export default function MissionWizardPage() {
                             </div>
                           </div>
                           <div>
-                            <p className="mb-2 text-[11px] font-medium uppercase tracking-widest text-white/45">
+                            <p className="mb-2 dash-section-title text-zinc-500">
                               Other Targets
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -995,7 +1013,7 @@ export default function MissionWizardPage() {
                                     className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                                       selected
                                         ? "border-indigo-500/50 bg-indigo-500/20 text-indigo-300"
-                                        : "border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80"
+                                        : "border-zinc-800/60 bg-zinc-900/50 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"
                                     }`}
                                   >
                                     {t}
@@ -1018,7 +1036,7 @@ export default function MissionWizardPage() {
                     exit={{ opacity: 0, x: 10 }}
                   >
                     {!generated || targets.length === 0 ? (
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-zinc-400">
                         Go back to Step 2 and click &quot;Generate Plan&quot;.
                       </p>
                     ) : (
@@ -1027,6 +1045,12 @@ export default function MissionWizardPage() {
                           <h3 className="text-base font-semibold text-zinc-200 mb-2">
                             Tonight&apos;s Imaging Schedule
                           </h3>
+                          {missionType === "planetary" && (
+                            <p className="mb-2 text-xs text-zinc-500">
+                              Altitude and Moon separation are calculated.
+                              Surface detail and exposure advice are not.
+                            </p>
+                          )}
                           <div className="space-y-2">
                             {orderedAllTargets.map((t, i) => {
                               const isSelected = selectedIds.has(t.targetId);
@@ -1051,8 +1075,8 @@ export default function MissionWizardPage() {
                                   className={cn(
                                     "rounded-lg border transition-colors",
                                     isSelected
-                                      ? "border-white/15 bg-white/[0.03] hover:border-white/20"
-                                      : "border-white/10 bg-white/[0.02] opacity-75",
+                                      ? "border-zinc-800/60 bg-white/[0.03] hover:border-zinc-700/60"
+                                      : "border-zinc-800/60 bg-white/[0.02] opacity-75",
                                     dragTargetIndex === i && "opacity-50",
                                     dragOverIndex === i &&
                                       "ring-1 ring-inset ring-white/20",
@@ -1083,7 +1107,7 @@ export default function MissionWizardPage() {
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        className="h-8 shrink-0 gap-1 text-xs text-white/60 hover:text-white/90"
+                                        className="h-8 shrink-0 gap-1 text-xs text-zinc-400 hover:text-zinc-100"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           toggleTarget(t.targetId);
@@ -1101,7 +1125,7 @@ export default function MissionWizardPage() {
                                       className={cn(
                                         "flex flex-1 min-w-0 items-center gap-2 text-left",
                                         !isSelected &&
-                                          "line-through text-white/50",
+                                          "line-through text-zinc-500",
                                       )}
                                       onClick={() =>
                                         setExpandedTargetId((id) =>
@@ -1113,11 +1137,11 @@ export default function MissionWizardPage() {
                                         {targetNameDisplay}
                                       </span>
                                       {catalogTag && (
-                                        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+                                        <span className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
                                           {catalogTag}
                                         </span>
                                       )}
-                                      <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                                      <span className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
                                         {t.targetType.replace("_", " ")}
                                       </span>
                                       <span className="flex items-center gap-2 ml-auto shrink-0">
@@ -1127,10 +1151,14 @@ export default function MissionWizardPage() {
                                         <span
                                           className={cn(
                                             "rounded border px-2 py-0.5 text-xs font-medium",
-                                            scoreBadgeColor(overallScore(t)),
+                                            overallScore(t) == null
+                                              ? "border-zinc-700 text-zinc-500"
+                                              : scoreBadgeColor(overallScore(t)!),
                                           )}
                                         >
-                                          Score {overallScore(t)}/10
+                                          {overallScore(t) == null
+                                            ? "Score —"
+                                            : `Score ${overallScore(t)}/10`}
                                         </span>
                                       </span>
                                     </button>
@@ -1155,7 +1183,7 @@ export default function MissionWizardPage() {
                                     </Button>
                                   </div>
                                   {isExpanded && (
-                                    <div className="border-t border-white/10 px-3 pb-3 pt-2 space-y-3">
+                                    <div className="border-t border-zinc-800/60 px-3 pb-3 pt-2 space-y-3">
                                       <div className="flex flex-wrap gap-2">
                                         {scoreValue(t, "altitudeScore") !=
                                           null && (
@@ -1339,7 +1367,7 @@ export default function MissionWizardPage() {
             </div>
 
             {/* Footer: Back / Next */}
-            <div className="flex justify-between border-t border-white/10 px-4 py-4">
+            <div className="flex justify-between border-t border-zinc-800/60 px-4 py-4">
               {step > 1 ? (
                 <Button
                   variant="ghost"
@@ -1396,33 +1424,33 @@ export default function MissionWizardPage() {
           <div className="space-y-4 lg:col-span-2 lg:row-start-1">
             <div className="mission-panel sticky top-20 min-w-0 p-4">
               <h3 className="text-sm font-medium">Mission Preview</h3>
-              <p className="mt-1 text-xs text-white/50">
+              <p className="mt-1 text-xs text-zinc-500">
                 Review the mission context before generating the plan.
               </p>
               <dl className="mt-3 space-y-2 text-xs">
                 <div>
-                  <dt className="text-white/50">Mission name</dt>
-                  <dd className="text-white/90">{name || "—"}</dd>
+                  <dt className="text-zinc-500">Mission name</dt>
+                  <dd className="text-zinc-100">{name || "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Site</dt>
-                  <dd className="text-white/90">{location?.name ?? "—"}</dd>
+                  <dt className="text-zinc-500">Site</dt>
+                  <dd className="text-zinc-100">{location?.name ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Rig</dt>
-                  <dd className="text-white/90">{gear?.name ?? "—"}</dd>
+                  <dt className="text-zinc-500">Rig</dt>
+                  <dd className="text-zinc-100">{gear?.name ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Session window</dt>
-                  <dd className="text-white/90">{displayDate}</dd>
+                  <dt className="text-zinc-500">Session window</dt>
+                  <dd className="text-zinc-100">{displayDate}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Bortle</dt>
-                  <dd className="text-white/90">{location?.bortle ?? "—"}</dd>
+                  <dt className="text-zinc-500">Bortle</dt>
+                  <dd className="text-zinc-100">{location?.bortle ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Session duration</dt>
-                  <dd className="text-white/90">
+                  <dt className="text-zinc-500">Session duration</dt>
+                  <dd className="text-zinc-100">
                     {!sessionOrderValid
                       ? "Invalid"
                       : (() => {
@@ -1436,8 +1464,8 @@ export default function MissionWizardPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Mission type</dt>
-                  <dd className="text-white/90">
+                  <dt className="text-zinc-500">Mission type</dt>
+                  <dd className="text-zinc-100">
                     {missionType === "deep_sky"
                       ? "Deep Sky Mission"
                       : missionType === "planetary"
@@ -1447,16 +1475,16 @@ export default function MissionWizardPage() {
                 </div>
               </dl>
               {step === 2 && missionType === "planetary" && (
-                <div className="mt-4 pt-3 border-t border-white/10">
-                  <p className="text-white/50 text-xs font-medium mb-2">
+                <div className="mt-4 pt-3 border-t border-zinc-800/60">
+                  <p className="text-zinc-500 text-xs font-medium mb-2">
                     Selected targets
                   </p>
                   {selectedPlanetaryTargets.size === 0 ? (
-                    <p className="text-xs text-white/50">No targets selected</p>
+                    <p className="text-xs text-zinc-500">No targets selected</p>
                   ) : (
                     <ul className="space-y-1.5 text-xs">
                       {Array.from(selectedPlanetaryTargets).map((targetName) => (
-                        <li key={targetName} className="text-white/90">
+                        <li key={targetName} className="text-zinc-100">
                           {targetName}
                         </li>
                       ))}
@@ -1465,18 +1493,18 @@ export default function MissionWizardPage() {
                 </div>
               )}
               {step === 3 && orderedTargets.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-white/10">
-                  <p className="text-white/50 text-xs font-medium mb-2">
+                <div className="mt-4 pt-3 border-t border-zinc-800/60">
+                  <p className="text-zinc-500 text-xs font-medium mb-2">
                     Selected targets
                   </p>
                   <ul className="space-y-1.5 text-xs">
                     {orderedTargets.map((t) => (
                       <li
                         key={t.targetId}
-                        className="flex justify-between gap-2 text-white/90"
+                        className="flex justify-between gap-2 text-zinc-100"
                       >
                         <span className="min-w-0 truncate">{t.targetName}</span>
-                        <span className="shrink-0 tabular-nums text-white/60">
+                        <span className="shrink-0 tabular-nums text-zinc-400">
                           {t.plannedWindowStart} – {t.plannedWindowEnd}
                         </span>
                       </li>
@@ -1484,7 +1512,7 @@ export default function MissionWizardPage() {
                   </ul>
                 </div>
               )}
-              <p className="mt-4 text-xs text-white/50">
+              <p className="mt-4 text-xs text-zinc-500">
                 Editable during planning. Locked during capture.
               </p>
             </div>
@@ -1505,7 +1533,7 @@ export default function MissionWizardPage() {
             className="mission-panel w-full max-w-md p-6"
           >
             <h3 className="text-lg font-medium">Cancel Mission?</h3>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-zinc-400">
               Your current mission setup will be discarded.
             </p>
             <div className="mt-6 flex justify-between gap-2">

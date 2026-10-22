@@ -1,6 +1,6 @@
 # Field Conditions + Observing Log Plan
 
-**Status:** Implementing  
+**Status:** Implemented (local verified 2026-10-18; hosted paused — see Local vs hosted)  
 **Preserve:** Auth/RLS, locations/gear, night schedule, mission phases, actual capture fields, Save Log → Sessions, Demo labels for unwired AI/equipment.
 
 ## Locked defaults
@@ -23,5 +23,5 @@
 
 ## Local vs hosted
 
-- Local: `supabase migration up --local`
-- Hosted: apply `mission_events` before claiming prod durability
+- Local: all migrations through `20261011210000_mission_events_checklist` applied (`supabase migration list --local`).
+- Hosted project `iyabzjyyfzdodmedpgfx` (Parallax) is **paused**. Unpause in the dashboard, then `supabase link --project-ref iyabzjyyfzdodmedpgfx` and `supabase db push` before claiming prod durability.

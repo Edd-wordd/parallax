@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MissionTimeline } from "@/components/MissionTimeline";
+import { SessionClock } from "@/components/missions/SessionClock";
 import { Button } from "@/components/ui/button";
 import { ObservingTimeline } from "@/components/missions/ObservingTimeline";
 import { MissionConditionsPanel } from "@/components/missions/MissionConditionsPanel";
@@ -17,6 +17,7 @@ import {
 import type { ConditionLogRow, MissionEventRow } from "@/lib/schemas";
 import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
 import { derivedFrames } from "@/lib/capture/worksheetMath";
+import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
 
 const PANEL_STYLE = "mission-panel";
 
@@ -215,14 +216,21 @@ export function LoggingView({
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 flex flex-col opacity-50 pointer-events-none select-none">
-            <MissionTimeline
+          <div className="flex min-h-0 flex-1 flex-col">
+            <SessionClock
+              sessionStart={
+                sessionWindowFromMission({
+                  dateTime: mission.dateTime,
+                  sessionEndAt: mission.sessionEndAt,
+                }).start
+              }
+              sessionEnd={
+                sessionWindowFromMission({
+                  dateTime: mission.dateTime,
+                  sessionEndAt: mission.sessionEndAt,
+                }).end
+              }
               targets={mission.targets}
-              missionDate={mission.dateTime}
-              hero
-              selectedTargetId={null}
-              currentTargetId={undefined}
-              fieldMode={false}
             />
           </div>
         </section>

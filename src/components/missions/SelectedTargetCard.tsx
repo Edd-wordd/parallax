@@ -15,6 +15,8 @@ interface SelectedTargetCardProps {
   onMakePrimary?: (target: MissionTarget) => void;
   onRemove?: (target: MissionTarget) => void;
   isPrimary?: boolean;
+  /** Render inside an open queue row instead of a side panel. */
+  embedded?: boolean;
 }
 
 export function SelectedTargetCard({
@@ -22,8 +24,10 @@ export function SelectedTargetCard({
   onMakePrimary,
   onRemove,
   isPrimary = false,
+  embedded = false,
 }: SelectedTargetCardProps) {
   if (!target) {
+    if (embedded) return null;
     return (
       <div className="mission-panel p-4 h-full min-h-[200px] flex flex-col items-center justify-center text-center">
         <Target className="h-10 w-10 text-zinc-600 mb-3" />
@@ -35,8 +39,15 @@ export function SelectedTargetCard({
   const guidance = getMockMissionGuidance(target.targetId);
 
   return (
-    <div className="mission-panel p-4 flex flex-col h-full min-h-[200px]">
-      <h3 className="mission-section-label mb-3">Selected Target</h3>
+    <div
+      className={cn(
+        "flex flex-col",
+        embedded ? "pt-1" : "mission-panel p-4 h-full min-h-[200px]",
+      )}
+    >
+      {!embedded && (
+        <h3 className="mission-section-label mb-3">Selected Target</h3>
+      )}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <p className="font-medium text-zinc-100">{target.targetName}</p>

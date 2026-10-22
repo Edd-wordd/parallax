@@ -1,6 +1,6 @@
 "use client";
 
-import { MissionTimeline } from "@/components/MissionTimeline";
+import { SessionClock } from "@/components/missions/SessionClock";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
@@ -11,10 +11,7 @@ import { SessionObservingLog } from "@/components/missions/SessionObservingLog";
 import type { Mission, MissionTarget } from "@/lib/types";
 import type { MissionEventRow } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
-import {
-  hasTimedSchedule,
-  targetScheduleLabel,
-} from "@/lib/schedule/display";
+import { targetScheduleLabel } from "@/lib/schedule/display";
 import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
 import { DEFAULT_TRANSITION_MINUTES } from "@/lib/schedule/types";
 import { Moon, Plus, Target, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
@@ -54,7 +51,7 @@ export interface PlanningViewProps {
 export function PlanningView({
   mission,
   isReadOnlySession,
-  isFieldMode,
+  isFieldMode: _isFieldMode,
   currentTarget,
   currentTargetId,
   selectedTarget,
@@ -94,7 +91,7 @@ export function PlanningView({
 
   return (
     <>
-      {/* Simulate Night (Demo) */}
+      {/* Simulate Night — scrubs the saved session window and schedule */}
       <div className="flex justify-end">
         <Button
           variant="secondary"
@@ -108,21 +105,23 @@ export function PlanningView({
         </Button>
       </div>
 
-      {/* Main row: Observing log + Timeline with Go/No-Go */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
+      {/* Observing log + session clock */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,34%)_minmax(0,1fr)]">
+        <div className={cn(PANEL_STYLE, "flex min-h-[22rem] flex-col gap-2 p-4")}>
           <SessionObservingLog
             events={missionEvents}
             isReadOnly={isReadOnlySession}
             onAddNote={onAddNote}
             onQuickEvent={onQuickEvent}
+            compact={false}
+            className="min-h-0 flex-1"
           />
         </div>
 
         <section
           className={cn(
             PANEL_STYLE,
-            "p-4 min-h-0 flex flex-col overflow-hidden",
+            "flex min-h-0 flex-col overflow-hidden p-4",
           )}
         >
           <GoNoGoBanner
@@ -132,50 +131,22 @@ export function PlanningView({
             dateTime={mission.dateTime}
             sessionEndAt={mission.sessionEndAt}
           />
-
-          <div className="flex items-center justify-between mb-3 text-sm">
-            <h2 className="mission-section-label mb-0">Mission Timeline</h2>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-              {currentTarget && (
-                <>
-                  <span className="font-medium text-zinc-100">
-                    {currentTarget.targetName}
-                  </span>
-                  <span>Phase: planning</span>
-                  <span>
-                    Recipe: {currentTarget.subLength ?? 60}s / ISO 800 /{" "}
-                    {currentTarget.frames ?? 60} subs
-                  </span>
-                  <span className="tabular-nums">
-                    {hasTimedSchedule(currentTarget) ? "Scheduled" : "Window"}:{" "}
-                    {targetScheduleLabel(currentTarget)}
-                  </span>
-                </>
-              )}
-              {nextTargetLabel && (
-                <span className="text-cyan-300 tabular-nums">
-                  {nextTargetLabel}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-1 min-h-0 flex flex-col">
-            <MissionTimeline
-              targets={mission.targets}
-              missionDate={mission.dateTime}
-              hero
-              selectedTargetId={selectedTargetId ?? currentTargetId ?? null}
-              currentTargetId={currentTargetId ?? undefined}
-              fieldMode={isFieldMode}
-            />
-          </div>
+          <h2 className="mission-section-label mb-3">Session clock</h2>
+          <SessionClock
+            sessionStart={sessionWindow.start}
+            sessionEnd={sessionWindow.end}
+            targets={mission.targets}
+            selectedTargetId={selectedTargetId ?? currentTargetId}
+          />
+          {nextTargetLabel && (
+            <p className="mt-3 text-xs tabular-nums text-cyan-300">
+              {nextTargetLabel}
+            </p>
+          )}
         </section>
       </div>
 
-      {/* Target Queue + Selected Target */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className={cn(PANEL_STYLE, "p-4")}>
+      <div className={cn(PANEL_STYLE, "p-4")}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="mission-section-label">Target Queue</h2>
             {canEditTargets && (
@@ -210,9 +181,9 @@ export function PlanningView({
           ) : (
             <div className="space-y-2">
               {mission.targets.map((t, idx) => {
-                const isSelected =
-                  selectedTargetId === t.targetId || currentTargetId === t.targetId;
-                const isActiveTarget = currentTargetId === t.targetId;
+                const openId = selectedTargetId ?? currentTargetId;
+                const isOpen = openId === t.targetId;
+                const isSelected = isOpen;
                 const seqLabel =
                   t.roleLabel ??
                   (t.isFallback ? "Fallback" : `SEQ ${t.sequenceIndex ?? idx + 1}`);
@@ -221,13 +192,14 @@ export function PlanningView({
                     key={t.targetId}
                     onClick={() => (canEditTargets ? onTargetQueueClick(t) : undefined)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-colors",
+                      "rounded-lg border px-3 py-2.5 transition-colors",
                       isSelected
                         ? "border-violet-500/50 bg-violet-500/10"
                         : "border-white/10 hover:border-white/20 bg-white/[0.02]",
                       canEditTargets ? "cursor-pointer" : "cursor-default",
                     )}
                   >
+                  <div className="flex items-center gap-2">
                     <div
                       className="flex items-center gap-1 shrink-0"
                       onClick={(e) => e.stopPropagation()}
@@ -314,23 +286,31 @@ export function PlanningView({
                     </label>
                     {isSelected && (
                       <span className="text-[10px] shrink-0 font-medium uppercase text-violet-400">
-                        {currentTargetId === t.targetId ? "Current Focus" : "Selected"}
+                        {currentTargetId === t.targetId ? "Current focus" : "Selected"}
                       </span>
                     )}
+                  </div>
+                  {isOpen && (
+                    <div className="mt-2 border-t border-white/10 pt-2">
+                      <SelectedTargetCard
+                        embedded
+                        target={t}
+                        onMakePrimary={canEditTargets ? onMakePrimary : undefined}
+                        onRemove={
+                          canEditTargets
+                            ? (target) => onRemoveTarget(target.targetId)
+                            : undefined
+                        }
+                        isPrimary={currentTargetId === t.targetId}
+                      />
+                    </div>
+                  )}
                   </div>
                 );
               })}
             </div>
           )}
         </div>
-
-        <SelectedTargetCard
-          target={selectedTarget}
-          onMakePrimary={onMakePrimary}
-          onRemove={(t) => onRemoveTarget(t.targetId)}
-          isPrimary={currentTargetId === selectedTarget?.targetId}
-        />
-      </div>
 
       {onPatchTarget && mission.targets.length > 0 && (
         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>

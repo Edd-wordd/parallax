@@ -8,7 +8,7 @@ import type { LiveEvent } from "@/lib/mock/skyIntelligence";
 interface LiveSkyMonitorCardProps {
   cloudCover: number;
   starsDetected: number | null;
-  skyBrightness: number;
+  skyBrightness: string;
   missionConfidence: number;
   status: string;
   events: LiveEvent[];
@@ -51,7 +51,7 @@ export function LiveSkyMonitorCard({
             value={starsDetected ?? "—"}
             variant={starsDetected != null ? "success" : "muted"}
           />
-          <SkyMetricPill label="Sky brightness" value={`${skyBrightness} mag/arcsec²`} />
+          <SkyMetricPill label="Sky brightness" value={skyBrightness} />
           <SkyMetricPill
             label="Confidence"
             value={`${missionConfidence}%`}

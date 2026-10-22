@@ -10,8 +10,11 @@ export default function NewSessionRedirectPage() {
     router.replace("/sessions");
   }, [router]);
   return (
-    <p className="text-sm text-zinc-500 py-10 text-center">
-      Sessions are created by saving a mission log. Redirecting…
-    </p>
+    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-10 text-center">
+      <p className="text-sm text-zinc-400">
+        Sessions are created by saving a mission log.
+      </p>
+      <p className="mt-1 text-[11px] text-zinc-500">Redirecting…</p>
+    </div>
   );
 }

@@ -10,7 +10,13 @@ import {
   isRecommendEligible,
 } from "@/lib/catalog";
 import { CatalogObjectImage } from "@/components/catalog/CatalogObjectImage";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { AltitudeChart } from "@/components/AltitudeChart";
@@ -266,7 +272,16 @@ export default function TargetDetailPage() {
       className="space-y-4"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="flex min-w-0 gap-3">
+          <div className="w-36 shrink-0 overflow-hidden rounded-md border border-zinc-800/60">
+            <CatalogObjectImage
+              catalogId={catalog.id}
+              targetType={catalog.type}
+              className="h-24 w-full object-cover"
+              showCredit
+            />
+          </div>
+          <div className="min-w-0">
           <h1 className="page-heading">{catalog.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-zinc-400">
             <span className="capitalize">
@@ -309,6 +324,12 @@ export default function TargetDetailPage() {
                 : "No Supabase site selected — visibility not calculated"
               : "Loading site / rig…"}
           </p>
+            {displayImage?.matchMethod === "catalog_radec_dss2" && (
+              <p className="mt-1 text-[11px] text-zinc-600">
+                Survey cutout on catalog coordinates.
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -324,21 +345,6 @@ export default function TargetDetailPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-800/60">
-        <CatalogObjectImage
-          catalogId={catalog.id}
-          targetType={catalog.type}
-          className="aspect-video w-full"
-          showCredit
-        />
-        {displayImage?.matchMethod === "catalog_radec_dss2" && (
-          <p className="border-t border-zinc-800/60 px-3 py-2 text-[11px] text-zinc-600">
-            Survey cutout centered on this object&apos;s catalog coordinates
-            (not a free-text photo search).
-          </p>
-        )}
-      </div>
-
       {!hasSite ? (
         <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
           <p>Select a location with coordinates to calculate visibility.</p>
@@ -352,11 +358,11 @@ export default function TargetDetailPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-medium">Altitude this session</h2>
-              <p className="text-[11px] text-zinc-600">
+              <CardTitle>Altitude this session</CardTitle>
+              <CardDescription>
                 Calculated for your site ·{" "}
                 {formatLocalHm(session.start)}–{formatLocalHm(session.end)}
-              </p>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <AltitudeChart data={altitudeData} />
@@ -366,10 +372,10 @@ export default function TargetDetailPage() {
           <div className="space-y-4">
             <Card>
               <CardContent className="pt-4">
-                <div className="text-xs uppercase tracking-wider text-zinc-500">
+                <div className="dash-section-title text-zinc-500">
                   Usable imaging window
                 </div>
-                <div className="mt-1 font-mono text-lg tabular-nums">
+                <div className="mt-1 font-mono text-lg tabular-nums text-zinc-100">
                   {windowLabel ?? "Unavailable"}
                 </div>
                 {vis?.unavailableReason && (
@@ -381,10 +387,10 @@ export default function TargetDetailPage() {
             </Card>
             <Card>
               <CardContent className="pt-4">
-                <div className="text-xs uppercase tracking-wider text-zinc-500">
+                <div className="dash-section-title text-zinc-500">
                   Peak altitude
                 </div>
-                <div className="mt-1 font-mono text-lg tabular-nums">
+                <div className="mt-1 font-mono text-lg tabular-nums text-zinc-100">
                   {vis?.peakAltitudeDeg != null
                     ? `${vis.peakAltitudeDeg.toFixed(0)}°`
                     : "—"}
@@ -396,10 +402,10 @@ export default function TargetDetailPage() {
             </Card>
             <Card>
               <CardContent className="pt-4">
-                <div className="text-xs uppercase tracking-wider text-zinc-500">
+                <div className="dash-section-title text-zinc-500">
                   Moon separation (min in window)
                 </div>
-                <div className="mt-1 font-mono text-lg tabular-nums">
+                <div className="mt-1 font-mono text-lg tabular-nums text-zinc-100">
                   {vis?.minMoonSeparationDeg != null
                     ? `${vis.minMoonSeparationDeg.toFixed(0)}°`
                     : "—"}
@@ -415,7 +421,7 @@ export default function TargetDetailPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-medium">Rig framing</h2>
+          <CardTitle>Rig framing</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {framing ? (
@@ -450,10 +456,10 @@ export default function TargetDetailPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-medium">Session summary</h2>
-          <p className="text-[11px] text-zinc-600">
+          <CardTitle>Session summary</CardTitle>
+          <CardDescription>
             From Astronomy Engine + your site constraints — not AI copy.
-          </p>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-zinc-400">

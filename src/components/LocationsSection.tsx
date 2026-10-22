@@ -20,6 +20,11 @@ import {
   COMMON_SITE_TIMEZONES,
   isValidIanaTimeZone,
 } from "@/lib/time/commonTimezones";
+import {
+  darkerSitesNearby,
+  formatDistance,
+  type DarkSite,
+} from "@/lib/locations/darkSites";
 
 /** Dispatched so ContextChipsBar reloads site options after Settings changes. */
 export const LOCATIONS_CHANGED_EVENT = "parallax:locations-changed";
@@ -69,6 +74,148 @@ function notifyLocationsChanged() {
   }
 }
 
+function DarkerSitesModal({
+  active,
+  units,
+  radiusKm,
+  onRadiusKm,
+  pendingSiteId,
+  addingSiteId,
+  onAskAdd,
+  onCancelAdd,
+  onConfirmAdd,
+  onClose,
+}: {
+  active: Location | null;
+  units: "metric" | "imperial";
+  radiusKm: number;
+  onRadiusKm: (km: number) => void;
+  pendingSiteId: string | null;
+  addingSiteId: string | null;
+  onAskAdd: (id: string) => void;
+  onCancelAdd: () => void;
+  onConfirmAdd: (site: DarkSite) => void;
+  onClose: () => void;
+}) {
+  const radiusUnit = units === "imperial" ? "mi" : "km";
+  const radiusDisplay =
+    units === "imperial"
+      ? Math.round(radiusKm / 1.609344)
+      : Math.round(radiusKm);
+  const hasOrigin =
+    active != null &&
+    Number.isFinite(active.lat) &&
+    Number.isFinite(active.lon) &&
+    Number.isFinite(active.bortle);
+  const nearby = hasOrigin
+    ? darkerSitesNearby({
+        lat: active.lat,
+        lon: active.lon,
+        originBortle: active.bortle,
+        radiusKm,
+      })
+    : [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-900 p-6"
+      >
+        <h3 className="text-lg font-medium">Darker sites nearby</h3>
+        <p className="mt-1 text-xs text-zinc-500">
+          Catalog places with a darker Bortle class than{" "}
+          {active ? active.name : "your active site"}. Distance is great-circle.
+          Drive time is not estimated.
+        </p>
+        <label className="mt-4 flex items-center gap-2 text-xs text-zinc-400">
+          Search radius
+          <Input
+            type="number"
+            min={50}
+            max={units === "imperial" ? 2000 : 3000}
+            value={radiusDisplay}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (!Number.isFinite(n) || n <= 0) return;
+              onRadiusKm(units === "imperial" ? n * 1.609344 : n);
+            }}
+            className="h-8 w-24"
+          />
+          <span>{radiusUnit}</span>
+        </label>
+        <div className="mt-4 space-y-2 text-sm">
+          {!hasOrigin ? (
+            <p className="text-xs text-zinc-500">
+              Set an active location with coordinates and a Bortle class first.
+            </p>
+          ) : nearby.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              No catalog sites darker than Bortle {active.bortle} within{" "}
+              {radiusDisplay} {radiusUnit}.
+            </p>
+          ) : (
+            nearby.map((site) => (
+              <div
+                key={site.id}
+                className="rounded border border-zinc-700 p-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-zinc-100">{site.name}</p>
+                    <p className="text-[11px] text-zinc-500">
+                      {formatDistance(site.distanceKm, units)} · Bortle{" "}
+                      {site.bortle}
+                    </p>
+                  </div>
+                  {pendingSiteId === site.id ? (
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        size="sm"
+                        disabled={addingSiteId === site.id}
+                        onClick={() => onConfirmAdd(site)}
+                      >
+                        {addingSiteId === site.id ? "Adding…" : "Confirm"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={onCancelAdd}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => onAskAdd(site.id)}
+                    >
+                      Add
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+                  {site.source}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+        <Button className="mt-4" onClick={onClose}>
+          Close
+        </Button>
+      </motion.div>
+    </div>
+  );
+}
+
 function geolocationErrorMessage(err: GeolocationPositionError | Error): string {
   if ("code" in err) {
     if (err.code === err.PERMISSION_DENIED) {
@@ -88,10 +235,14 @@ export function LocationsSection() {
   const { toast } = useToast();
   const activeLocationId = useAppStore((s) => s.activeLocationId);
   const setActiveLocation = useAppStore((s) => s.setActiveLocation);
+  const units = useAppStore((s) => s.units);
   const [locations, setLocations] = useState<Location[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [darkerSitesOpen, setDarkerSitesOpen] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(800);
+  const [pendingSiteId, setPendingSiteId] = useState<string | null>(null);
+  const [addingSiteId, setAddingSiteId] = useState<string | null>(null);
   const [form, setForm] = useState<LocationFormState>(initialLocationForm);
   const [geolocating, setGeolocating] = useState(false);
   const [geoAttempted, setGeoAttempted] = useState(false);
@@ -286,7 +437,7 @@ export function LocationsSection() {
                 size="sm"
                 onClick={() => setDarkerSitesOpen(true)}
               >
-                Find darker sites nearby (Demo)
+                Find darker sites nearby
               </Button>
               <Button size="sm" onClick={openAdd}>
                 Add location
@@ -535,41 +686,45 @@ export function LocationsSection() {
       )}
 
       {darkerSitesOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setDarkerSitesOpen(false)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            onClick={(e) => e.stopPropagation()}
-            className="rounded-lg border border-zinc-700 bg-zinc-900 p-6 w-full max-w-lg"
-          >
-            <h3 className="text-lg font-medium mb-4">
-              Darker sites nearby (Demo)
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between rounded border border-zinc-700 p-2">
-                <span>Pinnacles Dark Site</span>
-                <span className="text-cyan-400">45 min drive · Bortle 4</span>
-              </div>
-              <div className="flex justify-between rounded border border-zinc-700 p-2">
-                <span>Mount Diablo</span>
-                <span className="text-cyan-400">1h 10m · Bortle 5</span>
-              </div>
-              <div className="flex justify-between rounded border border-zinc-700 p-2">
-                <span>Death Valley</span>
-                <span className="text-cyan-400">8h · Bortle 1</span>
-              </div>
-            </div>
-            <Button
-              className="mt-4"
-              onClick={() => setDarkerSitesOpen(false)}
-            >
-              Close
-            </Button>
-          </motion.div>
-        </div>
+        <DarkerSitesModal
+          active={locations.find((l) => l.id === activeLocationId) ?? null}
+          units={units}
+          radiusKm={radiusKm}
+          onRadiusKm={setRadiusKm}
+          pendingSiteId={pendingSiteId}
+          addingSiteId={addingSiteId}
+          onAskAdd={setPendingSiteId}
+          onCancelAdd={() => setPendingSiteId(null)}
+          onConfirmAdd={(site) => {
+            void (async () => {
+              setAddingSiteId(site.id);
+              try {
+                const row = await createLocation(getSupabaseBrowserClient(), {
+                  name: site.name,
+                  lat: site.lat,
+                  lon: site.lon,
+                  bortle: site.bortle,
+                  notes: `${site.source} Catalog Bortle ${site.bortle}.`,
+                });
+                setLocations((prev) => [...prev, rowToLocation(row)]);
+                notifyLocationsChanged();
+                setPendingSiteId(null);
+                toast(`${site.name} added`, "success");
+              } catch (e) {
+                toast(
+                  e instanceof Error ? e.message : "Failed to add location",
+                  "error",
+                );
+              } finally {
+                setAddingSiteId(null);
+              }
+            })();
+          }}
+          onClose={() => {
+            setDarkerSitesOpen(false);
+            setPendingSiteId(null);
+          }}
+        />
       )}
     </>
   );

@@ -1,0 +1,778 @@
+[    7111ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[    7848ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[    8498ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[   10917ms] [LOG] [Fast Refresh] done in 2688ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  837785ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  912348ms] [LOG] [Fast Refresh] done in 74663ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  928426ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  929256ms] [LOG] [Fast Refresh] done in 947ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  951724ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  952340ms] [LOG] [Fast Refresh] done in 720ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  952744ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  957694ms] [LOG] [Fast Refresh] done in 5050ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  963180ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[  966450ms] [LOG] [Fast Refresh] done in 3373ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1017325ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1017540ms] [LOG] [Fast Refresh] done in 316ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1032254ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1036380ms] [LOG] [Fast Refresh] done in 4228ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1036562ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1037064ms] [LOG] [Fast Refresh] done in 603ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1069161ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1069436ms] [LOG] [Fast Refresh] done in 379ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1073848ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1073886ms] [LOG] [Fast Refresh] done in 138ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1079079ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1080081ms] [LOG] [Fast Refresh] done in 1102ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1086800ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1087459ms] [LOG] [Fast Refresh] done in 790ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1125157ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1126311ms] [LOG] [Fast Refresh] done in 1255ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1126605ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1127075ms] [LOG] [Fast Refresh] done in 571ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1934462ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1936313ms] [LOG] [Fast Refresh] done in 1958ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1936484ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1937197ms] [LOG] [Fast Refresh] done in 815ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2389961ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2390014ms] [LOG] [Fast Refresh] done in 157ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2393486ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2393536ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2408182ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2418066ms] [LOG] [Fast Refresh] done in 9985ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2418293ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2418414ms] [LOG] [Fast Refresh] done in 222ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2421822ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2421944ms] [LOG] [Fast Refresh] done in 224ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2422054ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2422606ms] [LOG] [Fast Refresh] done in 652ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2426997ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2427001ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2435708ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2440003ms] [LOG] [Fast Refresh] done in 4396ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2440159ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2440187ms] [LOG] [Fast Refresh] done in 128ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2441092ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2441124ms] [LOG] [Fast Refresh] done in 133ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2457638ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 2457903ms] [LOG] [Fast Refresh] done in 369ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3688869ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3691167ms] [LOG] [Fast Refresh] done in 2402ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3693979ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3696082ms] [LOG] [Fast Refresh] done in 2130ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3718140ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3718740ms] [LOG] [Fast Refresh] done in 689ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3721856ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3722356ms] [LOG] [Fast Refresh] done in 581ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3733949ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3734647ms] [LOG] [Fast Refresh] done in 773ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3749733ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3750513ms] [LOG] [Fast Refresh] done in 857ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3771141ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3771691ms] [LOG] [Fast Refresh] done in 634ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3788425ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3788514ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3805915ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3806481ms] [LOG] [Fast Refresh] done in 654ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3831839ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3831997ms] [ERROR] ./src/components/missions/views/PlanningView.tsx:304:9
+Parsing ecmascript source code failed
+  302 |           isPrimary={currentTargetId === selectedTarget?.targetId}
+  303 |         />
+> 304 |       </div>
+      |         ^^^
+  305 |
+  306 |       {onPatchTarget && mission.targets.length > 0 && (
+  307 |         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+
+Expected '>', got 'ident'
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/PlanningView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/PlanningView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3847957ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3847973ms] [ERROR] ./src/components/missions/views/PlanningView.tsx:304:9
+Parsing ecmascript source code failed
+  302 |           isPrimary={currentTargetId === selectedTarget?.targetId}
+  303 |         />
+> 304 |       </div>
+      |         ^^^
+  305 |
+  306 |       {onPatchTarget && mission.targets.length > 0 && (
+  307 |         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+
+Expected '>', got 'ident'
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/PlanningView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/PlanningView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3867510ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3867620ms] [ERROR] ./src/components/missions/views/PlanningView.tsx:297:9
+Parsing ecmascript source code failed
+  295 |             </div>
+  296 |           )}
+> 297 |         </div>
+      |         ^
+  298 |
+  299 |         <SelectedTargetCard
+  300 |           target={selectedTarget}
+
+Expected a semicolon
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/PlanningView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/PlanningView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3867621ms] [ERROR] ./src/components/missions/views/PlanningView.tsx:294:17
+Parsing ecmascript source code failed
+  292 |                   </div>
+  293 |                 );
+> 294 |               })}
+      |                 ^
+  295 |             </div>
+  296 |           )}
+  297 |         </div>
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/PlanningView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/PlanningView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3867621ms] [ERROR] ./src/components/missions/views/PlanningView.tsx:297:10
+Parsing ecmascript source code failed
+  295 |             </div>
+  296 |           )}
+> 297 |         </div>
+      |          ^^^^^
+  298 |
+  299 |         <SelectedTargetCard
+  300 |           target={selectedTarget}
+
+Unterminated regexp literal
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/PlanningView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/PlanningView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3884742ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3884843ms] [LOG] [Fast Refresh] done in 188ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3885068ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3885189ms] [LOG] [Fast Refresh] done in 222ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3939503ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3942435ms] [LOG] [Fast Refresh] done in 3023ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3972550ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3972599ms] [LOG] [Fast Refresh] done in 129ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3990839ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3990894ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4008504ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4008715ms] [ERROR] ./src/components/missions/views/CapturingView.tsx:349:7
+Parsing ecmascript source code failed
+  347 |       </div>
+  348 |
+> 349 |       {mission.targets.length > 0 && (
+      |       ^
+  350 |         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+  351 |           <CaptureWorksheet
+  352 |             targets={mission.targets}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/CapturingView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/CapturingView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 4052906ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4053986ms] [ERROR] ./src/components/missions/views/CapturingView.tsx:349:7
+Parsing ecmascript source code failed
+  347 |       </div>
+  348 |
+> 349 |       {mission.targets.length > 0 && (
+      |       ^
+  350 |         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+  351 |           <CaptureWorksheet
+  352 |             targets={mission.targets}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/CapturingView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/CapturingView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 4054005ms] [ERROR] ./src/components/missions/views/CapturingView.tsx:349:7
+Parsing ecmascript source code failed
+  347 |       </div>
+  348 |
+> 349 |       {mission.targets.length > 0 && (
+      |       ^
+  350 |         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
+  351 |           <CaptureWorksheet
+  352 |             targets={mission.targets}
+
+Expected ',', got '{'
+
+Import traces:
+  Client Component Browser:
+    ./src/components/missions/views/CapturingView.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/missions/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/missions/views/CapturingView.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/missions/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 4054023ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4054410ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4054437ms] [LOG] [Fast Refresh] done in 127ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4128191ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4128328ms] [LOG] [Fast Refresh] done in 217ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4181537ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4181789ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4203392ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4203411ms] [LOG] [Fast Refresh] done in 92ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4358828ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4359265ms] [LOG] [Fast Refresh] done in 537ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4360463ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4360550ms] [LOG] [Fast Refresh] done in 167ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4363390ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4364939ms] [LOG] [Fast Refresh] done in 1645ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4398101ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4398314ms] [LOG] [Fast Refresh] done in 293ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4534921ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4536499ms] [LOG] [Fast Refresh] done in 1651ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4536946ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4538310ms] [LOG] [Fast Refresh] done in 1439ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4538801ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4540848ms] [LOG] [Fast Refresh] done in 2147ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4543399ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4545233ms] [LOG] [Fast Refresh] done in 1902ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4546052ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4547284ms] [LOG] [Fast Refresh] done in 1332ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4558000ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4558114ms] [LOG] [Fast Refresh] done in 216ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4582556ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4582671ms] [LOG] [Fast Refresh] done in 177ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4582778ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4582934ms] [LOG] [Fast Refresh] done in 257ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4583681ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4583798ms] [LOG] [Fast Refresh] done in 219ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4616416ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4617504ms] [ERROR] ./src/lib/sky/visibility.ts:660:6
+Parsing ecmascript source code failed
+  658 |       })),
+  659 |       emptyReason: "no_astronomical_darkness",
+> 660 |     };
+      |      ^
+  661 |   }
+  662 |
+  663 |   const targets = input.targets.map((t) =>
+
+Expected ',', got ';'
+
+Import traces:
+  Client Component Browser:
+    ./src/lib/sky/visibility.ts [Client Component Browser]
+    ./src/components/dashboard/DashboardSkyIntelligenceCard.tsx [Client Component Browser]
+    ./app/(app)/dashboard/page.tsx [Client Component Browser]
+    ./app/(app)/dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/lib/sky/visibility.ts [Client Component SSR]
+    ./src/components/dashboard/DashboardSkyIntelligenceCard.tsx [Client Component SSR]
+    ./app/(app)/dashboard/page.tsx [Client Component SSR]
+    ./app/(app)/dashboard/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 4647567ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4647756ms] [LOG] [Fast Refresh] done in 288ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4675360ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4675412ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4707210ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4707674ms] [LOG] [Fast Refresh] done in 564ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4755874ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4756802ms] [LOG] [Fast Refresh] done in 1028ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4781398ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4782594ms] [LOG] [Fast Refresh] done in 1297ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4813396ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4813456ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4872121ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4872220ms] [LOG] [Fast Refresh] done in 201ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4895798ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4895875ms] [LOG] [Fast Refresh] done in 177ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4917400ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 4917547ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5003707ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5010145ms] [LOG] [Fast Refresh] done in 6443ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5010654ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5010872ms] [LOG] [Fast Refresh] done in 318ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5041208ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5041445ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5064928ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5065105ms] [LOG] [Fast Refresh] done in 277ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5087353ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5087411ms] [LOG] [Fast Refresh] done in 159ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5106441ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5106445ms] [LOG] [Fast Refresh] done in 104ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5216320ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5218569ms] [LOG] [Fast Refresh] done in 2334ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5219112ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5219524ms] [LOG] [Fast Refresh] done in 512ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5220060ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5224516ms] [LOG] [Fast Refresh] done in 4556ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5258318ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5258413ms] [LOG] [Fast Refresh] done in 199ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5263636ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5263888ms] [ERROR] ./app/(app)/targets/page.tsx:189:7
+Parsing ecmascript source code failed
+  187 |         </>
+  188 |       )}
+> 189 |     </motion.div>
+      |       ^^^^^^^^^^
+  190 |   );
+  191 | }
+  192 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/targets/page.tsx [Client Component Browser]
+    ./app/(app)/targets/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/targets/page.tsx [Client Component SSR]
+    ./app/(app)/targets/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5263889ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5263889ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5264004ms] [ERROR] ./app/(app)/targets/page.tsx:189:7
+Parsing ecmascript source code failed
+  187 |         </>
+  188 |       )}
+> 189 |     </motion.div>
+      |       ^^^^^^^^^^
+  190 |   );
+  191 | }
+  192 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/targets/page.tsx [Client Component Browser]
+    ./app/(app)/targets/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/targets/page.tsx [Client Component SSR]
+    ./app/(app)/targets/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5264005ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5264005ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5264096ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5292025ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5292137ms] [ERROR] ./app/(app)/targets/page.tsx:189:7
+Parsing ecmascript source code failed
+  187 |         </>
+  188 |       )}
+> 189 |     </motion.div>
+      |       ^^^^^^^^^^
+  190 |   );
+  191 | }
+  192 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/targets/page.tsx [Client Component Browser]
+    ./app/(app)/targets/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/targets/page.tsx [Client Component SSR]
+    ./app/(app)/targets/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292137ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292138ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292282ms] [ERROR] ./app/(app)/targets/page.tsx:189:7
+Parsing ecmascript source code failed
+  187 |         </>
+  188 |       )}
+> 189 |     </motion.div>
+      |       ^^^^^^^^^^
+  190 |   );
+  191 | }
+  192 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/targets/page.tsx [Client Component Browser]
+    ./app/(app)/targets/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/targets/page.tsx [Client Component SSR]
+    ./app/(app)/targets/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292284ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292285ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5292325ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5298336ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5298392ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5298392ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5298568ms] [ERROR] ./app/(app)/insights/page.tsx:455:7
+Parsing ecmascript source code failed
+  453 |         </>
+  454 |       )}
+> 455 |     </motion.div>
+      |       ^^^^^^^^^^
+  456 |   );
+  457 | }
+  458 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/insights/page.tsx [Client Component Browser]
+    ./app/(app)/insights/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/insights/page.tsx [Client Component SSR]
+    ./app/(app)/insights/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5298568ms] [ERROR] ./app/(app)/missions/page.tsx:362:7
+Parsing ecmascript source code failed
+  360 |         </div>
+  361 |       )}
+> 362 |     </motion.div>
+      |       ^^^^^^^^^^
+  363 |   );
+  364 | }
+  365 |
+
+Expected corresponding JSX closing tag for <div>
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/missions/page.tsx [Client Component Browser]
+    ./app/(app)/missions/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/missions/page.tsx [Client Component SSR]
+    ./app/(app)/missions/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5298628ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5305511ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5305926ms] [LOG] [Fast Refresh] done in 512ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5306065ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5306152ms] [LOG] [Fast Refresh] done in 188ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5306609ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5306698ms] [ERROR] ./app/(app)/missions/page.tsx:353:13
+Parsing ecmascript source code failed
+  351 |                 </div>
+  352 |               </motion.div>
+> 353 |             );
+      |             ^
+  354 |           })}
+  355 |         </div>
+  356 |       )}
+
+Expected '</', got ')' @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5307399ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5307635ms] [ERROR] ./app/(app)/missions/page.tsx:353:13
+Parsing ecmascript source code failed
+  351 |                 </div>
+  352 |               </motion.div>
+> 353 |             );
+      |             ^
+  354 |           })}
+  355 |         </div>
+  356 |       )}
+
+Expected '</', got ')' @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5311177ms] [ERROR] ./app/(app)/missions/page.tsx:353:13
+Parsing ecmascript source code failed
+  351 |                 </div>
+  352 |               </motion.div>
+> 353 |             );
+      |             ^
+  354 |           })}
+  355 |         </div>
+  356 |       )}
+
+Expected '</', got ')' @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5311216ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5340005ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5340051ms] [ERROR] ./app/(app)/missions/page.tsx:357:7
+Parsing ecmascript source code failed
+  355 |         </div>
+  356 |       )}
+> 357 |     </motion.div>
+      |       ^^^^^^^^^^
+  358 |   );
+  359 | }
+  360 |
+
+Expected corresponding JSX closing tag for <div> @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5366783ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5367078ms] [LOG] [Fast Refresh] done in 357ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5429723ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5430423ms] [ERROR] ./app/(app)/targets/[id]/page.tsx:483:1
+Parsing ecmascript source code failed
+  481 |     </motion.div>
+  482 |   );
+> 483 | }
+      | ^
+  484 |
+
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+
+Import traces:
+  Client Component Browser:
+    ./app/(app)/targets/[id]/page.tsx [Client Component Browser]
+    ./app/(app)/targets/[id]/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/(app)/targets/[id]/page.tsx [Client Component SSR]
+    ./app/(app)/targets/[id]/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 5461485ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5461527ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5483901ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5483989ms] [LOG] [Fast Refresh] done in 189ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5526901ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5527220ms] [LOG] [Fast Refresh] done in 339ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5527858ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5528421ms] [LOG] [Fast Refresh] done in 576ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5528720ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5528921ms] [LOG] [Fast Refresh] done in 227ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5595965ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5595966ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5640328ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 5640352ms] [LOG] [Fast Refresh] done in 125ms @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297

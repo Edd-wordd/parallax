@@ -7,7 +7,6 @@ import {
   listDeepSkyCatalog,
 } from "@/lib/catalog/index";
 import type { ExplorerTargetRow } from "@/lib/catalog/types";
-import { generateDeepSkyPlan } from "@/lib/sky/generateDeepSkyPlan";
 import {
   computeSessionAstronomy,
   formatWindowLabel,
@@ -67,15 +66,18 @@ export function buildExplorerVisibility(input: {
     targets: catalog,
   });
 
-  const plan = generateDeepSkyPlan({
-    latDeg: input.latDeg,
-    lonDeg: input.lonDeg,
-    sessionStart,
-    sessionEnd,
-    constraints: input.constraints,
-    maxTargets: input.maxRecommended ?? 8,
-  });
-  const recommendedIds = new Set(plan.targets.map((t) => t.targetId));
+  const recommendedIds = new Set(
+    astronomy.targets
+      .filter(
+        (t) =>
+          t.recommendedWindow != null &&
+          t.score != null &&
+          t.unavailableReason == null,
+      )
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, input.maxRecommended ?? 8)
+      .map((t) => t.targetId),
+  );
   const byId = new Map(astronomy.targets.map((t) => [t.targetId, t]));
 
   const rows: ExplorerTargetRow[] = catalog.map((cat) => {

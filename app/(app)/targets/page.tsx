@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { TargetGrid } from "@/components/TargetGrid";
 import { TargetFilters } from "@/components/TargetFilters";
 import { useAppStore } from "@/lib/store";
@@ -133,12 +132,7 @@ export default function TargetsPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       <div>
         <h1 className="page-heading">Target Explorer</h1>
         <p className="mt-1 text-xs text-zinc-500">
@@ -192,6 +186,6 @@ export default function TargetsPage() {
           )}
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

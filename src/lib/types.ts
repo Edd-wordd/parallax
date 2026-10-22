@@ -36,6 +36,14 @@ export interface Recommendation {
   score_breakdown?: ScoreComponent[];
 }
 
+export type GearMountClass = "stock" | "custom_diy" | "star_tracker";
+export type GearTracking = "none" | "motorized" | "guided";
+export type GearAccessory =
+  | "focus_mask"
+  | "flattener_coma"
+  | "dew_control"
+  | "filters_owned";
+
 export interface GearProfile {
   id: string;
   name: string;
@@ -51,7 +59,12 @@ export interface GearProfile {
   optics_factor?: number | null;
   pixel_size?: number; // microns
   mount_type: "alt-az" | "equatorial";
+  mount_class?: GearMountClass;
+  tracking?: GearTracking;
   guiding: boolean;
+  camera_cooled?: boolean;
+  accessories?: GearAccessory[];
+  mount_notes?: string | null;
   active?: boolean;
 }
 

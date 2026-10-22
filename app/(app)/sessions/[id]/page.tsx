@@ -184,8 +184,10 @@ export default function SessionDetailPage() {
 
   if (error || !session) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-zinc-400">{error ?? "Session not found"}</p>
+      <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-8 text-center">
+        <p className="text-sm text-rose-200">
+          {error ?? "Session not found"}
+        </p>
         <Link href="/sessions">
           <Button variant="link" className="mt-2">
             Back to sessions

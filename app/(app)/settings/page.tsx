@@ -1,14 +1,24 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAppStore } from "@/lib/store";
 import { GearProfilesSection } from "@/components/GearProfilesSection";
 import { LocationsSection } from "@/components/LocationsSection";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { upsertUserPreferences } from "@/lib/supabase/queries";
+import type { Units } from "@/lib/schemas/userPreferences";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type SettingsTab = "gear" | "locations" | "preferences" | "general";
@@ -19,6 +29,8 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "preferences", label: "Preferences" },
   { id: "general", label: "General" },
 ];
+
+const PREFS_DEBOUNCE_MS = 400;
 
 function DemoBadge() {
   return (
@@ -41,17 +53,99 @@ function tabFromParam(value: string | null): SettingsTab {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("gear");
-  const { minAltitude, moonTolerance, setMinAltitude, setMoonTolerance } = useAppStore();
-  const [units, setUnits] = useState("imperial");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    if (typeof window === "undefined") return "gear";
+    return tabFromParam(new URLSearchParams(window.location.search).get("tab"));
+  });
+  const { userId } = useAuth();
+  const {
+    minAltitude,
+    moonTolerance,
+    units,
+    setMinAltitude,
+    setMoonTolerance,
+    setUnits,
+  } = useAppStore();
   const [telemetry, setTelemetry] = useState(true);
   const [offline, setOffline] = useState(false);
   const [aiMode, setAiMode] = useState("cloud");
+  const [prefsError, setPrefsError] = useState<string | null>(null);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveGenRef = useRef(0);
+
+  const persistPrefs = useCallback(
+    async (next: {
+      units: Units;
+      minAltitude: number;
+      moonTolerance: number;
+    }) => {
+      if (!userId) {
+        setPrefsError("Not saved");
+        return;
+      }
+      const gen = ++saveGenRef.current;
+      setPrefsSaving(true);
+      setPrefsError(null);
+      try {
+        const client = getSupabaseBrowserClient();
+        await upsertUserPreferences(client, userId, {
+          units: next.units,
+          default_min_altitude: next.minAltitude,
+          default_moon_tolerance: next.moonTolerance,
+        });
+        if (gen !== saveGenRef.current) return;
+      } catch {
+        if (gen !== saveGenRef.current) return;
+        setPrefsError("Not saved");
+      } finally {
+        if (gen === saveGenRef.current) setPrefsSaving(false);
+      }
+    },
+    [userId],
+  );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setActiveTab(tabFromParam(params.get("tab")));
-  }, []);
+    return () => {
+      if (!debounceRef.current) return;
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+      const s = useAppStore.getState();
+      // Fire-and-forget so a pending debounce is not lost on navigate.
+      void persistPrefs({
+        units: s.units,
+        minAltitude: s.minAltitude,
+        moonTolerance: s.moonTolerance,
+      });
+    };
+  }, [persistPrefs]);
+
+  const schedulePersist = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const s = useAppStore.getState();
+      void persistPrefs({
+        units: s.units,
+        minAltitude: s.minAltitude,
+        moonTolerance: s.moonTolerance,
+      });
+    }, PREFS_DEBOUNCE_MS);
+  }, [persistPrefs]);
+
+  const onUnitsChange = (value: string) => {
+    setUnits(value as Units);
+    schedulePersist();
+  };
+
+  const onMinAltitudeChange = (value: number) => {
+    setMinAltitude(value);
+    schedulePersist();
+  };
+
+  const onMoonToleranceChange = (value: number) => {
+    setMoonTolerance(value);
+    schedulePersist();
+  };
 
   return (
     <motion.div
@@ -60,10 +154,15 @@ export default function SettingsPage() {
       transition={{ duration: 0.2 }}
       className="space-y-4 max-w-2xl"
     >
-      <h1 className="page-heading">Settings</h1>
+      <div>
+        <h1 className="page-heading">Settings</h1>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          Gear, sites, and planning defaults. Preferences sync to your account.
+        </p>
+      </div>
 
       <div
-        className="inline-flex rounded-lg border border-zinc-700/80 bg-zinc-800/40 p-0.5"
+        className="inline-flex rounded-lg border border-zinc-800/60 bg-zinc-900/50 p-0.5"
         role="tablist"
         aria-label="Settings sections"
       >
@@ -103,26 +202,28 @@ export default function SettingsPage() {
         <div className="pt-2 space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-medium">Preferences</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle>Preferences</CardTitle>
+                {prefsSaving && (
+                  <span className="text-[11px] text-zinc-500">Saving…</span>
+                )}
+              </div>
+              <CardDescription>
+                Saved to Supabase for this account. Used as planning defaults.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-zinc-400">Units</label>
-                  <DemoBadge />
-                </div>
+                <label className="text-sm text-zinc-400">Units</label>
                 <Select
                   options={[
                     { value: "imperial", label: "Imperial" },
                     { value: "metric", label: "Metric" },
                   ]}
                   value={units}
-                  onValueChange={setUnits}
+                  onValueChange={onUnitsChange}
                   className="mt-1 w-40"
                 />
-                <p className="mt-1.5 text-xs text-zinc-500">
-                  UI only — not saved to your account yet
-                </p>
               </div>
               <div>
                 <label className="text-sm text-zinc-400">Default min altitude</label>
@@ -130,7 +231,7 @@ export default function SettingsPage() {
                   min={0}
                   max={60}
                   value={minAltitude}
-                  onValueChange={setMinAltitude}
+                  onValueChange={onMinAltitudeChange}
                   className="mt-1"
                 />
                 <span className="text-xs text-zinc-500">{minAltitude}°</span>
@@ -146,11 +247,16 @@ export default function SettingsPage() {
                   min={0}
                   max={50}
                   value={moonTolerance}
-                  onValueChange={setMoonTolerance}
+                  onValueChange={onMoonToleranceChange}
                   className="mt-1"
                 />
                 <span className="text-xs text-zinc-500">{moonTolerance}°</span>
               </div>
+              {prefsError && (
+                <p className="text-xs text-amber-400" role="alert">
+                  {prefsError}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -161,12 +267,12 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-medium">Prototype controls</h2>
+                <CardTitle>Prototype controls</CardTitle>
                 <DemoBadge />
               </div>
-              <p className="mt-1 text-xs text-zinc-500">
+              <CardDescription>
                 Local UI state only — none of these change app behavior yet.
-              </p>
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div>
@@ -209,7 +315,7 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="text-sm font-medium">Credits &amp; data sources</h2>
+              <CardTitle>Credits &amp; data sources</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-zinc-500 leading-relaxed">
               <p>

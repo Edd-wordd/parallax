@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -65,12 +65,16 @@ export default function SessionsPage() {
     }
     if (dateFrom) {
       list = list.filter(
-        (s) => new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) >= new Date(dateFrom),
+        (s) =>
+          new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) >=
+          new Date(dateFrom),
       );
     }
     if (dateTo) {
       list = list.filter(
-        (s) => new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) <= new Date(dateTo),
+        (s) =>
+          new Date(s.ended_at ?? s.started_at ?? s.created_at ?? 0) <=
+          new Date(dateTo),
       );
     }
     if (scoreFilter === "high") {
@@ -83,21 +87,25 @@ export default function SessionsPage() {
     return list;
   }, [sessions, locationFilter, dateFrom, dateTo, scoreFilter]);
 
+  const dateInputClass =
+    "h-9 rounded-lg border border-zinc-800/60 bg-zinc-900/50 px-3 py-1.5 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30";
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-4"
-    >
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div>
         <h1 className="page-heading">Sessions</h1>
+        <p className="mt-0.5 text-xs text-zinc-500">
+          History from mission Save Log — one row per completed mission log.
+        </p>
       </div>
 
       {error && (
-        <p className="text-sm text-red-300">{error}</p>
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          {error}
+        </p>
       )}
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         <Select
           options={locOptions}
           value={locationFilter}
@@ -108,13 +116,13 @@ export default function SessionsPage() {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+          className={dateInputClass}
         />
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+          className={dateInputClass}
         />
         <Select
           options={[
@@ -130,13 +138,25 @@ export default function SessionsPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading sessions…</p>
+        <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-10 text-center text-sm text-zinc-500">
+          Loading sessions…
+        </div>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-zinc-500">
-          No sessions yet. Complete a mission and save the log to create one.
-        </p>
+        <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-10 text-center">
+          <p className="text-sm text-zinc-400">No sessions yet.</p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Complete a mission and save the log to create one.
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Link href="/missions">
+              <Button variant="secondary" size="sm">
+                Open missions
+              </Button>
+            </Link>
+          </div>
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filtered.map((s) => {
             const loc = locations.find((l) => l.id === s.location_id);
             const primaryTarget = s.targets[0]?.target_name ?? "—";
@@ -145,30 +165,38 @@ export default function SessionsPage() {
               <Link
                 key={s.id}
                 href={`/sessions/${s.id}`}
-                className="block rounded-xl border border-zinc-700/80 bg-zinc-900/50 p-4 hover:border-zinc-600 transition-colors"
+                className="block overflow-hidden rounded-lg border border-zinc-800/60 bg-zinc-900/50 transition-colors hover:border-zinc-700/80"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium text-zinc-100">
+                <div className="flex flex-wrap items-start justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <p className="font-display text-sm font-medium text-zinc-100">
                       {when ? formatDate(when) : "Session"}
-                    </div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
-                      {loc?.name ?? "Location"} · {primaryTarget}
-                    </div>
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      <span className="text-zinc-500 font-medium">Site</span>
+                      <span className="text-zinc-600 mx-1.5">·</span>
+                      <span className="text-zinc-300">
+                        {loc?.name ?? "Location"}
+                      </span>
+                      <span className="text-zinc-600 mx-1.5">·</span>
+                      <span className="text-zinc-300">{primaryTarget}</span>
+                    </p>
                   </div>
-                  <span className="text-sm font-medium text-indigo-300">
+                  <span className="shrink-0 rounded border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-400/90">
                     {s.outcome_score}/10 · {outcomeScoreLabel(s.outcome_score)}
                   </span>
                 </div>
-                <div className="mt-2 flex gap-4 text-xs text-zinc-500">
+                <div className="flex gap-4 border-t border-zinc-800/60 px-3 py-2 text-[11px] text-zinc-500">
                   <span>{s.targets.length} targets</span>
-                  <span>{s.total_integration_minutes} min integration</span>
+                  <span className="tabular-nums">
+                    {s.total_integration_minutes} min integration
+                  </span>
                 </div>
               </Link>
             );
           })}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

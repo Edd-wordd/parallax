@@ -180,8 +180,9 @@ export default function SkymapPage() {
         <div className="min-w-0">
           <h1 className="page-heading">Sky Map</h1>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Same site and session as Tonight. Target markers use Astronomy
-            Engine alt/az; the globe star field stays Demo.
+            Same site and session as Tonight. Star positions and target
+            markers use Astronomy Engine alt/az. Not a camera or mount
+            orientation.
           </p>
         </div>
         <Link href="/dashboard">
@@ -193,7 +194,18 @@ export default function SkymapPage() {
 
       <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden">
         <div className="border-b border-zinc-800/60 px-3 py-2.5">
-          <h2 className="dash-section-title">Session context</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="dash-section-title">Session context</h2>
+            {siteIsReal ? (
+              <span className="rounded border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-indigo-400/90">
+                Calculated
+              </span>
+            ) : (
+              <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300/90">
+                Demo site
+              </span>
+            )}
+          </div>
           {!siteIsReal && (
             <p className="mt-1 text-[11px] text-amber-200/80">
               Using mock site fallback — set an active location in Settings for
@@ -244,12 +256,12 @@ export default function SkymapPage() {
       <div className="grid gap-3 lg:grid-cols-12 lg:items-start">
         <div className="lg:col-span-8 space-y-2">
           <div className="flex flex-wrap items-center gap-2 px-0.5">
-            <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300/90">
-              Demo
+            <span className="rounded border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-indigo-400/90">
+              Calculated
             </span>
             <p className="text-[11px] text-zinc-500">
-              Orientation preview — not a live all-sky camera. Drag to rotate;
-              scrub time ±6h around the session start.
+              Drag to rotate. Not a live camera or mount orientation. Scrub
+              time ±6h around the session start.
             </p>
           </div>
           <LiveSkyView

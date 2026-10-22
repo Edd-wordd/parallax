@@ -236,14 +236,11 @@ export const LiveSkyView = React.memo(function LiveSkyView({
           embedded ? "px-2 pt-2" : "px-4 pt-3",
         )}
       >
-        <p className="text-[11px] text-amber-200/80 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 flex-1">
-          Demo sky globe — star field / constellation lines are illustrative.
-          Target alt/az use Astronomy Engine for the selected site and time
-          {!hasRealSite ? " · site coords are a mock fallback" : ""}.
+        <p className="text-[11px] text-zinc-400 rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-1.5 flex-1">
+          Star positions are calculated for this site and time. Not a camera
+          and not mount orientation.
+          {!hasRealSite ? " Site coordinates are a mock fallback." : ""}
         </p>
-        <span className="shrink-0 text-[9px] uppercase tracking-wider text-amber-400/90 rounded border border-amber-500/30 px-1.5 py-0.5">
-          Demo
-        </span>
       </div>
 
       {/* Header - minimal when embedded (HUD takes over) */}
@@ -258,7 +255,8 @@ export const LiveSkyView = React.memo(function LiveSkyView({
             <div>
               <h2 className="text-sm font-semibold text-white">Live Sky View</h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Demo orientation preview — not live telemetry
+                <span className="text-amber-400/90">Demo</span> orientation
+                preview — not live mount telemetry
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={handleRecenter} className="h-7 px-2 text-xs">

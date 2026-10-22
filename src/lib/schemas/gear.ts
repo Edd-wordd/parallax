@@ -9,6 +9,21 @@ export const SensorPresetSchema = z.enum([
 
 export const MountTypeSchema = z.enum(["alt-az", "equatorial"]);
 
+export const MountClassSchema = z.enum([
+  "stock",
+  "custom_diy",
+  "star_tracker",
+]);
+
+export const TrackingSchema = z.enum(["none", "motorized", "guided"]);
+
+export const GearAccessorySchema = z.enum([
+  "focus_mask",
+  "flattener_coma",
+  "dew_control",
+  "filters_owned",
+]);
+
 const sensorMm = z
   .number()
   .positive()
@@ -30,7 +45,12 @@ export const GearProfileSchema = z.object({
   optics_factor: z.number().positive().nullable().optional(),
   pixel_size: z.number().positive().nullable().optional(),
   mount_type: MountTypeSchema,
+  mount_class: MountClassSchema.default("stock"),
+  tracking: TrackingSchema.default("none"),
   guiding: z.boolean(),
+  camera_cooled: z.boolean().default(false),
+  accessories: z.array(GearAccessorySchema).default([]),
+  mount_notes: z.string().nullable().optional(),
   is_active: z.boolean(),
   deleted_at: z.string().datetime().nullable().optional(),
   created_at: z.string().datetime().optional(),
@@ -49,7 +69,12 @@ export const GearProfileInsertSchema = z.object({
   optics_factor: z.number().positive().optional().nullable(),
   pixel_size: z.number().positive().optional(),
   mount_type: MountTypeSchema,
+  mount_class: MountClassSchema.default("stock"),
+  tracking: TrackingSchema.default("none"),
   guiding: z.boolean().default(false),
+  camera_cooled: z.boolean().default(false),
+  accessories: z.array(GearAccessorySchema).default([]),
+  mount_notes: z.string().optional().nullable(),
   is_active: z.boolean().default(false),
 });
 
@@ -60,3 +85,6 @@ export const GearProfileUpdateSchema = GearProfileInsertSchema.partial().extend(
 export type GearProfileRow = z.infer<typeof GearProfileSchema>;
 export type GearProfileInsert = z.infer<typeof GearProfileInsertSchema>;
 export type GearProfileUpdate = z.infer<typeof GearProfileUpdateSchema>;
+export type MountClass = z.infer<typeof MountClassSchema>;
+export type TrackingLevel = z.infer<typeof TrackingSchema>;
+export type GearAccessory = z.infer<typeof GearAccessorySchema>;

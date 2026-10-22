@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useMissionStore } from "@/lib/missionStore";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -191,12 +190,7 @@ export default function MissionsPage() {
     (refreshing && missions.length === 0);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="page-heading">Missions</h1>
@@ -260,12 +254,7 @@ export default function MissionsPage() {
               !isUuid(m.id);
 
             return (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="group h-full"
-              >
+              <div key={m.id} className="group h-full">
                 <div
                   className={cn(
                     "flex h-full flex-col overflow-hidden rounded-lg border bg-zinc-900/50",
@@ -360,11 +349,11 @@ export default function MissionsPage() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

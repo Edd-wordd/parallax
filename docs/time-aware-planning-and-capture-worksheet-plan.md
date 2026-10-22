@@ -1,6 +1,6 @@
 # Time-Aware Planning + Capture Worksheet
 
-**Status:** Implemented (local verification; hosted migrations not claimed)  
+**Status:** Implemented (local verified 2026-10-18; hosted paused — unpause then `db push`)  
 **Preserve:** Auth/RLS, locations/gear, night schedule acceptance model, observing log (`mission_events` / `condition_logs`), Save Log → Sessions, Demo labels for unwired AI/telemetry, all uncommitted work.
 
 **Classification:** Architectural — two sequential, shippable slices. Slice 1 unlocks correct forecast/astro/schedule windows; Slice 2 builds on persisted targets + timeline.
@@ -144,7 +144,7 @@ Ship two sequential slices so mission planning uses one honest observing window 
 - Preserve uncommitted work; focused diffs only.
 - Supabase Auth/RLS unchanged.
 - Demo/mock labels for unwired AI/telemetry.
-- Local: `supabase migration up --local`. Hosted: apply session_end/tz then capture-plan before claiming prod durability.
+- Local: `20261006120000_mission_session_end_location_tz` + `20261007010000_capture_plan` applied. Hosted project paused — restore `iyabzjyyfzdodmedpgfx`, then `supabase db push` before claiming prod durability.
 - Report which checks ran.
 
 ## Out of phase

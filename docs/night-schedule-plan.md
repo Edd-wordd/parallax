@@ -1,6 +1,6 @@
 # Night Schedule Plan
 
-**Status:** Implemented (local migration; hosted not claimed)  
+**Status:** Implemented (local verified 2026-10-18; hosted paused — unpause `iyabzjyyfzdodmedpgfx` then `db push`)  
 
 **Preserve:** Auth, Supabase RLS, mission SoT (Setup+), Save Log → Sessions, Target Explorer, framing, catalog, Demo AI section, Engine reasoning, uncommitted local work.
 

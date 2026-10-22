@@ -1,6 +1,6 @@
 # Locations + Observing Schedule Plan
 
-**Status:** Implemented (Slice 1 + Slice 2 local; hosted actuals migration not claimed)  
+**Status:** Implemented (Slice 1 + Slice 2 local verified 2026-10-18; hosted paused — unpause then `db push`)  
 **Preserve:** Supabase Auth/RLS, mission SoT from Setup+, Save Log → Sessions, night schedule, Target Explorer, framing, forecasts as distinct sources, Demo AI labels, uncommitted local work.
 
 ## Slices
@@ -27,7 +27,7 @@
 | Slice | Local | Hosted |
 |-------|-------|--------|
 | 1 | None | None |
-| 2 | `*_mission_actuals.sql` | Apply before prod |
+| 2 | `*_mission_actuals.sql` applied locally | Hosted paused — push after restore |
 
 ## Acceptance
 

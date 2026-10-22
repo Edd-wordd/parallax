@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   BarChart,
   Bar,
@@ -113,7 +112,7 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-sm text-zinc-500">
+      <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-10 text-center text-sm text-zinc-500">
         Loading insights…
       </div>
     );
@@ -121,8 +120,8 @@ export default function InsightsPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-zinc-400">{error}</p>
+      <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-8 text-center">
+        <p className="text-sm text-rose-200">{error}</p>
         <Link href="/sessions">
           <Button variant="link" className="mt-2">
             Back to sessions
@@ -135,12 +134,7 @@ export default function InsightsPage() {
   const empty = insights.sessionCount === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       <div>
         <h1 className="page-heading">Insights</h1>
         <p className="mt-0.5 text-xs text-zinc-500">
@@ -458,6 +452,6 @@ export default function InsightsPage() {
           </DashCard>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

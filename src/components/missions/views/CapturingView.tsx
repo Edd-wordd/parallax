@@ -1,6 +1,6 @@
 "use client";
 
-import { MissionTimeline } from "@/components/MissionTimeline";
+import { SessionClock } from "@/components/missions/SessionClock";
 import { Button } from "@/components/ui/button";
 import { SelectedTargetCard } from "@/components/missions/SelectedTargetCard";
 import { MissionConditionsPanel } from "@/components/missions/MissionConditionsPanel";
@@ -16,7 +16,6 @@ import {
 import {
   actualLabel,
   fromDatetimeLocalValue,
-  scheduleSummaryLines,
   toDatetimeLocalValue,
   transitionMinutesOf,
 } from "@/lib/schedule/observing";
@@ -60,11 +59,11 @@ export interface CapturingViewProps {
 export function CapturingView({
   mission,
   isReadOnlySession,
-  isFieldMode,
+  isFieldMode: _isFieldMode,
   currentTarget,
   currentTargetId,
-  selectedTarget,
-  nextTarget,
+  selectedTarget: _selectedTarget,
+  nextTarget: _nextTarget,
   nextTargetLabel,
   selectedTargetId,
   conditions,
@@ -84,7 +83,7 @@ export function CapturingView({
   onCommitReading,
   committingReading = false,
   readingError = null,
-  onUpdatePlan,
+  onUpdatePlan: _onUpdatePlan,
   cameraName = null,
 }: CapturingViewProps) {
   const sessionWindow = sessionWindowFromMission({
@@ -97,12 +96,6 @@ export function CapturingView({
       (sessionWindow.end.getTime() - sessionWindow.start.getTime()) / 60_000,
     ),
   );
-
-  const summaryLines = scheduleSummaryLines({
-    mission,
-    current: currentTarget,
-    next: nextTarget,
-  });
 
   return (
     <div className="space-y-4">
@@ -118,14 +111,15 @@ export function CapturingView({
         receive live telemetry.
       </div>
 
-      {/* Top row: Observing log + Schedule */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,34%)_minmax(0,1fr)]">
+        <section className={cn(PANEL_STYLE, "flex min-h-[22rem] flex-col gap-2 p-4")}>
           <SessionObservingLog
             events={missionEvents}
             isReadOnly={isReadOnlySession}
             onAddNote={onAddNote}
             onQuickEvent={onQuickEvent}
+            compact={false}
+            className="min-h-0 flex-1"
           />
         </section>
 
@@ -136,23 +130,21 @@ export function CapturingView({
             "p-4 min-h-0 flex flex-col overflow-hidden",
           )}
         >
-          <div className="flex items-center justify-between mb-3 text-sm">
-            <h2 className="mission-section-label mb-0">Night schedule</h2>
+          <div className="mb-3 flex items-center justify-between text-sm">
+            <h2 className="mission-section-label mb-0">Session clock</h2>
             <span className="text-[10px] text-zinc-500">
               Transition {transitionMinutesOf(mission)} min
             </span>
           </div>
-
-          <div className="space-y-2 text-xs text-zinc-300">
-            {summaryLines.map((line) => (
-              <p key={line} className="tabular-nums">
-                {line}
-              </p>
-            ))}
-            {nextTargetLabel && (
-              <p className="text-cyan-300/90">{nextTargetLabel}</p>
-            )}
-          </div>
+          <SessionClock
+            sessionStart={sessionWindow.start}
+            sessionEnd={sessionWindow.end}
+            targets={mission.targets}
+            selectedTargetId={selectedTargetId ?? currentTargetId}
+          />
+          {nextTargetLabel && (
+            <p className="mt-3 text-xs text-cyan-300/90">{nextTargetLabel}</p>
+          )}
 
           {currentTarget && !isReadOnlySession && (
             <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
@@ -245,28 +237,10 @@ export function CapturingView({
             </div>
           )}
 
-          {/* Demoted mock timeline — not schedule SoT */}
-          <details className="mt-3">
-            <summary className="cursor-pointer text-[10px] text-zinc-600">
-              Legacy timeline preview (Demo geometry)
-            </summary>
-            <div className="mt-2 opacity-60">
-              <MissionTimeline
-                targets={mission.targets}
-                missionDate={mission.dateTime}
-                hero
-                selectedTargetId={selectedTargetId ?? currentTargetId ?? null}
-                currentTargetId={currentTargetId ?? undefined}
-                fieldMode={isFieldMode}
-              />
-            </div>
-          </details>
         </section>
       </div>
 
-      {/* Target queue + Selected target */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className={cn(PANEL_STYLE, "p-4")}>
+      <section className={cn(PANEL_STYLE, "p-4")}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="mission-section-label">Target Queue</h2>
             <span className="text-[11px] text-zinc-500">
@@ -350,20 +324,19 @@ export function CapturingView({
                         </Button>
                       </div>
                     )}
+                    {isSelected && (
+                      <SelectedTargetCard
+                        embedded
+                        target={t}
+                        isPrimary={isActiveTarget}
+                      />
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
         </section>
-
-        <SelectedTargetCard
-          target={selectedTarget}
-          onMakePrimary={undefined}
-          onRemove={undefined}
-          isPrimary={currentTargetId === selectedTarget?.targetId}
-        />
-      </div>
 
       {mission.targets.length > 0 && (
         <section className={cn(PANEL_STYLE, "p-4 mt-4")}>

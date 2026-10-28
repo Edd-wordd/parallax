@@ -238,7 +238,7 @@ export default function MissionsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="divide-y divide-[rgba(228,220,200,0.08)] overflow-hidden rounded-lg border border-zinc-800/80 bg-zinc-900/40">
           {ordered.map((m) => {
             const loc = locationNames[m.locationId];
             const gearName = gearNames[m.gearId];
@@ -252,107 +252,84 @@ export default function MissionsPage() {
             const planningOnly =
               (m.phase === "planning" || m.status === "draft") &&
               !isUuid(m.id);
+            const targetCount = (m.targets ?? []).length;
 
             return (
-              <div key={m.id} className="group h-full">
-                <div
-                  className={cn(
-                    "flex h-full flex-col overflow-hidden rounded-lg border bg-zinc-900/50",
-                    isLive
-                      ? "border-rose-500/40 shadow-[0_0_0_1px_rgba(244,63,94,0.12)]"
-                      : "border-zinc-800/60 hover:border-zinc-700/80",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2 border-b border-zinc-800/60 px-3 py-2">
-                    <h2 className="dash-section-title truncate text-zinc-400">
-                      Mission
-                    </h2>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {isLive && (
-                        <span className="inline-flex items-center gap-1 rounded border border-rose-500/50 bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-rose-300">
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
-                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" />
-                          </span>
-                          Live
-                        </span>
-                      )}
-                      {planningOnly && (
-                        <span className="rounded border border-zinc-600/50 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-zinc-500">
-                          Local plan
-                        </span>
-                      )}
-                      <span
-                        className={cn(
-                          "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                          phaseChipClass(dashStatus),
-                        )}
-                      >
-                        {chipLabel}
+              <li
+                key={m.id}
+                className={cn(
+                  "flex flex-wrap items-center gap-3 px-4 py-3",
+                  isLive && "bg-rose-500/5",
+                )}
+              >
+                <div className="flex w-28 shrink-0 flex-col items-start gap-1">
+                  {isLive && (
+                    <span className="inline-flex items-center gap-1 rounded border border-rose-500/50 bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-rose-300">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" />
                       </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 flex-col gap-2 p-3">
-                    <Link href={cta.href} className="min-w-0 block">
-                      <p className="font-display text-sm font-medium text-zinc-100 truncate hover:text-white">
-                        {m.name}
-                      </p>
-                    </Link>
-                    <div className="space-y-1 text-xs text-zinc-500">
-                      <p>
-                        <span className="text-zinc-500 font-medium">Site</span>
-                        <span className="text-zinc-600 mx-1.5">·</span>
-                        <span className="text-zinc-300">
-                          {loc
-                            ? `${loc.name} · Bortle ${loc.bortle}`
-                            : "—"}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="text-zinc-500 font-medium">Rig</span>
-                        <span className="text-zinc-600 mx-1.5">·</span>
-                        <span className="text-zinc-300">{gearName ?? "—"}</span>
-                      </p>
-                      <p className="tabular-nums">
-                        {m.dateTime ? formatDate(m.dateTime) : "—"} ·{" "}
-                        {(m.targets ?? []).length} target
-                        {(m.targets ?? []).length !== 1 ? "s" : ""}
-                        {m.missionType === "deep_sky" ? " · Deep sky" : ""}
-                        {m.missionType === "planetary" ? " · Planetary" : ""}
-                      </p>
-                    </div>
-
-                    <div className="mt-auto flex flex-wrap gap-2 pt-2">
-                      <Link href={cta.href}>
-                        <Button
-                          variant="cta"
-                          size="sm"
-                          className="h-7 text-xs"
-                        >
-                          {cta.label}
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-zinc-500 hover:text-zinc-300"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const dup = duplicateMission(m.id);
-                          if (dup) router.push(`/missions/${dup.id}`);
-                        }}
-                      >
-                        <Copy className="h-3 w-3 mr-1" />
-                        Duplicate
-                      </Button>
-                    </div>
-                  </div>
+                      Live
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                      phaseChipClass(dashStatus),
+                    )}
+                  >
+                    {chipLabel}
+                  </span>
+                  {planningOnly && (
+                    <span className="rounded border border-zinc-600/50 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-zinc-500">
+                      Local plan
+                    </span>
+                  )}
                 </div>
-              </div>
+
+                <div className="min-w-0 flex-1">
+                  <Link href={cta.href} className="block min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-100 hover:text-white">
+                      {m.name}
+                    </p>
+                  </Link>
+                  <p className="mt-0.5 truncate text-xs text-zinc-500 tabular-nums">
+                    {m.dateTime ? formatDate(m.dateTime) : "—"}
+                    {" · "}
+                    {loc ? `${loc.name} · Bortle ${loc.bortle}` : "—"}
+                    {" · "}
+                    {gearName ?? "—"}
+                    {" · "}
+                    {targetCount} target{targetCount === 1 ? "" : "s"}
+                    {m.missionType === "deep_sky" ? " · Deep sky" : ""}
+                    {m.missionType === "planetary" ? " · Planetary" : ""}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Link href={cta.href}>
+                    <Button variant="cta" size="sm" className="h-7 text-xs">
+                      {cta.label}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-zinc-500 hover:text-zinc-300"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const dup = duplicateMission(m.id);
+                      if (dup) router.push(`/missions/${dup.id}`);
+                    }}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Duplicate
+                  </Button>
+                </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

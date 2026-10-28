@@ -35,6 +35,8 @@ interface CaptureWorksheetProps {
   className?: string;
   /** Compact for Capture phase */
   compact?: boolean;
+  /** Two-column fields for a narrow planning column */
+  dense?: boolean;
 }
 
 function numOrEmpty(n: number | null | undefined): string {
@@ -52,6 +54,7 @@ export function CaptureWorksheet({
   onPatchTarget,
   className,
   compact = false,
+  dense = false,
 }: CaptureWorksheetProps) {
   const estimated = estimatedCaptureMinutes(
     targets,
@@ -120,7 +123,12 @@ export function CaptureWorksheet({
                     : "Frames — enter sub + integration"}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div
+                className={cn(
+                  "grid grid-cols-2 gap-2",
+                  !dense && "sm:grid-cols-3 lg:grid-cols-5",
+                )}
+              >
                 <label className="block text-[10px] text-zinc-500">
                   Filter
                   <Input

@@ -1,0 +1,22 @@
+- generic [active] [ref=f9e1]:
+  - generic [ref=f9e3]:
+    - generic [ref=f9e4]:
+      - heading "Sign in" [level=1] [ref=f9e5]
+      - paragraph [ref=f9e6]: Access your Parallax account
+    - generic [ref=f9e7]:
+      - generic [ref=f9e8]:
+        - text: Email
+        - textbox "Email" [ref=f9e9]
+      - generic [ref=f9e10]:
+        - text: Password
+        - textbox "Password" [ref=f9e11]
+      - button "Sign in" [ref=f9e12] [cursor=pointer]
+    - generic [ref=f9e13]:
+      - link "Forgot password?" [ref=f9e14] [cursor=pointer]:
+        - /url: /auth/forgot-password
+      - paragraph [ref=f9e15]:
+        - text: No account?
+        - link "Create account" [ref=f9e16] [cursor=pointer]:
+          - /url: /auth/sign-up
+  - button "Open Next.js Dev Tools" [ref=f9e22] [cursor=pointer]
+  - alert [ref=f9e26]

@@ -2,31 +2,31 @@
 
 /* ========== THEME TOKENS (Normal Mode) ========== */
 :root {
-  --background: #05070a;
-  --foreground: #fafafa;
-  --accent: #d25e36;
-  --accent-foreground: #fff7ed;
-  /* App shell */
-  --theme-app-bg: #05070a;
-  --theme-panel-bg: rgba(12, 16, 24, 0.85);
-  --theme-elevated: rgba(6, 10, 18, 0.95);
-  --theme-border: rgba(120, 150, 200, 0.1);
-  --theme-border-subtle: rgba(255, 255, 255, 0.06);
+  --background: #0b1014;
+  --foreground: #e7e2d8;
+  --accent: #e4dcc8;
+  --accent-foreground: #1c1915;
+  /* App shell — ink and bone */
+  --theme-app-bg: #0b1014;
+  --theme-panel-bg: rgba(18, 26, 32, 0.92);
+  --theme-elevated: rgba(27, 37, 44, 0.72);
+  --theme-border: rgba(228, 220, 200, 0.12);
+  --theme-border-subtle: rgba(228, 220, 200, 0.08);
   /* Text */
-  --theme-text-primary: rgba(255, 255, 255, 0.95);
-  --theme-text-secondary: rgba(255, 255, 255, 0.7);
-  --theme-text-muted: rgba(255, 255, 255, 0.5);
-  /* Interactive accent = Tonight indigo; brand mark stays --accent terracotta */
-  --theme-accent: #6366f1;
-  --theme-accent-soft: rgba(99, 102, 241, 0.25);
-  --theme-glow: rgba(99, 102, 241, 0.25);
+  --theme-text-primary: #e7e2d8;
+  --theme-text-secondary: #b7b1a6;
+  --theme-text-muted: #7e8790;
+  /* One accent: bone. Field mode remaps this to crimson. */
+  --theme-accent: #e4dcc8;
+  --theme-accent-soft: rgba(228, 220, 200, 0.16);
+  --theme-glow: rgba(228, 220, 200, 0.2);
   /* Status/semantic */
-  --theme-success: #34d399;
-  --theme-warning: #f59e0b;
-  --theme-error: #f87171;
+  --theme-success: #8fbfa8;
+  --theme-warning: #d4b072;
+  --theme-error: #d48474;
   /* Ambient (background glows) */
-  --theme-ambient-a: rgba(60, 100, 180, 0.02);
-  --theme-ambient-b: rgba(80, 120, 200, 0.015);
+  --theme-ambient-a: rgba(228, 220, 200, 0.035);
+  --theme-ambient-b: rgba(180, 200, 210, 0.02);
 }
 
 @theme inline {
@@ -35,20 +35,98 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-display: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+
+  /* Ink scale, used by existing zinc utilities */
+  --color-zinc-950: #0b1014;
+  --color-zinc-900: #121a20;
+  --color-zinc-800: #243038;
+  --color-zinc-700: #31404a;
+  --color-zinc-600: #4a5c68;
+  --color-zinc-500: #7e8790;
+  --color-zinc-400: #b7b1a6;
+  --color-zinc-300: #d5cfc3;
+  --color-zinc-200: #e4dcc8;
+  --color-zinc-100: #e7e2d8;
+  --color-zinc-50: #f4f0e6;
+
+  /* Bone stands in for the old indigo / violet / cyan accents */
+  --color-indigo-300: #e4dcc8;
+  --color-indigo-400: #efe8d6;
+  --color-indigo-500: #e4dcc8;
+  --color-indigo-600: #cfc4a8;
+  --color-violet-400: #e4dcc8;
+  --color-violet-500: #e4dcc8;
+  --color-cyan-200: #e4dcc8;
+  --color-cyan-300: #e4dcc8;
+  --color-cyan-400: #efe8d6;
+  --color-cyan-500: #e4dcc8;
+
+  --color-slate-100: #e7e2d8;
+  --color-slate-300: #c5ccc8;
+  --color-slate-500: #7e8790;
+  --color-slate-800: #1b252c;
+  --color-neutral-800: #243038;
+  --color-neutral-500: #7e8790;
+  --color-neutral-400: #b7b1a6;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #31404a #0b1014;
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #31404a #121a20;
+  color-scheme: dark;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: #121a20;
+}
+
+*::-webkit-scrollbar-track {
+  background: #121a20;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #31404a;
+  border-radius: 999px;
+  border: 2px solid #121a20;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #4a5c68;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #121a20;
+}
+
+.mission-panel,
+.mission-panel * {
+  scrollbar-color: #31404a #121a20;
+  color-scheme: dark;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-orbitron), var(--font-sans);
+  font-family: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.015em;
 }
 
 a,
@@ -69,144 +147,144 @@ button:disabled {
     /* Very subtle radial gradients for space depth */
     radial-gradient(
       ellipse 90% 60% at 50% 40%,
-      rgba(60, 100, 180, 0.02) 0%,
+      rgba(228, 220, 200, 0.04) 0%,
       transparent 60%
     ),
     radial-gradient(
       ellipse 70% 50% at 20% 25%,
-      rgba(80, 120, 200, 0.015) 0%,
+      rgba(180, 200, 210, 0.03) 0%,
       transparent 50%
     ),
     radial-gradient(
       ellipse 60% 45% at 85% 75%,
-      rgba(80, 120, 200, 0.015) 0%,
+      rgba(180, 200, 210, 0.03) 0%,
       transparent 50%
     ),
     /* Faint star noise - 1px points, random-like distribution */
-    radial-gradient(circle 1px at 3% 7%, rgba(200, 220, 255, 0.12), transparent),
+    radial-gradient(circle 1px at 3% 7%, rgba(228, 220, 200, 0.14), transparent),
     radial-gradient(
       circle 1px at 17% 23%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 42% 11%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 68% 31%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 91% 19%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 8% 58%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 33% 72%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 55% 84%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 79% 67%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 12% 91%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 88% 93%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 26% 42%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 61% 52%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 73% 8%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 5% 38%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 47% 27%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 94% 45%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 19% 65%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 85% 78%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 37% 16%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 52% 61%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 11% 83%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 96% 56%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 44% 35%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 22% 78%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     radial-gradient(
       circle 1px at 67% 14%,
-      rgba(200, 220, 255, 0.12),
+      rgba(228, 220, 200, 0.14),
       transparent
     ),
     /* Secondary diagonal grid - very low opacity to break box appearance */
@@ -214,40 +292,40 @@ button:disabled {
         45deg,
         transparent 0,
         transparent calc(180px * 0.707 - 1px),
-        rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
-        rgba(120, 150, 200, 0.015) calc(180px * 0.707)
+        rgba(228, 220, 200, 0.02) calc(180px * 0.707 - 1px),
+        rgba(228, 220, 200, 0.02) calc(180px * 0.707)
       ),
     repeating-linear-gradient(
       -45deg,
       transparent 0,
       transparent calc(180px * 0.707 - 1px),
-      rgba(120, 150, 200, 0.015) calc(180px * 0.707 - 1px),
-      rgba(120, 150, 200, 0.015) calc(180px * 0.707)
+      rgba(228, 220, 200, 0.02) calc(180px * 0.707 - 1px),
+      rgba(228, 220, 200, 0.02) calc(180px * 0.707)
     ),
     /* Primary grid - vertical & horizontal, 180px spacing, extremely subtle */
     repeating-linear-gradient(
         90deg,
         transparent 0,
         transparent 179px,
-        rgba(120, 150, 200, 0.03) 179px,
-        rgba(120, 150, 200, 0.03) 180px
+        rgba(228, 220, 200, 0.035) 179px,
+        rgba(228, 220, 200, 0.035) 180px
       ),
     repeating-linear-gradient(
       0deg,
       transparent 0,
       transparent 179px,
-      rgba(120, 150, 200, 0.03) 179px,
-      rgba(120, 150, 200, 0.03) 180px
+      rgba(228, 220, 200, 0.035) 179px,
+      rgba(228, 220, 200, 0.035) 180px
     ),
     /* Base deep-space gradient */
-    linear-gradient(180deg, #05070a 0%, #06090f 50%, #020305 100%);
+    linear-gradient(180deg, #0b1014 0%, #0e151b 50%, #080c10 100%);
   background-attachment: fixed;
 }
 
 /* UI cards for astronomy interface - readable over space background */
 .space-card {
-  background: rgba(12, 16, 24, 0.85);
-  border: 1px solid rgba(120, 150, 200, 0.1);
+  background: rgba(18, 26, 32, 0.92);
+  border: 1px solid rgba(228, 220, 200, 0.12);
   border-radius: 0.75rem;
 }
 
@@ -263,8 +341,8 @@ button:disabled {
       transparent 40%,
       rgba(0, 5, 15, 0.5) 100%
     ),
-    linear-gradient(180deg, #050a14 0%, #060d1a 40%, #060d1a 60%, #030712 100%);
-  background-color: #050a14;
+    linear-gradient(180deg, #0b1014 0%, #101820 40%, #101820 60%, #080c10 100%);
+  background-color: #0b1014;
   background-attachment: scroll;
 }
 
@@ -380,12 +458,11 @@ button:disabled {
 
 /* Match .dash-section-title — Tonight Mission Control labels */
 .mission-section-label {
-  font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.75rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgb(113 113 122); /* zinc-500 */
+  letter-spacing: 0.04em;
+  color: var(--theme-text-muted);
 }
 
 .mission-meta-label {
@@ -402,13 +479,15 @@ button:disabled {
 /* Parallax Dark design system utilities */
 @layer utilities {
   .font-display {
-    font-family: var(--font-orbitron), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.015em;
   }
   .page-container {
     @apply max-w-6xl mx-auto space-y-4;
   }
   .page-heading {
-    @apply font-display text-xl font-semibold tracking-wide text-zinc-100;
+    font-family: var(--font-exo2), ui-sans-serif, system-ui, sans-serif;
+    @apply text-xl font-semibold tracking-tight text-zinc-100;
   }
   .dash-card {
     @apply rounded-lg border border-zinc-800/60 bg-zinc-900/50 overflow-hidden;
@@ -437,14 +516,40 @@ button:disabled {
   }
 }
 
-/* Dashboard premium color tokens - graphite, steel-blue, soft amber */
+/* Dashboard tokens — bone accent, duller status */
 :root {
-  --dash-accent: 99 102 241; /* indigo-500 */
-  --dash-accent-muted: 129 140 248; /* indigo-400 */
-  --dash-caution: 245 158 11; /* amber-500 */
-  --dash-success: 52 211 153; /* emerald-400 */
-  --dash-track-inactive: 63 63 70; /* zinc-700 */
-  --dash-track-active: 99 102 241; /* indigo-500 */
+  --dash-accent: 228 220 200;
+  --dash-accent-muted: 183 177 166;
+  --dash-caution: 212 176 114;
+  --dash-success: 143 191 168;
+  --dash-track-inactive: 49 64 74;
+  --dash-track-active: 228 220 200;
+}
+
+/* Glass on the shell bar and sticky action bar only */
+.theme-shell-header {
+  background: rgba(18, 26, 32, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(228, 220, 200, 0.12);
+}
+
+.theme-shell-rail {
+  background-color: #101820;
+  border-color: rgba(228, 220, 200, 0.12);
+}
+
+.theme-action-bar {
+  background: rgba(27, 37, 44, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(228, 220, 200, 0.12);
+  border-radius: 0.75rem;
+}
+
+.theme-mark {
+  background-color: var(--theme-accent);
+  color: var(--accent-foreground);
 }
 
 /* ========== NIGHT VISION / FIELD MODE (Global Theme) ========== */
@@ -460,6 +565,8 @@ button:disabled {
   --theme-text-secondary: rgba(200, 160, 160, 0.8);
   --theme-text-muted: rgba(160, 110, 110, 0.65);
   --theme-accent: #c06060;
+  --accent: #c06060;
+  --accent-foreground: #f6e8e6;
   --theme-accent-soft: rgba(180, 80, 80, 0.35);
   --theme-glow: rgba(160, 60, 60, 0.25);
   --theme-success: rgba(140, 100, 100, 0.9);
@@ -630,11 +737,28 @@ button:disabled {
   background-color: var(--theme-accent-soft) !important;
 }
 
+.field-mode aside a.theme-mark,
+[data-theme="field"] aside a.theme-mark {
+  background-color: var(--theme-accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
 /* ----- Top toolbar ----- */
 [data-theme="field"] .theme-shell-header,
-.field-mode .theme-shell-header {
+.field-mode .theme-shell-header,
+[data-theme="field"] .theme-action-bar,
+.field-mode .theme-action-bar {
+  background: var(--theme-elevated) !important;
   background-color: var(--theme-elevated) !important;
   border-color: var(--theme-border) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.field-mode .theme-mark,
+[data-theme="field"] .theme-mark {
+  background-color: var(--theme-accent) !important;
+  color: var(--accent-foreground) !important;
 }
 
 /* ----- Cards and panels ----- */

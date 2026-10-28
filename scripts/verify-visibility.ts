@@ -19,6 +19,7 @@ import { generateDeepSkyPlan } from "../src/lib/sky/generateDeepSkyPlan";
 import { generatePlanetaryPlan } from "../src/lib/sky/generatePlanetaryPlan";
 import { PLANET_TARGETS } from "../src/lib/sky/planets";
 import { skyBrightnessFromBortle } from "../src/lib/sky/bortleSkyBrightness";
+import { moonMarkAt } from "../src/lib/sky/moonMark";
 import { darkerSitesNearby, distanceKm } from "../src/lib/locations/darkSites";
 import {
   computeDarkWindow,
@@ -337,6 +338,15 @@ check("darker-site catalog filters by distance and class", () => {
     radiusKm: 5000,
   });
   assert.equal(alreadyDark.length, 0);
+});
+
+check("moon mark stays inside a real phase", () => {
+  const mark = moonMarkAt(new Date(Date.UTC(2026, 9, 22, 6, 0, 0)));
+  assert.ok(mark);
+  assert.ok(mark.phaseFraction >= 0 && mark.phaseFraction <= 1);
+  assert.ok(mark.elongationDeg >= 0 && mark.elongationDeg < 360);
+  assert.ok(mark.phaseLabel.length > 0);
+  assert.equal(moonMarkAt(new Date(NaN)), null);
 });
 
 console.log(`\n${passed} checks passed`);

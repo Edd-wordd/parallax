@@ -34,11 +34,11 @@ import type { LocationRow } from "@/lib/schemas";
 import { formatDate } from "@/lib/utils";
 import { outcomeScoreLabel } from "@/lib/outcomeLabel";
 
-const COLORS = ["#6366f1", "#818cf8", "#34d399", "#a78bfa", "#f59e0b"];
+const COLORS = ["#e4dcc8", "#8fbfa8", "#d4b072", "#7e8790", "#d48474"];
 
 const tooltipStyle = {
-  backgroundColor: "#27272a",
-  border: "1px solid #52525b",
+  backgroundColor: "#121a20",
+  border: "1px solid rgba(228, 220, 200, 0.12)",
   borderRadius: "6px",
 };
 
@@ -242,7 +242,7 @@ export default function InsightsPage() {
                       <Line
                         type="monotone"
                         dataKey="avgScore"
-                        stroke="#6366f1"
+                        stroke="#e4dcc8"
                         strokeWidth={2}
                         name="Avg score"
                       />
@@ -294,7 +294,7 @@ export default function InsightsPage() {
                       />
                       <Bar
                         dataKey="avgScore"
-                        fill="#6366f1"
+                        fill="#e4dcc8"
                         radius={[0, 4, 4, 0]}
                         name="Avg score"
                       />

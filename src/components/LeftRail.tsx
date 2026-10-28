@@ -43,7 +43,7 @@ export function LeftRail() {
       transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
       layout={false}
       className={cn(
-        "theme-shell-rail fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r border-blue-950/40 bg-[#0d1321] transition-shadow duration-200",
+        "theme-shell-rail fixed left-0 top-0 z-40 flex h-screen flex-col overflow-hidden border-r transition-shadow duration-200",
         expanded ? "shadow-[4px_0_24px_rgba(0,0,0,0.4)]" : "shadow-none",
       )}
       onMouseEnter={() => setExpanded(true)}
@@ -53,12 +53,12 @@ export function LeftRail() {
       <div className="flex shrink-0 items-center gap-3 px-3 py-4">
         <Link
           href="/dashboard"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[#d25e36] text-white"
+          className="theme-mark flex h-9 w-9 shrink-0 items-center justify-center rounded"
         >
           <span className="text-sm font-bold">A</span>
         </Link>
         <div className="min-w-0 flex-1 overflow-hidden">
-          <span className="block truncate font-display text-sm font-semibold text-white tracking-wide">
+          <span className="block truncate text-sm font-semibold tracking-tight text-zinc-100">
             Parallax
           </span>
           <span className="block truncate text-xs text-slate-500">
@@ -86,7 +86,7 @@ export function LeftRail() {
       </nav>
 
       {/* Bottom utility section - matches main nav styling */}
-      <div className="shrink-0 space-y-0.5 border-t border-blue-950/40 px-2 py-3">
+      <div className="shrink-0 space-y-0.5 border-t border-[rgba(228,220,200,0.12)] px-2 py-3">
         <UtilityLink href="/help" icon={HelpCircle} label="Help" />
         <UtilityLink href="/settings" icon={Settings} label="Settings" />
         <UtilityLink href="/user" icon={User} label="User" />
@@ -114,12 +114,12 @@ function NavItem({
       className={cn(
         "relative flex items-center gap-3 rounded-lg py-2.5 pl-3 pr-2 text-sm transition-colors",
         isActive
-          ? "bg-[#d25e36]/20 text-white"
+          ? "bg-[var(--theme-accent-soft)] text-zinc-100"
           : "text-slate-300 hover:bg-slate-800/50 hover:text-slate-100",
       )}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r-full bg-[#d25e36]" />
+        <span className="theme-mark absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-r-full" />
       )}
       <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
       <span className="min-w-0 flex-1 truncate">{label}</span>

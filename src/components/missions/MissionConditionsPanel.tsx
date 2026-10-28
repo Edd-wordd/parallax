@@ -14,6 +14,7 @@ import type { ConditionsState, WindLevel } from "@/lib/missionUIStore";
 import type { ManualFieldReadingPayload } from "@/lib/supabase/queries/conditionLogs";
 import type { ConditionLogRow } from "@/lib/schemas";
 import { latestManualReading } from "@/lib/supabase/queries/conditionLogs";
+import { MoonPhaseMark } from "@/components/MoonPhaseMark";
 
 interface MissionConditionsPanelProps {
   lat: number | null | undefined;
@@ -264,7 +265,15 @@ export function MissionConditionsPanel({
             </div>
             <div>
               <dt className="text-zinc-500">Moon</dt>
-              <dd className="text-zinc-100">
+              <dd className="flex items-center gap-1.5 text-zinc-100">
+                {astronomy.moon ? (
+                  <MoonPhaseMark
+                    phaseFraction={astronomy.moon.phaseFraction}
+                    elongationDeg={astronomy.moon.elongationDeg}
+                    size={14}
+                    title={astronomy.moon.phaseLabel}
+                  />
+                ) : null}
                 {astronomy.moon
                   ? `${astronomy.moon.phaseLabel} · ${astronomy.moon.interferenceLabel}`
                   : "Unavailable"}

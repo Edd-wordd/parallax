@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Sign in" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Access your Parallax account
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - text: Email
+        - textbox "Email" [ref=e9]
+      - generic [ref=e10]:
+        - text: Password
+        - textbox "Password" [ref=e11]
+      - button "Sign in" [ref=e12] [cursor=pointer]
+    - generic [ref=e13]:
+      - link "Forgot password?" [ref=e14] [cursor=pointer]:
+        - /url: /auth/forgot-password
+      - paragraph [ref=e15]:
+        - text: No account?
+        - link "Create account" [ref=e16] [cursor=pointer]:
+          - /url: /auth/sign-up
+  - alert [ref=e17]

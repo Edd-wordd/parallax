@@ -46,13 +46,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Moon,
   Clock,
   Gauge,
   ArrowRight,
   RotateCcw,
   GripVertical,
 } from "lucide-react";
+import { MoonPhaseMark } from "@/components/MoonPhaseMark";
 import { cn } from "@/lib/utils";
 import type { Mission, MissionConstraint, MissionTarget } from "@/lib/types";
 
@@ -732,7 +732,16 @@ export default function MissionWizardPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                           <span className="flex items-center gap-1.5">
-                            <Moon className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                            {sessionAstronomy?.moon ? (
+                              <MoonPhaseMark
+                                phaseFraction={sessionAstronomy.moon.phaseFraction}
+                                elongationDeg={sessionAstronomy.moon.elongationDeg}
+                                size={14}
+                                title={sessionAstronomy.moon.phaseLabel}
+                              />
+                            ) : (
+                              <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-zinc-500" />
+                            )}
                             <span className="text-zinc-500">Moon:</span>
                             <span className="text-zinc-100">
                               {!location

@@ -184,6 +184,64 @@ export function LoggingView({
 
   return (
     <div className="space-y-4">
+      <div className="theme-action-bar sticky top-14 z-20 flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          Night score (1–10)
+          <select
+            value={outcomeScore}
+            onChange={(e) => setOutcomeScore(Number(e.target.value))}
+            disabled={logFormLocked}
+            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-zinc-100 disabled:opacity-50"
+          >
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button
+          type="button"
+          variant="cta"
+          size="sm"
+          disabled={saving || logFormLocked}
+          onClick={() =>
+            onSaveLog({
+              outcomeScore,
+              whatILearned: overallNotes.trim(),
+              targets: (mission.targets ?? []).map((t) => {
+                const state = perTargetState[t.targetId];
+                return {
+                  catalogId: t.targetId,
+                  targetName: t.targetName,
+                  result: state?.status ?? null,
+                  framesCaptured: state?.framesCaptured ?? null,
+                  exposureSeconds: state?.subLengthSeconds ?? null,
+                  iso: state?.iso ?? null,
+                  gain: state?.gain ?? null,
+                  notes: state?.notes ?? "",
+                  actualStartAt: state?.actualStartAt ?? null,
+                  actualEndAt: state?.actualEndAt ?? null,
+                  plannedFilter: t.proposedFilter ?? null,
+                  plannedSubLengthSeconds: t.proposedSubLengthSeconds ?? null,
+                  plannedIso: t.proposedIso ?? null,
+                  plannedGain: t.proposedGain ?? null,
+                  plannedIntegrationMinutes:
+                    t.proposedIntegrationMinutes ?? null,
+                  plannedFrames: derivedFrames(
+                    t.proposedIntegrationMinutes,
+                    t.proposedSubLengthSeconds,
+                  ),
+                };
+              }),
+            })
+          }
+          className="mission-page-cta"
+        >
+          {saving ? "Saving…" : logFormLocked ? "Log saved" : "Save Log"}
+        </Button>
+      </div>
+
       {/* Top row: Notes log + Mission timeline (read-only) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <section className={cn(PANEL_STYLE, "p-4 flex flex-col gap-2")}>
@@ -578,63 +636,6 @@ export function LoggingView({
         </div>
       </div>
 
-      <div className="pt-3 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-xs text-zinc-400">
-          Night score (1–10)
-          <select
-            value={outcomeScore}
-            onChange={(e) => setOutcomeScore(Number(e.target.value))}
-            disabled={logFormLocked}
-            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1 text-zinc-100 disabled:opacity-50"
-          >
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button
-          type="button"
-          variant="cta"
-          size="sm"
-          disabled={saving || logFormLocked}
-          onClick={() =>
-            onSaveLog({
-              outcomeScore,
-              whatILearned: overallNotes.trim(),
-              targets: (mission.targets ?? []).map((t) => {
-                const state = perTargetState[t.targetId];
-                return {
-                  catalogId: t.targetId,
-                  targetName: t.targetName,
-                  result: state?.status ?? null,
-                  framesCaptured: state?.framesCaptured ?? null,
-                  exposureSeconds: state?.subLengthSeconds ?? null,
-                  iso: state?.iso ?? null,
-                  gain: state?.gain ?? null,
-                  notes: state?.notes ?? "",
-                  actualStartAt: state?.actualStartAt ?? null,
-                  actualEndAt: state?.actualEndAt ?? null,
-                  plannedFilter: t.proposedFilter ?? null,
-                  plannedSubLengthSeconds: t.proposedSubLengthSeconds ?? null,
-                  plannedIso: t.proposedIso ?? null,
-                  plannedGain: t.proposedGain ?? null,
-                  plannedIntegrationMinutes:
-                    t.proposedIntegrationMinutes ?? null,
-                  plannedFrames: derivedFrames(
-                    t.proposedIntegrationMinutes,
-                    t.proposedSubLengthSeconds,
-                  ),
-                };
-              }),
-            })
-          }
-          className="mission-page-cta"
-        >
-          {saving ? "Saving…" : logFormLocked ? "Log saved" : "Save Log"}
-        </Button>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { MapPin, Telescope, Moon, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MapPin, Telescope, ChevronDown } from "lucide-react";
+import { MoonPhaseMark } from "@/components/MoonPhaseMark";
+import { moonMarkAt } from "@/lib/sky/moonMark";
 import { useAppStore } from "@/lib/store";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -109,6 +111,11 @@ export function ContextChipsBar() {
     setDateTime(current.toISOString());
   };
 
+  const moon = useMemo(
+    () => (mounted ? moonMarkAt(new Date(dateTime)) : null),
+    [dateTime, mounted],
+  );
+
   const dateValue = (() => {
     const d = new Date(dateTime);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -163,7 +170,16 @@ export function ContextChipsBar() {
         tabIndex={0}
         aria-label="Select date"
       >
-        <Moon className={iconClass} aria-hidden />
+        {moon ? (
+          <MoonPhaseMark
+            phaseFraction={moon.phaseFraction}
+            elongationDeg={moon.elongationDeg}
+            size={14}
+            title={moon.phaseLabel}
+          />
+        ) : (
+          <span className="size-[14px] shrink-0 rounded-full border border-zinc-500" />
+        )}
         <span className="min-w-0 flex-1 flex items-center gap-1">
           <span className="text-zinc-300 font-semibold shrink-0">Date</span>
           <span className="text-zinc-500 shrink-0">·</span>

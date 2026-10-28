@@ -11,6 +11,8 @@ import {
   pctAlongSession,
 } from "@/lib/missions/nightSimulation";
 import { moonAtSite } from "@/lib/missions/simMoon";
+import { MoonPhaseMark } from "@/components/MoonPhaseMark";
+import { moonMarkAt } from "@/lib/sky/moonMark";
 import type { MissionTarget } from "@/lib/types";
 
 interface NightSimulationModalProps {
@@ -102,6 +104,7 @@ export function NightSimulationModal({
     model.sessionStart.getTime() + currentTimeMinutes * 60_000,
   );
   const moon = moonAtSite(when, lat, lon);
+  const phase = moonMarkAt(when);
   const startLabel = formatSimClock(model, 0, siteTimezone);
   const endLabel = formatSimClock(model, totalNightMinutes, siteTimezone);
 
@@ -183,7 +186,17 @@ export function NightSimulationModal({
                 <div className="font-mono tabular-nums">{clock}</div>
               </div>
               <div className="rounded border border-zinc-700 p-2">
-                <div className="text-zinc-500 text-xs">Moon</div>
+                <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
+                  {phase ? (
+                    <MoonPhaseMark
+                      phaseFraction={phase.phaseFraction}
+                      elongationDeg={phase.elongationDeg}
+                      size={14}
+                      title={phase.phaseLabel}
+                    />
+                  ) : null}
+                  Moon
+                </div>
                 <div className="tabular-nums">
                   {moon.phasePct != null ? `${moon.phasePct}%` : "—"}
                   {moon.altitudeDeg != null

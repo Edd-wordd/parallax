@@ -14,7 +14,9 @@ import { cn } from "@/lib/utils";
 import { targetScheduleLabel } from "@/lib/schedule/display";
 import { sessionWindowFromMission } from "@/lib/time/sessionWindow";
 import { DEFAULT_TRANSITION_MINUTES } from "@/lib/schedule/types";
-import { Moon, Plus, Target, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, Target, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { MoonPhaseMark } from "@/components/MoonPhaseMark";
+import { moonMarkAt } from "@/lib/sky/moonMark";
 
 const PANEL_STYLE = "mission-panel";
 
@@ -88,65 +90,84 @@ export function PlanningView({
   );
   const transitionMinutes =
     mission.transitionMinutes ?? DEFAULT_TRANSITION_MINUTES;
+  const moon = moonMarkAt(new Date(mission.dateTime));
+
+  const column = cn(
+    PANEL_STYLE,
+    "min-w-0 flex max-h-[34rem] min-h-[20rem] flex-col gap-3 overflow-y-auto p-4",
+  );
 
   return (
-    <>
-      {/* Simulate Night — scrubs the saved session window and schedule */}
-      <div className="flex justify-end">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onSimulateNight}
-          className="border-white/10 bg-white/5"
-          title="Scrub this mission session window and schedule"
-        >
-          <Moon className="h-4 w-4 mr-1" />
-          Simulate Night
-        </Button>
+    <div className="grid w-full grid-cols-3 items-stretch gap-4">
+      <div className={column}>
+        <SessionObservingLog
+          events={missionEvents}
+          isReadOnly={isReadOnlySession}
+          onAddNote={onAddNote}
+          onQuickEvent={onQuickEvent}
+          compact={false}
+          className="min-h-0 flex-1"
+        />
       </div>
 
-      {/* Observing log + session clock */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,34%)_minmax(0,1fr)]">
-        <div className={cn(PANEL_STYLE, "flex min-h-[22rem] flex-col gap-2 p-4")}>
-          <SessionObservingLog
-            events={missionEvents}
-            isReadOnly={isReadOnlySession}
-            onAddNote={onAddNote}
-            onQuickEvent={onQuickEvent}
-            compact={false}
-            className="min-h-0 flex-1"
-          />
-        </div>
-
-        <section
-          className={cn(
-            PANEL_STYLE,
-            "flex min-h-0 flex-col overflow-hidden p-4",
-          )}
-        >
-          <GoNoGoBanner
-            className="mb-3"
-            lat={lat}
-            lon={lon}
-            dateTime={mission.dateTime}
-            sessionEndAt={mission.sessionEndAt}
-          />
-          <h2 className="mission-section-label mb-3">Session clock</h2>
-          <SessionClock
-            sessionStart={sessionWindow.start}
-            sessionEnd={sessionWindow.end}
+      <section className={column}>
+        {onPatchTarget ? (
+          <CaptureWorksheet
             targets={mission.targets}
-            selectedTargetId={selectedTargetId ?? currentTargetId}
+            transitionMinutes={transitionMinutes}
+            availableMinutes={availableMinutes}
+            cameraName={cameraName}
+            hasSkyContext
+            hasTrackingHint={!!cameraName}
+            readOnly={isReadOnlySession || !canEditTargets}
+            onPatchTarget={onPatchTarget}
+            dense
           />
-          {nextTargetLabel && (
-            <p className="mt-3 text-xs tabular-nums text-cyan-300">
-              {nextTargetLabel}
-            </p>
-          )}
-        </section>
-      </div>
+        ) : (
+          <h3 className="text-sm font-semibold text-zinc-200">
+            Capture worksheet
+          </h3>
+        )}
+        {mission.targets.length === 0 && (
+          <p className="text-sm text-zinc-500">
+            Add a target to fill in proposed settings.
+          </p>
+        )}
+      </section>
 
-      <div className={cn(PANEL_STYLE, "p-4")}>
+      <section className={column}>
+        {moon ? (
+          <p className="flex items-center gap-2 text-xs text-zinc-300">
+            <MoonPhaseMark
+              phaseFraction={moon.phaseFraction}
+              elongationDeg={moon.elongationDeg}
+              size={16}
+              title={moon.phaseLabel}
+            />
+            <span>{moon.phaseLabel}</span>
+          </p>
+        ) : null}
+        <GoNoGoBanner
+          lat={lat}
+          lon={lon}
+          dateTime={mission.dateTime}
+          sessionEndAt={mission.sessionEndAt}
+        />
+        <h2 className="mission-section-label">Session clock</h2>
+        <SessionClock
+          sessionStart={sessionWindow.start}
+          sessionEnd={sessionWindow.end}
+          targets={mission.targets}
+          selectedTargetId={selectedTargetId ?? currentTargetId}
+        />
+        {nextTargetLabel && (
+          <p className="mt-3 text-xs tabular-nums text-cyan-300">
+            {nextTargetLabel}
+          </p>
+        )}
+      </section>
+
+      <div className={column}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="mission-section-label">Target Queue</h2>
             {canEditTargets && (
@@ -312,23 +333,7 @@ export function PlanningView({
           )}
         </div>
 
-      {onPatchTarget && mission.targets.length > 0 && (
-        <section className={cn(PANEL_STYLE, "p-4 mt-4")}>
-          <CaptureWorksheet
-            targets={mission.targets}
-            transitionMinutes={transitionMinutes}
-            availableMinutes={availableMinutes}
-            cameraName={cameraName}
-            hasSkyContext
-            hasTrackingHint={!!cameraName}
-            readOnly={isReadOnlySession || !canEditTargets}
-            onPatchTarget={onPatchTarget}
-          />
-        </section>
-      )}
-
-      {/* Exposure Plan + Session Simulator */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
+      <div className={column}>
         <ExposurePlannerCard
           mission={mission}
           target={selectedTarget ?? currentTarget}
@@ -337,6 +342,20 @@ export function PlanningView({
           cameraName={cameraName}
           hasGuiding={hasGuiding}
         />
+      </div>
+
+      <div className={column}>
+        <div className="flex justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onSimulateNight}
+            className="border-white/10 bg-white/5"
+            title="Scrub this mission session window and schedule"
+          >
+            Simulate Night
+          </Button>
+        </div>
         <SessionSimulatorCard
           mission={mission}
           lat={lat}
@@ -344,7 +363,7 @@ export function PlanningView({
           siteTimezone={siteTimezone}
         />
       </div>
-    </>
+    </div>
   );
 }
 
